@@ -1,0 +1,65 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { X } from "lucide-react";
+import { RoleGuard } from "@/components/layout/RoleGuard";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Topbar } from "@/components/layout/Topbar";
+import { useAuth } from "@/lib/auth/useAuth";
+import { PROFESSIONAL_ROLES } from "@/lib/auth/roles";
+
+function Shell({ children }: { children: ReactNode }) {
+  const { role } = useAuth();
+  const pathname = usePathname();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // The professional workspace is only for the three clinical roles; superadmin
+  // (and unauthenticated) never render the app shell. RoleGuard handles redirects.
+  if (!role || role === "superadmin") return null;
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      <div className="hidden w-64 shrink-0 border-r border-border md:block">
+        <Sidebar role={role} />
+      </div>
+
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div
+            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setMobileNavOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute left-0 top-0 h-full w-64 border-r border-border">
+            <button
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close navigation menu"
+              className="absolute right-3 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+            >
+              <X className="size-5" />
+            </button>
+            <Sidebar role={role} onNavigate={() => setMobileNavOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar onMenuClick={() => setMobileNavOpen(true)} />
+        <main className="flex-1 overflow-y-auto">
+          <div key={pathname} className="animate-fade-in">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function AppLayout({ children }: { children: ReactNode }) {
+  return (
+    <RoleGuard allowedRoles={PROFESSIONAL_ROLES}>
+      <Shell>{children}</Shell>
+    </RoleGuard>
+  );
+}

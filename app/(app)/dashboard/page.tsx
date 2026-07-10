@@ -1,0 +1,159 @@
+"use client";
+
+import Link from "next/link";
+import { AlertTriangle, FilePlus2, ShieldCheck, ShieldQuestion, Undo2, Users } from "lucide-react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/lib/auth/useAuth";
+import { usePatients } from "@/lib/query/hooks/usePatients";
+import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
+import { useClinicalAlerts } from "@/lib/query/hooks/useClinicalAlerts";
+import { formatDateTime } from "@/lib/utils/date";
+import { overallVerdict } from "@/lib/screening-engine/overallVerdict";
+
+const ALERT_ICON = {
+  pending_cosign: ShieldQuestion,
+  acknowledged: AlertTriangle,
+  cosigned: ShieldCheck,
+  sent_back: Undo2,
+} as const;
+
+const ALERT_LABEL = {
+  pending_cosign: "Held for Admin co-sign",
+  acknowledged: "Acknowledged, proceeding",
+  cosigned: "Co-signed — released to pharmacy",
+  sent_back: "Sent back by Facility Admin",
+} as const;
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const { data: patients, isLoading: patientsLoading } = usePatients();
+  const { data: prescriptions, isLoading: rxLoading } = usePrescriptions({
+    prescriberId: user?.id,
+  });
+  const { data: alerts } = useClinicalAlerts({ prescriberId: user?.id });
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Welcome back, {user?.name ?? "there"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Screen a new prescription or pick up where you left off.
+          </p>
+        </div>
+        <Link href="/prescriptions/new">
+          <Button size="lg">
+            <FilePlus2 className="size-5" aria-hidden="true" />
+            New Prescription
+          </Button>
+        </Link>
+      </div>
+
+      {alerts && alerts.length > 0 && (
+        <Card>
+          <CardBody className="space-y-3">
+            <h2 className="font-semibold text-foreground">Clinical alerts</h2>
+            <p className="-mt-2 text-sm text-muted-foreground">
+              Raised by the Facility Admin checkpoint when one of your prescriptions carries risk.
+            </p>
+            <ul className="divide-y divide-border">
+              {alerts.slice(0, 5).map((alert) => {
+                const Icon = ALERT_ICON[alert.status];
+                return (
+                  <li key={alert.id}>
+                    <Link
+                      href={`/prescriptions/${alert.prescriptionId}`}
+                      className="flex items-start gap-3 py-2.5 text-sm hover:text-brand"
+                    >
+                      <Icon className="mt-0.5 size-4 shrink-0 text-subtle" aria-hidden="true" />
+                      <span className="flex-1 text-secondary">{alert.message}</span>
+                      <Badge tone={alert.status === "pending_cosign" ? "blocked" : "neutral"}>
+                        {ALERT_LABEL[alert.status]}
+                      </Badge>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardBody>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-semibold text-foreground">Recent patients</h2>
+              <Link href="/patients" className="text-sm font-medium text-brand hover:underline">
+                View all
+              </Link>
+            </div>
+            {patientsLoading && (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            )}
+            {!patientsLoading && (
+              <ul className="divide-y divide-border">
+                {(patients ?? []).slice(0, 5).map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      href={`/patients/${p.id}`}
+                      className="flex items-center gap-3 py-2.5 text-sm text-secondary hover:text-brand"
+                    >
+                      <Users className="size-4 shrink-0 text-subtle" aria-hidden="true" />
+                      {p.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-semibold text-foreground">Your recent prescriptions</h2>
+              <Link href="/prescriptions" className="text-sm font-medium text-brand hover:underline">
+                View all
+              </Link>
+            </div>
+            {rxLoading && (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            )}
+            {!rxLoading && (prescriptions?.length ?? 0) === 0 && (
+              <p className="py-4 text-sm text-muted-foreground">No prescriptions yet.</p>
+            )}
+            {!rxLoading && (
+              <ul className="divide-y divide-border">
+                {(prescriptions ?? []).slice(0, 5).map((rx) => (
+                  <li key={rx.id}>
+                    <Link
+                      href={`/prescriptions/${rx.id}`}
+                      className="flex items-center justify-between gap-3 py-2.5 text-sm text-secondary hover:text-brand"
+                    >
+                      <span>{formatDateTime(rx.createdAt)}</span>
+                      <VerdictBadge verdict={overallVerdict(rx.verdicts)} size="sm" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+    </div>
+  );
+}

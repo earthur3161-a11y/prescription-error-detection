@@ -1,0 +1,269 @@
+@import "tailwindcss";
+
+/* Enable `dark:` variants driven by the data-theme attribute the no-FOUC script sets. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Design tokens. Raw values live here so a single [data-theme] override flips
+   the entire surface. Every semantic token is mapped into Tailwind utilities
+   in the @theme block below, so `bg-surface`, `text-secondary`, `border-border`
+   etc. are all first-class classes and adapt to the theme automatically.
+--------------------------------------------------------------------------- */
+:root {
+  /* Surfaces & text */
+  --background: #f6f8fc;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --muted: #f1f5f9;
+  --elevated: #ffffff;
+
+  --foreground: #0f172a;
+  --secondary: #475569;
+  --muted-foreground: #64748b;
+  --subtle: #94a3b8;
+
+  --border: #e6ebf2;
+  --border-strong: #cdd6e3;
+
+  /* Brand */
+  --brand: #2563eb;
+  --brand-strong: #1d4ed8;
+  --brand-teal: #0ea5a4;
+  --brand-subtle: #eef4ff;
+  --brand-foreground: #ffffff;
+
+  /* Verdict palette */
+  --safe-fg: #15803d;
+  --safe-bg: #dcfce7;
+  --safe-border: #86efac;
+
+  --caution-fg: #b45309;
+  --caution-bg: #fef3c7;
+  --caution-border: #fcd34d;
+
+  --blocked-fg: #dc2626;
+  --blocked-bg: #fee2e2;
+  --blocked-border: #fca5a5;
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #0ea5a4 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  --hero-glow-1: rgba(37, 99, 235, 0.16);
+  --hero-glow-2: rgba(14, 165, 164, 0.14);
+  --hero-base: #f6f8fc;
+
+  /* Elevation */
+  --shadow-soft: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.08);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 12px 32px -8px rgb(15 23 42 / 0.12);
+  --shadow-lg: 0 12px 24px -6px rgb(15 23 42 / 0.12), 0 24px 56px -12px rgb(15 23 42 / 0.2);
+  --shadow-glow: 0 8px 24px -6px rgb(37 99 235 / 0.4);
+
+  --ring: rgb(37 99 235 / 0.35);
+}
+
+:root[data-theme="dark"] {
+  --background: #080c15;
+  --surface: #121a2b;
+  --surface-2: #0e1626;
+  --muted: #1c2740;
+  --elevated: #16203391;
+
+  --foreground: #eef2f9;
+  --secondary: #b4c0d4;
+  --muted-foreground: #8b98af;
+  --subtle: #64748b;
+
+  --border: #24304a;
+  --border-strong: #33415e;
+
+  --brand: #4f8cff;
+  --brand-strong: #3b82f6;
+  --brand-teal: #2dd4bf;
+  --brand-subtle: rgba(79, 140, 255, 0.14);
+  --brand-foreground: #ffffff;
+
+  --safe-fg: #4ade80;
+  --safe-bg: rgba(34, 197, 94, 0.14);
+  --safe-border: rgba(34, 197, 94, 0.4);
+
+  --caution-fg: #fbbf24;
+  --caution-bg: rgba(245, 158, 11, 0.14);
+  --caution-border: rgba(245, 158, 11, 0.4);
+
+  --blocked-fg: #f87171;
+  --blocked-bg: rgba(239, 68, 68, 0.15);
+  --blocked-border: rgba(239, 68, 68, 0.42);
+
+  --gradient-brand: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #2dd4bf 100%);
+  --gradient-brand-soft: linear-gradient(135deg, #4f8cff 0%, #818cf8 100%);
+  --hero-glow-1: rgba(59, 130, 246, 0.22);
+  --hero-glow-2: rgba(45, 212, 191, 0.16);
+  --hero-base: #080c15;
+
+  --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 12px 32px -8px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 12px 24px -6px rgb(0 0 0 / 0.55), 0 24px 56px -12px rgb(0 0 0 / 0.7);
+  --shadow-glow: 0 8px 28px -6px rgb(79 140 255 / 0.5);
+
+  --ring: rgb(79 140 255 / 0.5);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-elevated: var(--elevated);
+
+  --color-foreground: var(--foreground);
+  --color-secondary: var(--secondary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-foreground: var(--brand-foreground);
+
+  --color-safe-fg: var(--safe-fg);
+  --color-safe-bg: var(--safe-bg);
+  --color-safe-border: var(--safe-border);
+
+  --color-caution-fg: var(--caution-fg);
+  --color-caution-bg: var(--caution-bg);
+  --color-caution-border: var(--caution-border);
+
+  --color-blocked-fg: var(--blocked-fg);
+  --color-blocked-bg: var(--blocked-bg);
+  --color-blocked-border: var(--blocked-border);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --shadow-soft: var(--shadow-soft);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-glow: var(--shadow-glow);
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-scale-in: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    letter-spacing: -0.011em;
+    transition: background-color 0.35s ease, color 0.35s ease;
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: rgb(37 99 235 / 0.22);
+  }
+  /* Refined scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--subtle);
+    background-clip: content-box;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities: gradients, glass, and entrance animations.
+--------------------------------------------------------------------------- */
+@layer utilities {
+  .bg-gradient-brand {
+    background-image: var(--gradient-brand);
+  }
+  .bg-gradient-brand-soft {
+    background-image: var(--gradient-brand-soft);
+  }
+  .text-gradient-brand {
+    background-image: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-hero {
+    background-color: var(--hero-base);
+    background-image:
+      radial-gradient(60rem 40rem at 80% -10%, var(--hero-glow-1), transparent 60%),
+      radial-gradient(50rem 34rem at 0% 10%, var(--hero-glow-2), transparent 55%);
+  }
+  .glass {
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  }
+  .ring-focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  .animate-fade-up { animation: var(--animate-fade-up); }
+  .animate-fade-in { animation: var(--animate-fade-in); }
+  .animate-scale-in { animation: var(--animate-scale-in); }
+
+  /* Stagger helpers for lists/grids */
+  .stagger > * { animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.1s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in,
+  .stagger > * {
+    animation: none !important;
+  }
+}

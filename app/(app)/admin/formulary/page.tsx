@@ -1,0 +1,276 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { FileUp, Plus, Trash2 } from "lucide-react";
+import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Modal } from "@/components/ui/Modal";
+import { Badge } from "@/components/ui/Badge";
+import { useFormulary } from "@/lib/query/hooks/useFormulary";
+import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
+import { generateId } from "@/lib/utils/id";
+import type { Drug, Route } from "@/lib/types";
+
+const ALL_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual"];
+
+function emptyDraft(): {
+  generic_name: string;
+  brand_names: string;
+  drugClass: string;
+  routes: Route[];
+  minMgPerDose: string;
+  maxMgPerDose: string;
+  maxMgPerDay: string;
+  frequency: string;
+  onEssentialMedicinesList: boolean;
+} {
+  return {
+    generic_name: "",
+    brand_names: "",
+    drugClass: "",
+    routes: ["oral"],
+    minMgPerDose: "",
+    maxMgPerDose: "",
+    maxMgPerDay: "",
+    frequency: "",
+    onEssentialMedicinesList: true,
+  };
+}
+
+export default function AdminFormularyPage() {
+  const { data: formulary, isLoading } = useFormulary();
+  const upsertDrug = useUpsertDrug();
+  const deleteDrug = useDeleteDrug();
+
+  const [query, setQuery] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [draft, setDraft] = useState(emptyDraft());
+
+  const drugs = (formulary?.drugs ?? [])
+    .filter((d) => d.generic_name.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => a.generic_name.localeCompare(b.generic_name));
+
+  function handleAddDrug() {
+    const min = Number(draft.minMgPerDose);
+    const max = Number(draft.maxMgPerDose);
+    const maxDay = Number(draft.maxMgPerDay);
+    if (!draft.generic_name.trim() || !draft.drugClass.trim() || !min || !max || !maxDay) return;
+
+    const drug: Drug = {
+      id: generateId("drug"),
+      generic_name: draft.generic_name.trim(),
+      brand_names: draft.brand_names
+        .split(",")
+        .map((b) => b.trim())
+        .filter(Boolean),
+      class: draft.drugClass.trim(),
+      standard_dose_range: {
+        minMgPerDose: min,
+        maxMgPerDose: max,
+        maxMgPerDay: maxDay,
+        frequency: draft.frequency.trim() || "as directed",
+        weightBased: false,
+      },
+      route: draft.routes,
+      region_availability: ["GH"],
+      onEssentialMedicinesList: draft.onEssentialMedicinesList,
+    };
+
+    upsertDrug.mutate(drug, {
+      onSuccess: () => {
+        setModalOpen(false);
+        setDraft(emptyDraft());
+      },
+    });
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Formulary Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {formulary
+              ? `${formulary.drugs.length} medicines in the database used by the screening engine. EML status is a tag, not a filter.`
+              : "Manage the drug list used by the screening engine."}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/admin/formulary/import">
+            <Button variant="secondary">
+              <FileUp className="size-5" aria-hidden="true" />
+              Bulk import
+            </Button>
+          </Link>
+          <Button onClick={() => setModalOpen(true)}>
+            <Plus className="size-5" aria-hidden="true" />
+            Add Drug
+          </Button>
+        </div>
+      </div>
+
+      <Input
+        placeholder="Search formulary…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        aria-label="Search formulary"
+        className="max-w-sm"
+      />
+
+      {isLoading && (
+        <div className="space-y-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {drugs.map((drug) => (
+          <Card key={drug.id}>
+            <CardBody className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium text-foreground">
+                  {drug.generic_name}
+                  {drug.brand_names.length > 0 && (
+                    <span className="ml-1.5 font-normal text-subtle">
+                      ({drug.brand_names.join(", ")})
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {drug.class} · {drug.standard_dose_range.minMgPerDose}–
+                  {drug.standard_dose_range.maxMgPerDose}mg/dose, max{" "}
+                  {drug.standard_dose_range.maxMgPerDay}mg/day · {drug.route.join(", ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge tone={drug.onEssentialMedicinesList ? "safe" : "caution"}>
+                  {drug.onEssentialMedicinesList ? "On EML" : "Not on EML"}
+                </Badge>
+                <Badge tone="neutral">{drug.region_availability.join(", ")}</Badge>
+                <button
+                  onClick={() => {
+                    if (confirm(`Remove ${drug.generic_name} from the formulary?`)) {
+                      deleteDrug.mutate(drug.id);
+                    }
+                  }}
+                  aria-label={`Remove ${drug.generic_name}`}
+                  className="rounded-lg p-2 text-subtle hover:bg-muted hover:text-blocked-fg"
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+
+      <Modal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        title="Add drug to formulary"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddDrug} disabled={upsertDrug.isPending}>
+              Save drug
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Generic name *</label>
+            <Input
+              value={draft.generic_name}
+              onChange={(e) => setDraft((d) => ({ ...d, generic_name: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Brand names (comma separated)</label>
+            <Input
+              value={draft.brand_names}
+              onChange={(e) => setDraft((d) => ({ ...d, brand_names: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Therapeutic class *</label>
+            <Input
+              value={draft.drugClass}
+              onChange={(e) => setDraft((d) => ({ ...d, drugClass: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Min dose (mg) *</label>
+            <Input
+              type="number"
+              value={draft.minMgPerDose}
+              onChange={(e) => setDraft((d) => ({ ...d, minMgPerDose: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Max dose (mg) *</label>
+            <Input
+              type="number"
+              value={draft.maxMgPerDose}
+              onChange={(e) => setDraft((d) => ({ ...d, maxMgPerDose: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Max daily dose (mg) *</label>
+            <Input
+              type="number"
+              value={draft.maxMgPerDay}
+              onChange={(e) => setDraft((d) => ({ ...d, maxMgPerDay: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Frequency description</label>
+            <Input
+              placeholder="e.g. every 8h"
+              value={draft.frequency}
+              onChange={(e) => setDraft((d) => ({ ...d, frequency: e.target.value }))}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-1.5 text-sm text-secondary">
+              <input
+                type="checkbox"
+                checked={draft.onEssentialMedicinesList}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, onEssentialMedicinesList: e.target.checked }))
+                }
+              />
+              On Ghana Essential Medicines List
+            </label>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Routes</label>
+            <div className="flex flex-wrap gap-3">
+              {ALL_ROUTES.map((r) => (
+                <label key={r} className="flex items-center gap-1.5 text-sm text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={draft.routes.includes(r)}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        routes: e.target.checked ? [...d.routes, r] : d.routes.filter((x) => x !== r),
+                      }))
+                    }
+                  />
+                  {r}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
