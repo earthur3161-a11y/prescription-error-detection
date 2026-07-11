@@ -42,7 +42,7 @@ export function useCreatePrescription() {
       queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
       queryClient.invalidateQueries({ queryKey: ["outbox"] });
       queryClient.invalidateQueries({ queryKey: ["clinicalAlerts"] });
-      const idLabel = created.id.replace("rx_", "");
+      const idLabel = created.id.slice(0, 8);
       const description = simulateOffline
         ? "Saved locally — will sync when back online."
         : created.status === "pending_admin_cosign"

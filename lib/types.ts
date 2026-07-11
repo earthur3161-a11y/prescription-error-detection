@@ -128,6 +128,21 @@ export interface User {
   title: string;
 }
 
+/**
+ * Mirrors a Supabase `profiles` row — the real, shared identity record for
+ * every provisioned account (supersedes the old per-browser `seedUsers`
+ * lookup table for name/title resolution across the app).
+ */
+export interface Profile {
+  id: string;
+  role: AccountRole;
+  name: string;
+  title: string;
+  status: "active" | "disabled";
+  institution?: string;
+  createdAt: string;
+}
+
 export type AccountStatus =
   | "invited" // provisioned but the holder hasn't set a password yet
   | "active"

@@ -90,7 +90,6 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
   }
 
   const state = pharmacyStateOf(prescription.status);
-  const pharmacistId = user?.id ?? "user_kwame_mensah";
 
   // Guard: only dispensable once Approved (Cleared).
   if (!finalized && state !== "cleared") {
@@ -137,14 +136,14 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
   const canDispense = lineChecks.every((c) => c.drug && c.batchOk && c.qtyOk && c.partialReasonOk);
 
   async function handleFinalize() {
-    if (!prescription) return;
+    if (!prescription || !user) return;
     const items: LabelItem[] = [];
     for (const c of lineChecks) {
       if (!c.drug || !c.batch) continue;
       const rec = await createDispense.mutateAsync({
         prescriptionId: id,
         patientId: prescription.patientId,
-        pharmacistId,
+        pharmacistId: user.id,
         batchId: c.batch.id,
         drugId: c.drug.id,
         drugName: c.drug.generic_name,
@@ -157,7 +156,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
       }
       items.push({ drug: c.drug, line: c.line, batch: c.batch, quantity: c.ls.quantity });
     }
-    await appendAction.mutateAsync({ prescriptionId: id, pharmacistId, action: "dispense" });
+    await appendAction.mutateAsync({ prescriptionId: id, pharmacistId: user.id, action: "dispense" });
     await updateStatus.mutateAsync({ id, status: "dispensed" });
     setDispensedItems(items);
     setFinalized(true);

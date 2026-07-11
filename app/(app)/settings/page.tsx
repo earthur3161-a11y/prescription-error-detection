@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_LABELS } from "@/lib/auth/roles";
-import { seedUsers } from "@/lib/data/seed/users";
+import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { useOfflineStore } from "@/lib/store/offline-store";
 import { usePendingOutbox, useSyncOutbox } from "@/lib/query/hooks/useOutbox";
 
@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const toggleSimulateOffline = useOfflineStore((s) => s.toggleSimulateOffline);
   const { data: pending } = usePendingOutbox();
   const syncOutbox = useSyncOutbox();
+  const { data: profiles } = useProfiles();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -114,10 +115,10 @@ export default function SettingsPage() {
         <CardBody className="space-y-3">
           <h2 className="font-semibold text-foreground">Users</h2>
           <ul className="divide-y divide-border">
-            {seedUsers.map((u) => (
-              <li key={u.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="text-foreground">{u.name}</span>
-                <Badge tone="neutral">{ROLE_LABELS[u.role]}</Badge>
+            {[...(profiles?.values() ?? [])].map((p) => (
+              <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                <span className="text-foreground">{p.name}</span>
+                <Badge tone="neutral">{ROLE_LABELS[p.role]}</Badge>
               </li>
             ))}
           </ul>

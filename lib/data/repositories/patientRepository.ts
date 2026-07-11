@@ -1,37 +1,72 @@
-import { db, ensureSeeded } from "../db";
-import { generateId } from "../../utils/id";
-import type { Patient } from "../../types";
+import { supabase } from "../../supabase/client";
+import type { PatientRow } from "../../supabase/types";
+import type { ActiveMedication, AllergyRecord, Patient } from "../../types";
+
+function mapRow(row: PatientRow): Patient {
+  return {
+    id: row.id,
+    name: row.name,
+    dob: row.dob,
+    sex: row.sex,
+    phone: row.phone ?? undefined,
+    weightKg: row.weight_kg,
+    renalStatus: row.renal_status,
+    hepaticStatus: row.hepatic_status,
+    allergies: row.allergies as AllergyRecord[] | null,
+    activeMedications: row.active_medications as ActiveMedication[] | null,
+    isPregnant: row.is_pregnant,
+  };
+}
 
 export async function listPatients(): Promise<Patient[]> {
-  await ensureSeeded();
-  return db.patients.orderBy("name").toArray();
+  const { data, error } = await supabase.from("patients").select("*").order("name");
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
 }
 
 export async function getPatientById(id: string): Promise<Patient | null> {
-  await ensureSeeded();
-  const patient = await db.patients.get(id);
-  return patient ?? null;
+  const { data, error } = await supabase.from("patients").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data) : null;
 }
 
+/**
+ * Full-table scan + client-side filter, same as the previous Dexie
+ * implementation — clinic-scale patient counts make this fine, and it keeps
+ * the fuzzy name/id/phone-digits matching behavior identical.
+ */
 export async function searchPatients(query: string): Promise<Patient[]> {
-  await ensureSeeded();
-  const patients = await db.patients.toArray();
+  const patients = await listPatients();
   const q = query.trim().toLowerCase();
-  if (!q) return patients.sort((a, b) => a.name.localeCompare(b.name));
+  if (!q) return patients;
   const digits = q.replace(/\D/g, "");
-  return patients
-    .filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q) ||
-        (!!digits && (p.phone ?? "").replace(/\D/g, "").includes(digits))
-    )
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return patients.filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.id.toLowerCase().includes(q) ||
+      (!!digits && (p.phone ?? "").replace(/\D/g, "").includes(digits))
+  );
 }
 
 export async function createPatient(patient: Omit<Patient, "id">): Promise<Patient> {
-  await ensureSeeded();
-  const full: Patient = { ...patient, id: generateId("patient") };
-  await db.patients.put(full);
-  return full;
+  const id = crypto.randomUUID();
+  const { data, error } = await supabase
+    .from("patients")
+    .insert({
+      id,
+      name: patient.name,
+      dob: patient.dob,
+      sex: patient.sex,
+      phone: patient.phone ?? null,
+      weight_kg: patient.weightKg,
+      renal_status: patient.renalStatus,
+      hepatic_status: patient.hepaticStatus,
+      allergies: patient.allergies,
+      active_medications: patient.activeMedications,
+      is_pregnant: patient.isPregnant ?? null,
+    })
+    .select()
+    .single();
+  if (error || !data) throw error ?? new Error("Failed to create patient.");
+  return mapRow(data);
 }

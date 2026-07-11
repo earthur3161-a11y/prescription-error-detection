@@ -13,7 +13,7 @@ import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { usePatients } from "@/lib/query/hooks/usePatients";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { usePatientFeedbackReports } from "@/lib/query/hooks/usePatientFeedback";
-import { seedUsers } from "@/lib/data/seed/users";
+import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { FLAG_TYPE_LABEL } from "@/lib/screening-engine";
 
@@ -48,6 +48,7 @@ export default function AdminAuditLogPage() {
   const { data: patients } = usePatients();
   const { data: formulary } = useFormulary();
   const { data: feedbackReports } = usePatientFeedbackReports();
+  const { data: profiles } = useProfiles();
 
   const prescriptionById = useMemo(
     () => new Map((prescriptions ?? []).map((rx) => [rx.id, rx])),
@@ -61,7 +62,10 @@ export default function AdminAuditLogPage() {
     () => new Map((formulary?.drugs ?? []).map((d) => [d.id, d.generic_name])),
     [formulary]
   );
-  const userNameById = useMemo(() => new Map(seedUsers.map((u) => [u.id, u.name])), []);
+  const userNameById = useMemo(
+    () => new Map([...(profiles?.values() ?? [])].map((p) => [p.id, p.name])),
+    [profiles]
+  );
   const drugById = useMemo(
     () => new Map((formulary?.drugs ?? []).map((d) => [d.id, d])),
     [formulary]
@@ -196,9 +200,9 @@ export default function AdminAuditLogPage() {
         className="max-w-xs"
       >
         <option value="all">All users</option>
-        {seedUsers.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.name}
+        {[...(profiles?.values() ?? [])].map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
           </option>
         ))}
       </Select>

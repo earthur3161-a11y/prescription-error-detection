@@ -1,5 +1,24 @@
-import { db, ensureSeeded } from "../db";
-import type { Prescription, PrescriptionSource, PrescriptionStatus } from "../../types";
+import { supabase } from "../../supabase/client";
+import type { PrescriptionRow } from "../../supabase/types";
+import type { DrugLineVerdict } from "../../screening-engine/types";
+import type { Prescription, PrescriptionDrugLine, PrescriptionSource, PrescriptionStatus } from "../../types";
+
+function mapRow(row: PrescriptionRow): Prescription {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    prescriberId: row.prescriber_id,
+    drugs: row.drugs as PrescriptionDrugLine[],
+    verdicts: row.verdicts as DrugLineVerdict[],
+    status: row.status,
+    createdAt: row.created_at,
+    pharmacistNote: row.pharmacist_note ?? undefined,
+    adminNote: row.admin_note ?? undefined,
+    source: row.source,
+    externalPrescriberName: row.external_prescriber_name ?? undefined,
+    patientCheckId: row.patient_check_id ?? undefined,
+  };
+}
 
 export interface PrescriptionFilters {
   patientId?: string;
@@ -9,25 +28,49 @@ export interface PrescriptionFilters {
 }
 
 export async function listPrescriptions(filters: PrescriptionFilters = {}): Promise<Prescription[]> {
-  await ensureSeeded();
-  let all = await db.prescriptions.toArray();
-  if (filters.patientId) all = all.filter((p) => p.patientId === filters.patientId);
-  if (filters.prescriberId) all = all.filter((p) => p.prescriberId === filters.prescriberId);
-  if (filters.status) all = all.filter((p) => p.status === filters.status);
-  if (filters.source) all = all.filter((p) => p.source === filters.source);
-  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  let query = supabase.from("prescriptions").select("*");
+  if (filters.patientId) query = query.eq("patient_id", filters.patientId);
+  if (filters.prescriberId) query = query.eq("prescriber_id", filters.prescriberId);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.source) query = query.eq("source", filters.source);
+  const { data, error } = await query.order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
 }
 
 export async function getPrescriptionById(id: string): Promise<Prescription | null> {
-  await ensureSeeded();
-  const rx = await db.prescriptions.get(id);
-  return rx ?? null;
+  const { data, error } = await supabase.from("prescriptions").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data) : null;
 }
 
+/**
+ * Upsert, not a pure insert: the hospital flow writes the same prescription
+ * id twice — once when the doctor submits (status "pending_admin_review"),
+ * again when the Facility Admin checkpoint re-screens it moments later
+ * (adminCheckpoint.ts) — matching the previous Dexie `.put()` semantics.
+ */
 export async function createPrescription(prescription: Prescription): Promise<Prescription> {
-  await ensureSeeded();
-  await db.prescriptions.put(prescription);
-  return prescription;
+  const { data, error } = await supabase
+    .from("prescriptions")
+    .upsert({
+      id: prescription.id,
+      patient_id: prescription.patientId,
+      prescriber_id: prescription.prescriberId,
+      drugs: prescription.drugs,
+      verdicts: prescription.verdicts,
+      status: prescription.status,
+      created_at: prescription.createdAt,
+      pharmacist_note: prescription.pharmacistNote ?? null,
+      admin_note: prescription.adminNote ?? null,
+      source: prescription.source,
+      external_prescriber_name: prescription.externalPrescriberName ?? null,
+      patient_check_id: prescription.patientCheckId ?? null,
+    })
+    .select()
+    .single();
+  if (error || !data) throw error ?? new Error("Failed to save prescription.");
+  return mapRow(data);
 }
 
 export async function updatePrescriptionStatus(
@@ -36,16 +79,29 @@ export async function updatePrescriptionStatus(
   pharmacistNote?: string,
   adminNote?: string
 ): Promise<void> {
-  await ensureSeeded();
-  await db.prescriptions.update(id, {
-    status,
-    ...(pharmacistNote !== undefined ? { pharmacistNote } : {}),
-    ...(adminNote !== undefined ? { adminNote } : {}),
-  });
+  const { data, error } = await supabase
+    .from("prescriptions")
+    .update({
+      status,
+      ...(pharmacistNote !== undefined ? { pharmacist_note: pharmacistNote } : {}),
+      ...(adminNote !== undefined ? { admin_note: adminNote } : {}),
+    })
+    .eq("id", id)
+    .select("id");
+  if (error) throw error;
+  // PostgREST returns success with an empty array (not an error) when RLS
+  // silently filters out the row — surface that as a real failure instead of
+  // letting a caller believe the status change actually happened.
+  if (!data || data.length === 0) throw new Error("Prescription status update didn't apply — no matching row.");
 }
 
 /** Attach/replace the pharmacist's free-text note without changing status. */
 export async function updatePharmacistNote(id: string, pharmacistNote: string): Promise<void> {
-  await ensureSeeded();
-  await db.prescriptions.update(id, { pharmacistNote });
+  const { data, error } = await supabase
+    .from("prescriptions")
+    .update({ pharmacist_note: pharmacistNote })
+    .eq("id", id)
+    .select("id");
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error("Pharmacist note update didn't apply — no matching row.");
 }

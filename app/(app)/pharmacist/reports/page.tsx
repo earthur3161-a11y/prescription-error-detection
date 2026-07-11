@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useAllPharmacistActions, useDispenseRecords, useBatches, usePharmacySettings } from "@/lib/query/hooks/usePharmacy";
 import { usePatients } from "@/lib/query/hooks/usePatients";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
-import { seedUsers } from "@/lib/data/seed/users";
+import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { summariseStock, effectiveBatchStatus } from "@/lib/pharmacy/inventory";
 import { formatDateTime } from "@/lib/utils/date";
 
@@ -36,6 +36,7 @@ export default function PharmacyReportsPage() {
   const { data: settings } = usePharmacySettings();
   const { data: patients } = usePatients();
   const { data: formulary } = useFormulary();
+  const { data: profiles } = useProfiles();
 
   const patientNameById = useMemo(() => new Map((patients ?? []).map((p) => [p.id, p.name])), [patients]);
 
@@ -68,10 +69,10 @@ export default function PharmacyReportsPage() {
   function exportCsv() {
     const rows: string[][] = [["Type", "Detail", "Pharmacist", "When"]];
     for (const d of today.dispenses) {
-      rows.push(["Dispensed", `${d.drugName} ×${d.quantityDispensed} → ${patientNameById.get(d.patientId) ?? d.patientId}`, seedUsers.find((u) => u.id === d.pharmacistId)?.name ?? d.pharmacistId, formatDateTime(d.dispensedAt)]);
+      rows.push(["Dispensed", `${d.drugName} ×${d.quantityDispensed} → ${patientNameById.get(d.patientId) ?? d.patientId}`, profiles?.get(d.pharmacistId)?.name ?? d.pharmacistId, formatDateTime(d.dispensedAt)]);
     }
     for (const a of today.interventionList) {
-      rows.push(["Intervention", `${a.reason ?? ""}${a.interventionOutcome ? " → " + a.interventionOutcome : ""}`, seedUsers.find((u) => u.id === a.pharmacistId)?.name ?? a.pharmacistId, formatDateTime(a.timestamp)]);
+      rows.push(["Intervention", `${a.reason ?? ""}${a.interventionOutcome ? " → " + a.interventionOutcome : ""}`, profiles?.get(a.pharmacistId)?.name ?? a.pharmacistId, formatDateTime(a.timestamp)]);
     }
     downloadCsv(rows, `mediguard-daily-report-${new Date().toISOString().slice(0, 10)}.csv`);
   }
@@ -114,7 +115,7 @@ export default function PharmacyReportsPage() {
               <li key={a.id} className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
                 <p className="text-secondary">{a.reason}</p>
                 {a.interventionOutcome && <p className="text-muted-foreground">Outcome: {a.interventionOutcome}</p>}
-                <p className="text-xs text-subtle">{seedUsers.find((u) => u.id === a.pharmacistId)?.name ?? a.pharmacistId} · {formatDateTime(a.timestamp)}</p>
+                <p className="text-xs text-subtle">{profiles?.get(a.pharmacistId)?.name ?? a.pharmacistId} · {formatDateTime(a.timestamp)}</p>
               </li>
             ))}
           </ul>

@@ -23,7 +23,7 @@ import {
   useUpdatePharmacistNote,
 } from "@/lib/query/hooks/usePharmacy";
 import { useAuth } from "@/lib/auth/useAuth";
-import { seedUsers } from "@/lib/data/seed/users";
+import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict, screenDrugLine } from "@/lib/screening-engine";
 import { pharmacyStateOf } from "@/lib/pharmacy/status";
@@ -47,6 +47,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   const { data: patient } = usePatient(prescription?.patientId ?? null);
   const { data: formulary } = useFormulary();
   const { data: actions } = usePharmacistActions(id);
+  const { data: profiles } = useProfiles();
 
   const updateStatus = useUpdatePrescriptionStatus();
   const appendAction = useAppendPharmacistAction();
@@ -89,8 +90,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   }
 
   const state = pharmacyStateOf(prescription.status) ?? "new";
-  const pharmacistId = user?.id ?? "user_kwame_mensah";
-  const prescriber = seedUsers.find((u) => u.id === prescription.prescriberId);
+  const prescriber = profiles?.get(prescription.prescriberId);
   const drugRefs = prescription.drugs
     .map((l) => formulary.drugs.find((d) => d.id === l.drugId))
     .filter((d): d is NonNullable<typeof d> => !!d)
@@ -99,7 +99,8 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   const pending = updateStatus.isPending || appendAction.isPending;
 
   function log(action: PharmacistActionType, extra: Partial<Parameters<typeof appendAction.mutate>[0]> = {}) {
-    appendAction.mutate({ prescriptionId: id, pharmacistId, action, ...extra });
+    if (!user) return;
+    appendAction.mutate({ prescriptionId: id, pharmacistId: user.id, action, ...extra });
   }
 
   function handleApprove() {
@@ -251,7 +252,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
                   <span className="font-medium text-foreground">{ACTION_LABEL[a.action]}</span>
                   <span className="text-subtle">
                     {" "}
-                    · {seedUsers.find((u) => u.id === a.pharmacistId)?.name ?? a.pharmacistId} · {formatDateTime(a.timestamp)}
+                    · {profiles?.get(a.pharmacistId)?.name ?? a.pharmacistId} · {formatDateTime(a.timestamp)}
                   </span>
                   {a.reason && <p className="text-secondary">{a.reason}</p>}
                   {a.interventionOutcome && <p className="text-muted-foreground">Outcome: {a.interventionOutcome}</p>}

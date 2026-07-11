@@ -13,7 +13,6 @@ import { useCreatePrescription } from "@/lib/query/hooks/useCreatePrescription";
 import { useCreateOverrideLog } from "@/lib/query/hooks/useCreateOverrideLog";
 import { screenDrugLine, type DrugLineVerdict, type Verdict } from "@/lib/screening-engine";
 import { buildDefaultLine } from "@/lib/prescription/lineDefaults";
-import { generateId } from "@/lib/utils/id";
 import type {
   Drug,
   OverrideLog,
@@ -56,7 +55,10 @@ export function PrescriptionBuilder({
   onSubmitted,
 }: PrescriptionBuilderProps) {
   const [patientId, setPatientId] = useState<string | null>(initialPatientId);
-  const [prescriptionId, setPrescriptionId] = useState(() => generateId("rx"));
+  // A real UUID, not a prefixed generateId() string: prescriptions.id is a
+  // Postgres uuid primary key now, and override logs reference this id
+  // before the prescription row itself is ever written.
+  const [prescriptionId, setPrescriptionId] = useState(() => crypto.randomUUID());
   const [lines, setLines] = useState<PrescriptionDrugLine[]>(initialLines);
   const [overrideLogs, setOverrideLogs] = useState<Record<string, OverrideLog>>({});
   const [overrideTarget, setOverrideTarget] = useState<{
@@ -181,13 +183,13 @@ export function PrescriptionBuilder({
         onSelect={(id) => {
           setPatientId(id);
           setOverrideLogs({});
-          setPrescriptionId(generateId("rx"));
+          setPrescriptionId(crypto.randomUUID());
         }}
         onClear={() => {
           setPatientId(null);
           setLines([]);
           setOverrideLogs({});
-          setPrescriptionId(generateId("rx"));
+          setPrescriptionId(crypto.randomUUID());
         }}
       />
 

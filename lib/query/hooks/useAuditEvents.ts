@@ -9,7 +9,7 @@ import { usePatientChecks } from "./usePatientChecks";
 import { useClinicalAlerts } from "./useClinicalAlerts";
 import { useAllPharmacistActions } from "./usePharmacy";
 import { useAllPipelineEvents } from "./usePipelineEvents";
-import { seedUsers } from "../../data/seed/users";
+import { useProfiles } from "./useProfiles";
 import { buildAuditEvents } from "../../compliance/auditEvents";
 
 /**
@@ -26,6 +26,7 @@ export function useAuditEvents(currentUserId?: string) {
   const clinicalAlerts = useClinicalAlerts();
   const pharmacistActions = useAllPharmacistActions();
   const pipelineEvents = useAllPipelineEvents();
+  const profiles = useProfiles();
 
   const isLoading =
     overrideLogs.isLoading ||
@@ -35,7 +36,8 @@ export function useAuditEvents(currentUserId?: string) {
     patientChecks.isLoading ||
     clinicalAlerts.isLoading ||
     pharmacistActions.isLoading ||
-    pipelineEvents.isLoading;
+    pipelineEvents.isLoading ||
+    profiles.isLoading;
 
   const events = useMemo(
     () =>
@@ -51,7 +53,7 @@ export function useAuditEvents(currentUserId?: string) {
         {
           patients: patients.data ?? [],
           drugs: formulary.data?.drugs ?? [],
-          users: seedUsers,
+          users: [...(profiles.data?.values() ?? [])],
           currentUserId,
         }
       ),
@@ -64,6 +66,7 @@ export function useAuditEvents(currentUserId?: string) {
       pipelineEvents.data,
       patients.data,
       formulary.data,
+      profiles.data,
       currentUserId,
     ]
   );

@@ -20,7 +20,7 @@ import { useUpdatePrescriptionStatus } from "@/lib/query/hooks/useUpdatePrescrip
 import { useClinicalAlerts } from "@/lib/query/hooks/useClinicalAlerts";
 import { useCosignPrescription, useSendBackToDoctor } from "@/lib/query/hooks/usePipelineActions";
 import { useAuth } from "@/lib/auth/useAuth";
-import { seedUsers } from "@/lib/data/seed/users";
+import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict } from "@/lib/screening-engine";
 
@@ -36,6 +36,7 @@ export default function PrescriptionDetailPage({
   const { data: formulary } = useFormulary();
   const { data: overrideLogs } = useOverrideLogs({ prescriptionId: id });
   const { data: alerts } = useClinicalAlerts({ status: "pending_cosign" });
+  const { data: profiles } = useProfiles();
   const updateStatus = useUpdatePrescriptionStatus();
   const cosignPrescription = useCosignPrescription();
   const sendBackToDoctor = useSendBackToDoctor();
@@ -63,11 +64,16 @@ export default function PrescriptionDetailPage({
     );
   }
 
-  const prescriber = seedUsers.find((u) => u.id === prescription.prescriberId);
+  const prescriber = profiles?.get(prescription.prescriberId);
   const overrideByDrugId = new Map((overrideLogs ?? []).map((log) => [log.drugId, log]));
   const canPharmacistAct = role === "pharmacist" && prescription.status === "submitted";
+  // The clinical alert is still Dexie-only (per-browser) — a device other
+  // than the one that ran the Admin checkpoint won't have this row, even
+  // though prescription.status (now shared via Postgres) genuinely is
+  // "pending_admin_cosign". The alert is auxiliary display data only; it
+  // must never gate whether the co-sign/send-back buttons render.
   const pendingAlert = (alerts ?? []).find((a) => a.prescriptionId === prescription.id);
-  const canAdminAct = role === "admin" && prescription.status === "pending_admin_cosign" && !!pendingAlert;
+  const canAdminAct = role === "admin" && prescription.status === "pending_admin_cosign";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -142,14 +148,14 @@ export default function PrescriptionDetailPage({
         })}
       </div>
 
-      {canAdminAct && pendingAlert && (
+      {canAdminAct && (
         <div className="flex flex-wrap gap-3 border-t border-border pt-4">
           <Button
             onClick={() =>
               user &&
               cosignPrescription.mutate({
                 prescriptionId: prescription.id,
-                alertId: pendingAlert.id,
+                alertId: pendingAlert?.id,
                 adminId: user.id,
               })
             }
@@ -197,11 +203,11 @@ export default function PrescriptionDetailPage({
               variant="destructive"
               disabled={sendBackNote.trim().length === 0 || sendBackToDoctor.isPending}
               onClick={() => {
-                if (!user || !pendingAlert) return;
+                if (!user) return;
                 sendBackToDoctor.mutate(
                   {
                     prescriptionId: prescription.id,
-                    alertId: pendingAlert.id,
+                    alertId: pendingAlert?.id,
                     adminId: user.id,
                     note: sendBackNote.trim(),
                   },

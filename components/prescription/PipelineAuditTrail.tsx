@@ -1,7 +1,7 @@
 import { CheckCircle2, ClipboardList, ShieldCheck, ShieldQuestion, Undo2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { usePipelineEvents } from "@/lib/query/hooks/usePipelineEvents";
-import { seedUsers } from "@/lib/data/seed/users";
+import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import type { OverrideLog, PipelineEventType } from "@/lib/types";
 
@@ -38,19 +38,20 @@ interface PipelineAuditTrailProps {
  */
 export function PipelineAuditTrail({ prescriptionId, overrideLogs }: PipelineAuditTrailProps) {
   const { data: events } = usePipelineEvents(prescriptionId);
+  const { data: profiles } = useProfiles();
 
   const entries: TimelineEntry[] = [
     ...overrideLogs.map((log) => ({
       timestamp: log.timestamp,
       icon: ClipboardList,
-      title: `Override logged by ${seedUsers.find((u) => u.id === log.userId)?.name ?? log.userId}`,
+      title: `Override logged by ${profiles?.get(log.userId)?.name ?? log.userId}`,
       detail: log.reasonText || undefined,
     })),
     ...(events ?? []).map((event) => ({
       timestamp: event.timestamp,
       icon: EVENT_ICON[event.type],
       title: event.userId
-        ? `${EVENT_LABEL[event.type]} (${seedUsers.find((u) => u.id === event.userId)?.name ?? event.userId})`
+        ? `${EVENT_LABEL[event.type]} (${profiles?.get(event.userId)?.name ?? event.userId})`
         : EVENT_LABEL[event.type],
       detail: event.note,
     })),

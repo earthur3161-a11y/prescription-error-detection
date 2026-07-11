@@ -6,6 +6,7 @@ import {
   getPatientCheckById,
   getPatientCheckByShareToken,
   listPatientChecks,
+  listPatientChecksForDevice,
   markPatientCheckPulled,
 } from "../../data/repositories/patientCheckRepository";
 import type { PatientCheck } from "../../types";
@@ -14,7 +15,10 @@ export function useCreatePatientCheck() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createPatientCheck,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["patientChecks"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patientChecks"] });
+      queryClient.invalidateQueries({ queryKey: ["patientChecksForDevice"] });
+    },
   });
 }
 
@@ -34,10 +38,19 @@ export function usePatientCheckByShareToken(token: string | null) {
   });
 }
 
+/** Broad, authenticated-only — the compliance center and the audit event feed. */
 export function usePatientChecks() {
   return useQuery({
     queryKey: ["patientChecks"],
     queryFn: listPatientChecks,
+  });
+}
+
+/** Device-scoped — the anonymous /check/history page, this device's own checks only. */
+export function usePatientChecksForDevice() {
+  return useQuery({
+    queryKey: ["patientChecksForDevice"],
+    queryFn: listPatientChecksForDevice,
   });
 }
 

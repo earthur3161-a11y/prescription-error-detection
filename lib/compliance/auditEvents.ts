@@ -16,7 +16,6 @@ import type {
   PharmacistAction,
   PipelineEvent,
   Prescription,
-  User,
 } from "../types";
 import type { Verdict } from "../screening-engine/types";
 
@@ -127,7 +126,7 @@ export interface AuditSources {
 export interface AuditLookups {
   patients: { id: string; name: string }[];
   drugs: Drug[];
-  users: User[];
+  users: { id: string; name: string }[];
   /** Resolves the currently-signed-in account id to a friendly name ("You"). */
   currentUserId?: string;
 }

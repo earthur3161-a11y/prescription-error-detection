@@ -10,7 +10,7 @@ import { getPatientGuidance } from "@/lib/patient-check/guidance";
 import { buildSyntheticPatient } from "@/lib/patient-check/buildSyntheticPatient";
 import { overallVerdict, screenDrugLine } from "@/lib/screening-engine";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
-import { usePatientChecks } from "@/lib/query/hooks/usePatientChecks";
+import { usePatientChecksForDevice } from "@/lib/query/hooks/usePatientChecks";
 import {
   useClearLocalPatientProfile,
   useLocalPatientProfile,
@@ -28,7 +28,7 @@ const EMPTY_PROFILE: PatientCheckProfile = {
 
 export default function CheckHistoryPage() {
   const { data: profile, isLoading: profileLoading } = useLocalPatientProfile();
-  const { data: checks, isLoading: checksLoading } = usePatientChecks();
+  const { data: checks, isLoading: checksLoading } = usePatientChecksForDevice();
   const { data: formulary } = useFormulary();
   const saveProfile = useSaveLocalPatientProfile();
   const clearProfile = useClearLocalPatientProfile();

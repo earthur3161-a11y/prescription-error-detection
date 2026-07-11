@@ -8,7 +8,16 @@ import { useToastStore } from "../../store/toast-store";
 
 interface CosignInput {
   prescriptionId: string;
-  alertId: string;
+  /**
+   * The clinical alert is still Dexie-only (per-browser), while
+   * prescription.status is now shared via Postgres — so a device other than
+   * the one that ran the Admin checkpoint won't have a local alert row to
+   * resolve, even though the prescription genuinely is awaiting co-sign.
+   * Optional here so the action itself never depends on data that may not
+   * exist on this device; when present it's still resolved for the alert
+   * list on the device that does have it.
+   */
+  alertId?: string;
   adminId: string;
 }
 
@@ -20,7 +29,7 @@ export function useCosignPrescription() {
   return useMutation({
     mutationFn: async ({ prescriptionId, alertId, adminId }: CosignInput) => {
       await updatePrescriptionStatus(prescriptionId, "submitted");
-      await resolveClinicalAlert(alertId, "cosigned", adminId);
+      if (alertId) await resolveClinicalAlert(alertId, "cosigned", adminId);
       await appendPipelineEvent({
         prescriptionId,
         type: "admin_cosigned",
@@ -40,7 +49,8 @@ export function useCosignPrescription() {
 
 interface SendBackInput {
   prescriptionId: string;
-  alertId: string;
+  /** See the comment on CosignInput.alertId — same cross-device reasoning applies here. */
+  alertId?: string;
   adminId: string;
   note: string;
 }
@@ -53,7 +63,7 @@ export function useSendBackToDoctor() {
   return useMutation({
     mutationFn: async ({ prescriptionId, alertId, adminId, note }: SendBackInput) => {
       await updatePrescriptionStatus(prescriptionId, "flagged", undefined, note);
-      await resolveClinicalAlert(alertId, "sent_back", adminId);
+      if (alertId) await resolveClinicalAlert(alertId, "sent_back", adminId);
       await appendPipelineEvent({
         prescriptionId,
         type: "admin_sent_back",

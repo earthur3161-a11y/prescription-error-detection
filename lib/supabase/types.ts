@@ -1,8 +1,10 @@
-// Hand-written types for the Phase 1 Supabase schema (profiles,
-// access_requests, check_access_request_status). Mirrors
-// supabase/migrations/0001_phase1_auth.sql exactly — update both together.
-// If the Supabase CLI is ever linked to the project, `supabase gen types
-// typescript` can regenerate/replace this file directly.
+// Hand-written types for the Supabase schema (profiles, access_requests,
+// check_access_request_status from Phase 1; patients, prescriptions,
+// override_logs, patient_checks and their RPCs from Phase 2). Mirrors
+// supabase/migrations/0001_phase1_auth.sql and 0002_phase2_clinical_data.sql
+// exactly — update all three together. If the Supabase CLI is ever linked to
+// the project, `supabase gen types typescript` can regenerate/replace this
+// file directly.
 //
 // Row/Insert/Update shapes are declared with `type`, not `interface`. This
 // is required, not stylistic: @supabase/postgrest-js's GenericTable
@@ -45,6 +47,78 @@ export type AccessRequestRow = {
   rejection_reason: string | null;
 };
 
+export type PatientSex = "male" | "female" | "other";
+export type RenalHepaticStatus = "normal" | "impaired" | "unknown";
+
+export type PatientRow = {
+  id: string;
+  name: string;
+  dob: string;
+  sex: PatientSex;
+  phone: string | null;
+  weight_kg: number | null;
+  renal_status: RenalHepaticStatus;
+  hepatic_status: RenalHepaticStatus;
+  // null = "not on file", [] = confirmed none. See the SQL comment on this
+  // column — never give it a default.
+  allergies: unknown | null;
+  active_medications: unknown | null;
+  is_pregnant: boolean | null;
+  created_at: string;
+};
+
+export type PrescriptionStatusDb =
+  | "draft"
+  | "pending_admin_review"
+  | "pending_admin_cosign"
+  | "submitted"
+  | "under_review"
+  | "held"
+  | "cleared"
+  | "rejected"
+  | "verified"
+  | "dispensed"
+  | "flagged";
+export type PrescriptionSourceDb = "hospital" | "patient_submitted" | "walk_in";
+
+export type PrescriptionRow = {
+  id: string;
+  patient_id: string;
+  prescriber_id: string;
+  drugs: unknown;
+  verdicts: unknown;
+  status: PrescriptionStatusDb;
+  created_at: string;
+  pharmacist_note: string | null;
+  admin_note: string | null;
+  source: PrescriptionSourceDb;
+  external_prescriber_name: string | null;
+  patient_check_id: string | null;
+};
+
+export type OverrideLogRow = {
+  id: string;
+  prescription_id: string;
+  drug_id: string;
+  verdict_overridden: "caution" | "blocked";
+  reason_code: "benefit_outweighs_risk" | "verified_with_pharmacist" | "patient_tolerates_combination" | "other";
+  reason_text: string;
+  user_id: string;
+  timestamp: string;
+};
+
+export type PatientCheckRow = {
+  id: string;
+  created_at: string;
+  drugs: unknown;
+  profile: unknown;
+  verdicts: unknown;
+  share_token: string;
+  pulled_into_prescription_id: string | null;
+};
+
+export type PatientCheckRpcRow = PatientCheckRow;
+
 export type Database = {
   public: {
     Tables: {
@@ -61,12 +135,47 @@ export type Database = {
         Update: Partial<AccessRequestRow>;
         Relationships: [];
       };
+      patients: {
+        Row: PatientRow;
+        Insert: Partial<PatientRow> & Pick<PatientRow, "id" | "name" | "dob" | "sex" | "renal_status" | "hepatic_status">;
+        Update: Partial<PatientRow>;
+        Relationships: [];
+      };
+      prescriptions: {
+        Row: PrescriptionRow;
+        Insert: Partial<PrescriptionRow> &
+          Pick<PrescriptionRow, "id" | "patient_id" | "prescriber_id" | "drugs" | "verdicts" | "status" | "created_at" | "source">;
+        Update: Partial<PrescriptionRow>;
+        Relationships: [];
+      };
+      override_logs: {
+        Row: OverrideLogRow;
+        Insert: Partial<OverrideLogRow> &
+          Pick<OverrideLogRow, "id" | "prescription_id" | "drug_id" | "verdict_overridden" | "reason_code" | "reason_text" | "user_id" | "timestamp">;
+        Update: Partial<OverrideLogRow>;
+        Relationships: [];
+      };
+      patient_checks: {
+        Row: PatientCheckRow;
+        Insert: Partial<PatientCheckRow> &
+          Pick<PatientCheckRow, "id" | "created_at" | "drugs" | "profile" | "verdicts" | "share_token">;
+        Update: Partial<PatientCheckRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       check_access_request_status: {
         Args: { p_email: string };
         Returns: { status: AccessRequestStatus; rejection_reason: string | null }[];
+      };
+      get_patient_check_by_id: {
+        Args: { p_id: string };
+        Returns: PatientCheckRpcRow[];
+      };
+      get_patient_check_by_share_token: {
+        Args: { p_token: string };
+        Returns: PatientCheckRpcRow[];
       };
     };
   };

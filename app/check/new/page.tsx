@@ -12,7 +12,6 @@ import { useLocalPatientProfile, useSaveLocalPatientProfile } from "@/lib/query/
 import { screenDrugLine } from "@/lib/screening-engine";
 import { buildSyntheticPatient } from "@/lib/patient-check/buildSyntheticPatient";
 import { buildDefaultLine } from "@/lib/prescription/lineDefaults";
-import { generateId } from "@/lib/utils/id";
 import type { Drug, PatientCheckProfile, PrescriptionDrugLine } from "@/lib/types";
 
 type Step = "add" | "profile";
@@ -62,12 +61,17 @@ export default function NewCheckPage() {
 
     createCheck.mutate(
       {
-        id: generateId("check"),
+        // A real UUID, not a prefixed generateId() string: this id and the
+        // shareToken below are the entire access-control mechanism for the
+        // anonymous get_patient_check_by_id/by_share_token RPCs — anyone who
+        // guesses one can read that check's data, so they must be
+        // cryptographically unguessable, not just unique.
+        id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
         drugs: lines,
         profile,
         verdicts,
-        shareToken: generateId("share"),
+        shareToken: crypto.randomUUID(),
       },
       {
         onSuccess: (check) => router.push(`/check/result/${check.id}`),
