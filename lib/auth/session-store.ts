@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { supabase } from "../supabase/client";
 import type { AccountRole } from "../types";
 
-/** The authenticated identity held in the client session (a safe subset of Account — no password). */
+/** The authenticated identity held in the client session (a safe subset — no password). */
 export interface SessionUser {
   id: string;
   name: string;
@@ -19,30 +19,26 @@ interface SessionState {
   setHasHydrated: (value: boolean) => void;
 }
 
-// hasHydrated is deliberately NOT driven by persist's onRehydrateStorage
-// option. zustand's persist middleware resolves synchronous storage (the
-// default: localStorage) entirely within the initial create() call, and its
-// internal `hydrate()` returns `stateFromStorage || configResult` as the
-// store's final initial state — silently discarding any set() calls made
-// from inside onRehydrateStorage's callback on the error path (that
-// callback fires, but the resulting state update gets overwritten a moment
-// later by that return value, since `stateFromStorage` is only ever
-// assigned on the success path). Verified empirically against the installed
-// zustand version — this is not a hypothetical. setHasHydrated is instead
-// called once from a useEffect in Providers (app/providers.tsx), which runs
-// strictly after the store has finished initializing, so the update always
-// sticks regardless of whether storage was reachable.
-export const useSessionStore = create<SessionState>()(
-  persist(
-    (set) => ({
-      currentUser: null,
-      hasHydrated: false,
-      login: (user) => set({ currentUser: user }),
-      logout: () => set({ currentUser: null }),
-      setHasHydrated: (value) => set({ hasHydrated: value }),
-    }),
-    {
-      name: "mediguard-session",
-    }
-  )
-);
+// Session persistence is now Supabase's own job (its client SDK keeps its
+// own localStorage-backed token store with auto-refresh and cross-tab sync)
+// — this store is a thin, non-persisted mirror of that state for React to
+// read via useAuth(). The mirror is kept in sync from app/providers.tsx via
+// supabase.auth.getSession() (initial) + onAuthStateChange() (ongoing).
+// login() here is an optimistic local update (authenticate() has already
+// called signInWithPassword by the time it's invoked); logout() clears the
+// mirror and actually signs out of Supabase.
+export const useSessionStore = create<SessionState>()((set) => ({
+  currentUser: null,
+  hasHydrated: false,
+  login: (user) => set({ currentUser: user }),
+  logout: () => {
+    set({ currentUser: null });
+    // Local scope: clears this browser's session immediately without
+    // depending on a network round-trip to succeed. A global sign-out that
+    // fails mid-flight (e.g. a network blip) can leave Supabase's own
+    // client-side token store un-cleared, which would let a later
+    // getSession() call silently resurrect the "signed out" session.
+    void supabase.auth.signOut({ scope: "local" });
+  },
+  setHasHydrated: (value) => set({ hasHydrated: value }),
+}));

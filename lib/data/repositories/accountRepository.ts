@@ -1,63 +1,57 @@
-import { db, ensureSeeded } from "../db";
-import { hashPassword, verifyPassword } from "../../auth/password";
-import type { Account, AccountRole } from "../../types";
+import { supabase } from "../../supabase/client";
+import type { SessionUser } from "../../auth/session-store";
+import type { AccountRole } from "../../types";
 
 /**
- * Authenticates an email/password pair against the accounts table, enforcing
- * the expected portal role SERVER-SIDE-EQUIVALENT — i.e. in the data layer, not
- * merely by which URL was visited. A pharmacy account cannot sign in through the
- * physician portal even if it navigates there directly. Returns null for any
- * failure (no account, wrong password, wrong role, not active) so callers can
- * surface a single generic "Invalid login" that never reveals whether an
- * account exists.
+ * Authenticates against Supabase Auth, enforcing the expected portal role.
+ * signInWithPassword establishes a real session before the role can be
+ * checked (there's no way to gate sign-in itself on a custom claim), so a
+ * role mismatch signs the session back out before returning null — RLS
+ * still protects data regardless, but this avoids a wrong-role user
+ * lingering with a valid session. Bad password, wrong role, and no-such
+ * -account all return null identically: never reveal whether an account
+ * exists.
  */
 export async function authenticate(
   email: string,
   password: string,
   expectedRole: AccountRole
-): Promise<Account | null> {
-  await ensureSeeded();
-  const normalized = email.trim().toLowerCase();
-  const account = await db.accounts.where("email").equals(normalized).first();
-  if (!account) return null;
-  if (account.status !== "active") return null;
-  if (account.role !== expectedRole) return null;
-  if (!verifyPassword(password, account.passwordHash)) return null;
-  return account;
-}
+): Promise<SessionUser | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: normalizedEmail,
+    password,
+  });
+  if (error || !data.session) return null;
 
-export async function getAccountByEmail(email: string): Promise<Account | null> {
-  await ensureSeeded();
-  const account = await db.accounts.where("email").equals(email.trim().toLowerCase()).first();
-  return account ?? null;
-}
+  const role = data.session.user.app_metadata?.role as AccountRole | undefined;
+  if (role !== expectedRole) {
+    // Local scope: clears this browser's session immediately, without a
+    // network round-trip that could fail and leave the momentarily
+    // -established wrong-role session lingering.
+    await supabase.auth.signOut({ scope: "local" });
+    return null;
+  }
 
-export async function getAccountById(id: string): Promise<Account | null> {
-  await ensureSeeded();
-  return (await db.accounts.get(id)) ?? null;
-}
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, title, status")
+    .eq("id", data.session.user.id)
+    .single();
 
-export async function listAccounts(): Promise<Account[]> {
-  await ensureSeeded();
-  return db.accounts.toArray();
-}
+  // Auth succeeded but there's no profile row, or the account has been
+  // disabled — treat as not fully usable rather than returning a session
+  // the rest of the app can't render (Topbar/Sidebar read name/title).
+  if (!profile || profile.status === "disabled") {
+    await supabase.auth.signOut({ scope: "local" });
+    return null;
+  }
 
-export async function createAccount(account: Account): Promise<Account> {
-  await ensureSeeded();
-  await db.accounts.put(account);
-  return account;
-}
-
-/** Sets a password on an "invited" account and activates it (invite-link activation flow). */
-export async function activateAccount(accountId: string, password: string): Promise<Account | null> {
-  await ensureSeeded();
-  const account = await db.accounts.get(accountId);
-  if (!account) return null;
-  const updated: Account = {
-    ...account,
-    passwordHash: hashPassword(password),
-    status: "active",
+  return {
+    id: data.session.user.id,
+    email: data.session.user.email ?? normalizedEmail,
+    role,
+    name: profile.name,
+    title: profile.title,
   };
-  await db.accounts.put(updated);
-  return updated;
 }

@@ -41,7 +41,10 @@ export function useApproveAccessRequest() {
     mutationFn: approveAccessRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accessRequests"] });
-      showToast({ title: "Approved", description: "An invite link has been issued.", variant: "success" });
+      showToast({ title: "Approved", description: "An invite email has been sent.", variant: "success" });
+    },
+    onError: (error: Error) => {
+      showToast({ title: "Couldn't approve", description: error.message, variant: "error" });
     },
   });
 }

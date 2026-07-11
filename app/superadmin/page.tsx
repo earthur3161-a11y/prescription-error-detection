@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, LogOut, ShieldAlert } from "lucide-react";
+import { LogOut, Mail, ShieldAlert } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -22,27 +22,6 @@ const ROLE_LABEL: Record<UserRole, string> = {
   pharmacist: "Pharmacist",
   admin: "Facility Admin",
 };
-
-function InviteLink({ token }: { token: string }) {
-  const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined" ? `${window.location.origin}/activate/${token}` : "";
-  return (
-    <div className="flex items-center gap-2">
-      <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs text-secondary">{url}</code>
-      <button
-        onClick={async () => {
-          await navigator.clipboard.writeText(url);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        }}
-        aria-label="Copy invite link"
-        className="rounded-lg p-1.5 text-subtle hover:bg-muted"
-      >
-        {copied ? <Check className="size-4 text-safe-fg" /> : <Copy className="size-4" />}
-      </button>
-    </div>
-  );
-}
 
 function SuperAdminDashboard() {
   const { data: requests, isLoading } = useAccessRequests();
@@ -116,13 +95,11 @@ function SuperAdminDashboard() {
                   </p>
                   <Badge tone={req.status === "approved" ? "safe" : "blocked"}>{req.status}</Badge>
                 </div>
-                {req.status === "approved" && req.inviteToken && (
-                  <div>
-                    <p className="mb-1 text-xs text-muted-foreground">
-                      Secure invite link (would be emailed to {req.email}):
-                    </p>
-                    <InviteLink token={req.inviteToken} />
-                  </div>
+                {req.status === "approved" && (
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Mail className="size-4 shrink-0" aria-hidden="true" />
+                    Invite email sent to {req.email}.
+                  </p>
                 )}
                 {req.status === "rejected" && req.rejectionReason && (
                   <p className="text-sm text-muted-foreground">Reason: {req.rejectionReason}</p>
@@ -205,8 +182,8 @@ export default function SuperAdminPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-foreground">Access requests</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Review and approve facility account requests. Approving provisions an account and issues a
-            one-time invite link — no plaintext password is ever created or sent.
+            Review and approve facility account requests. Approving provisions an account and sends a
+            secure invite email — no plaintext password is ever created or sent.
           </p>
         </div>
         <SuperAdminDashboard />

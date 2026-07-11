@@ -148,7 +148,7 @@ function CheckStatus() {
       {request && request.status === "pending" && (
         <div className="flex items-start gap-2.5 rounded-lg bg-caution-bg px-4 py-3 text-sm text-caution-fg">
           <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          Your request is under review. We&rsquo;ll issue an invite link once approved.
+          Your request is under review. We&rsquo;ll email you an invite link once approved.
         </div>
       )}
       {request && request.status === "rejected" && (
@@ -159,15 +159,12 @@ function CheckStatus() {
           {request.rejectionReason && <p className="mt-1">{request.rejectionReason}</p>}
         </div>
       )}
-      {request && request.status === "approved" && request.inviteToken && (
-        <div className="space-y-2 rounded-lg bg-safe-bg px-4 py-3 text-sm text-safe-fg">
+      {request && request.status === "approved" && (
+        <div className="space-y-1 rounded-lg bg-safe-bg px-4 py-3 text-sm text-safe-fg">
           <p className="flex items-center gap-2 font-medium">
             <CheckCircle2 className="size-4" aria-hidden="true" /> Approved
           </p>
-          <p>Use your secure invite link to set a password and activate your account:</p>
-          <Link href={`/activate/${request.inviteToken}`} className="font-medium underline">
-            Activate my account
-          </Link>
+          <p>Check your email for a secure invite link to set your password and activate your account.</p>
         </div>
       )}
     </div>

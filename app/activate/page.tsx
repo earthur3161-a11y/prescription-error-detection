@@ -1,14 +1,12 @@
 "use client";
 
-import { use, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { getAccessRequestByInviteToken } from "@/lib/data/repositories/accessRequestRepository";
-import { activateAccount, getAccountById } from "@/lib/data/repositories/accountRepository";
+import { supabase } from "@/lib/supabase/client";
 import type { AccountRole } from "@/lib/types";
 
 const LOGIN_ROUTE: Partial<Record<AccountRole, string>> = {
@@ -17,23 +15,70 @@ const LOGIN_ROUTE: Partial<Record<AccountRole, string>> = {
   admin: "/admin/login",
 };
 
-export default function ActivateAccountPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params);
+interface InviteeProfile {
+  name: string;
+  title: string;
+  role: AccountRole;
+}
+
+/**
+ * Consumes Supabase's own invite-link redirect, not a MediGuard-issued
+ * token — there's no [token] path segment because the token arrives as a
+ * URL hash fragment (…/activate#access_token=…), which never reaches the
+ * server; Supabase's client reads it directly from window.location and
+ * establishes a session automatically (detectSessionInUrl, the default).
+ * In the common case that's done before this page's effects even run; the
+ * auth-state listener below also catches it completing a beat later.
+ */
+export default function ActivateAccountPage() {
+  const [status, setStatus] = useState<"checking" | "ready" | "invalid">("checking");
+  const [profile, setProfile] = useState<InviteeProfile | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, setPending] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["invite", token],
-    queryFn: async () => {
-      const request = await getAccessRequestByInviteToken(token);
-      if (!request?.provisionedAccountId) return null;
-      const account = await getAccountById(request.provisionedAccountId);
-      return account ? { request, account } : null;
-    },
-  });
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfile(userId: string) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("name, title, role")
+        .eq("id", userId)
+        .single();
+      if (cancelled) return;
+      if (data) {
+        setProfile(data);
+        setStatus("ready");
+      } else {
+        setStatus("invalid");
+      }
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session?.user) loadProfile(data.session.user.id);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) loadProfile(session.user.id);
+    });
+
+    // No session showed up at all within a few seconds — the link is
+    // missing, expired, or already used.
+    const timeout = setTimeout(() => {
+      if (!cancelled) setStatus((s) => (s === "checking" ? "invalid" : s));
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,17 +91,24 @@ export default function ActivateAccountPage({ params }: { params: Promise<{ toke
       setError("Passwords do not match.");
       return;
     }
-    if (!data?.account) return;
     setPending(true);
     try {
-      await activateAccount(data.account.id, password);
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      // The invite link signs the user in as a side effect of establishing
+      // the session — sign back out so they land on their portal's real
+      // login screen next, rather than being silently already authenticated.
+      await supabase.auth.signOut();
       setDone(true);
     } finally {
       setPending(false);
     }
   }
 
-  const loginRoute = data ? LOGIN_ROUTE[data.account.role] ?? "/login" : "/login";
+  const loginRoute = profile ? (LOGIN_ROUTE[profile.role] ?? "/login") : "/login";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
@@ -66,11 +118,11 @@ export default function ActivateAccountPage({ params }: { params: Promise<{ toke
       </Link>
       <Card className="w-full max-w-md">
         <CardBody className="space-y-5">
-          {isLoading ? (
+          {status === "checking" ? (
             <div className="flex justify-center py-6">
               <Loader2 className="size-6 animate-spin text-subtle" aria-hidden="true" />
             </div>
-          ) : !data ? (
+          ) : status === "invalid" || !profile ? (
             <div className="space-y-2 text-center">
               <h1 className="text-lg font-semibold text-foreground">Invalid or expired invite</h1>
               <p className="text-sm text-muted-foreground">
@@ -86,7 +138,7 @@ export default function ActivateAccountPage({ params }: { params: Promise<{ toke
               <CheckCircle2 className="mx-auto size-10 text-safe-fg" aria-hidden="true" />
               <h1 className="text-lg font-semibold text-foreground">Account activated</h1>
               <p className="text-sm text-muted-foreground">
-                Your password is set. You can now sign in to the {data.account.title} portal.
+                Your password is set. You can now sign in to the {profile.title} portal.
               </p>
               <Link href={loginRoute}>
                 <Button className="w-full">Go to sign in</Button>
@@ -97,8 +149,7 @@ export default function ActivateAccountPage({ params }: { params: Promise<{ toke
               <div>
                 <h1 className="text-lg font-semibold text-foreground">Set your password</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Welcome, {data.account.name}. Choose a password to activate your{" "}
-                  {data.account.title} account ({data.account.email}).
+                  Welcome, {profile.name}. Choose a password to activate your {profile.title} account.
                 </p>
               </div>
               <form className="space-y-3" onSubmit={handleSubmit}>

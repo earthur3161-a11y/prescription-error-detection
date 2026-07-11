@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import type { AccountRole } from "@/lib/types";
@@ -28,7 +29,18 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
 
   // (superadmin falls through to ROLE_HOME_ROUTE redirect above when not in allowedRoles)
 
-  if (!hasHydrated || !isAuthenticated) return null;
+  // hasHydrated waits on a real network call now (Supabase's session check),
+  // not just a synchronous local read — under slow/lossy connections that
+  // wait is bounded (see app/providers.tsx) but can still take a few
+  // seconds, so show something rather than a bare blank screen.
+  if (!hasHydrated) {
+    return (
+      <div className="grid h-screen place-items-center bg-background">
+        <Loader2 className="size-6 animate-spin text-subtle" aria-hidden="true" />
+      </div>
+    );
+  }
+  if (!isAuthenticated) return null;
   if (allowedRoles && role && !allowedRoles.includes(role)) return null;
 
   return <>{children}</>;
