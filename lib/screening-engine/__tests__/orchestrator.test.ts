@@ -157,11 +157,11 @@ describe("screenDrugLine", () => {
     const patient = makePatient();
     const result = screen({
       patient,
-      drugLine: makeLine({ drugId: "drug_losartan", doseMg: 50, frequencyPerDay: 1 }),
+      drugLine: makeLine({ drugId: "drug_loratadine", doseMg: 10, frequencyPerDay: 1 }),
     });
     const emlFlag = result.flags.find((f) => f.code === "NOT_ON_EML");
     expect(emlFlag).toBeDefined();
-    expect(emlFlag?.audience_variant.clinical).toContain("Amlodipine");
+    expect(emlFlag?.audience_variant.clinical).toContain("Cetirizine");
     expect(result.verdict).toBe("caution");
   });
 
