@@ -173,4 +173,198 @@ export const ghanaInteractionRules: InteractionRule[] = [
     referenceSource:
       "Confirmed on both sides: FDA lisinopril label, Drug Interactions — NSAID co-administration \"may result in deterioration of renal function\" and antihypertensive effect \"may be attenuated by NSAIDs\"; FDA naproxen label's Table 1 independently states the same for \"ACE Inhibitors, Angiotensin Receptor Blockers, and Beta-Blockers\" (via openFDA).",
   },
+  // The pairs below fill a gap found while auditing coverage: 43 of the 65
+  // drugs in the formulary (including Carbamazepine, Tramadol, and Morphine)
+  // had zero interaction rules at all, even against each other. Sourced the
+  // same way as above — direct FDA label quotes via openFDA, no inference.
+  {
+    id: "int_carbamazepine_warfarin",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_warfarin",
+    severity: "major",
+    description:
+      "Carbamazepine induces hepatic metabolism and reduces warfarin's anticoagulant effect — the opposite risk direction from most warfarin interactions (under-anticoagulation/clot risk rather than bleeding). Monitor INR closely when either drug is started or stopped.",
+    referenceSource:
+      "Confirmed on both sides: FDA carbamazepine label states carbamazepine \"causes...decreased levels of the following drugs...warfarin\"; FDA warfarin sodium label separately lists carbamazepine among CYP450 inducers that \"have the potential to decrease the effect (decrease INR) of warfarin\" (via openFDA).",
+  },
+  {
+    id: "int_carbamazepine_levothyroxine",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_levothyroxine",
+    severity: "moderate",
+    description: "Carbamazepine induces metabolism of levothyroxine, potentially reducing thyroid hormone replacement effect.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: carbamazepine \"causes, or would be expected to cause, decreased levels of the following drugs...levothyroxine\" (via openFDA).",
+  },
+  {
+    id: "int_carbamazepine_amitriptyline",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_amitriptyline",
+    severity: "moderate",
+    description: "Carbamazepine induces metabolism of tricyclic antidepressants, potentially reducing amitriptyline's effect.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: decreased levels of \"tricyclic antidepressants (e.g., imipramine, amitriptyline, nortriptyline)\"; the same label's Contraindications section separately notes carbamazepine should not be used in patients with known sensitivity to tricyclic compounds such as amitriptyline (via openFDA).",
+  },
+  {
+    id: "int_carbamazepine_ciprofloxacin",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_ciprofloxacin",
+    severity: "moderate",
+    description: "Ciprofloxacin can increase carbamazepine plasma levels, raising the risk of carbamazepine toxicity.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: \"Drugs that have been shown, or would be expected, to increase plasma carbamazepine levels include...ciprofloxacin\" (via openFDA).",
+  },
+  {
+    id: "int_carbamazepine_omeprazole",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_omeprazole",
+    severity: "moderate",
+    description: "Omeprazole can increase carbamazepine plasma levels, raising the risk of carbamazepine toxicity.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: \"Drugs that have been shown, or would be expected, to increase plasma carbamazepine levels include...omeprazole\" (via openFDA).",
+  },
+  {
+    id: "int_carbamazepine_doxycycline",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_doxycycline",
+    severity: "moderate",
+    description: "Carbamazepine induces metabolism of doxycycline, potentially reducing antibiotic efficacy and risking treatment failure.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: carbamazepine \"causes, or would be expected to cause, decreased levels of the following drugs...doxycycline\" (via openFDA).",
+  },
+  {
+    id: "int_carbamazepine_prednisolone",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_prednisolone",
+    severity: "moderate",
+    description: "Carbamazepine induces metabolism of corticosteroids, potentially reducing prednisolone's effect.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: decreased levels of \"corticosteroids (e.g., prednisolone, dexamethasone)\" (via openFDA).",
+  },
+  {
+    id: "int_tramadol_carbamazepine",
+    drug_a: "drug_tramadol",
+    drug_b: "drug_carbamazepine",
+    severity: "severe",
+    description:
+      "Carbamazepine markedly increases tramadol metabolism, reducing its analgesic effect, and separately raises tramadol's own seizure risk. Concomitant use is not recommended.",
+    referenceSource:
+      "Confirmed on both sides: FDA tramadol label states \"Patients taking carbamazepine, a CYP3A4 inducer, may have a significantly reduced analgesic effect of tramadol. Because carbamazepine increases tramadol metabolism and because of the seizure risk associated with tramadol, concomitant administration...and carbamazepine is not recommended\"; FDA carbamazepine label separately lists tramadol among drugs whose levels it decreases (via openFDA).",
+  },
+  {
+    id: "int_tramadol_diazepam",
+    drug_a: "drug_tramadol",
+    drug_b: "drug_diazepam",
+    severity: "severe",
+    description:
+      "Combining an opioid with a benzodiazepine causes additive CNS/respiratory depression — profound sedation, respiratory depression, coma, and death have occurred with this drug combination.",
+    referenceSource:
+      "FDA tramadol label, Warnings and Precautions 5.3 / Drug Interactions: \"Profound sedation, respiratory depression, coma, and death may result from the concomitant use of tramadol...with benzodiazepines and/or other CNS depressants\"; benzodiazepines explicitly listed as an example class (via openFDA).",
+  },
+  {
+    id: "int_morphine_diazepam",
+    drug_a: "drug_morphine",
+    drug_b: "drug_diazepam",
+    severity: "severe",
+    description:
+      "Combining an opioid with a benzodiazepine causes additive CNS/respiratory depression — profound sedation, respiratory depression, coma, and death have occurred with this drug combination.",
+    referenceSource:
+      "FDA morphine sulfate label, Warnings and Precautions 5.3 / Drug Interactions: \"Profound sedation, respiratory depression, coma, and death may result from the concomitant use of morphine sulfate tablets...with benzodiazepines and/or other CNS depressants\"; benzodiazepines explicitly listed as an example class (via openFDA).",
+  },
+  {
+    id: "int_tramadol_amitriptyline",
+    drug_a: "drug_tramadol",
+    drug_b: "drug_amitriptyline",
+    severity: "major",
+    description:
+      "Tricyclic antidepressants combined with tramadol raise the risk of serotonin syndrome and lower the seizure threshold, increasing tramadol's own seizure risk.",
+    referenceSource:
+      "FDA tramadol label, Drug Interactions: tricyclic antidepressants (TCAs) explicitly listed under both \"Serotonergic Drugs\" (serotonin syndrome risk) and \"Increased Risk of Seizures\" (via openFDA).",
+  },
+  {
+    id: "int_tramadol_warfarin",
+    drug_a: "drug_tramadol",
+    drug_b: "drug_warfarin",
+    severity: "moderate",
+    description: "Tramadol may alter warfarin's anticoagulant effect — monitor INR when starting or stopping either drug.",
+    referenceSource:
+      "FDA tramadol label, Drug Interactions: \"Post-marketing surveillance of tramadol has revealed rare reports of alteration of warfarin effect, including elevation of prothrombin times\" (via openFDA).",
+  },
+  {
+    id: "int_levothyroxine_ferrous_sulfate",
+    drug_a: "drug_levothyroxine",
+    drug_b: "drug_ferrous_sulfate",
+    severity: "moderate",
+    description:
+      "Ferrous sulfate can bind levothyroxine in the gut and reduce its absorption. Manageable by spacing doses several hours apart.",
+    referenceSource:
+      "FDA levothyroxine sodium label, Drug Interactions, Table 5 (\"Drugs That May Decrease T4 Absorption\"): \"Phosphate Binders (e.g., calcium carbonate, ferrous sulfate, sevelamer, lanthanum) — Phosphate binders may bind to levothyroxine\" (via openFDA).",
+  },
+  {
+    id: "int_quinine_digoxin",
+    drug_a: "drug_quinine",
+    drug_b: "drug_digoxin",
+    severity: "major",
+    description:
+      "Quinine increases digoxin plasma concentration, raising the risk of digoxin toxicity in a drug with a narrow therapeutic index.",
+    referenceSource:
+      "FDA quinine sulfate label, Drug Interactions table: \"Digoxin — Increased digoxin plasma concentration\" (via openFDA).",
+  },
+  {
+    id: "int_quinine_carbamazepine",
+    drug_a: "drug_quinine",
+    drug_b: "drug_carbamazepine",
+    severity: "moderate",
+    description:
+      "Carbamazepine (a CYP3A4 inducer) can lower plasma quinine concentration, risking reduced antimalarial efficacy and treatment failure.",
+    referenceSource:
+      "FDA quinine sulfate label, Drug Interactions: CYP3A4 inducers/inhibitors cause \"alteration in plasma quinine concentration — monitor for lack of efficacy or increased adverse events\"; carbamazepine explicitly listed among interacting antiepileptics (via openFDA).",
+  },
+  {
+    id: "int_digoxin_simvastatin",
+    drug_a: "drug_digoxin",
+    drug_b: "drug_simvastatin",
+    severity: "moderate",
+    description: "Simvastatin may raise digoxin plasma levels — monitor for signs of digoxin toxicity.",
+    referenceSource:
+      "FDA simvastatin label, Drug Interactions: \"Digoxin — During simvastatin initiation, monitor digoxin levels\"; \"Concomitant use of digoxin with simvastatin may result in elevated digoxin levels\" (via openFDA).",
+  },
+  {
+    id: "int_digoxin_atorvastatin",
+    drug_a: "drug_digoxin",
+    drug_b: "drug_atorvastatin",
+    severity: "moderate",
+    description: "Atorvastatin may raise digoxin plasma levels — monitor for signs of digoxin toxicity.",
+    referenceSource:
+      "FDA atorvastatin label, Drug Interactions: \"Digoxin — May increase digoxin plasma levels; monitor patients appropriately\" (via openFDA).",
+  },
+  {
+    id: "int_warfarin_simvastatin",
+    drug_a: "drug_warfarin",
+    drug_b: "drug_simvastatin",
+    severity: "moderate",
+    description: "Statins can potentiate warfarin's anticoagulant effect — monitor INR during initiation or dose changes.",
+    referenceSource:
+      "FDA simvastatin label, Drug Interactions: \"evident bleeding and/or increased INR in patients taking concomitant statins and warfarin\"; obtain an INR before starting simvastatin in patients taking coumarin anticoagulants (via openFDA).",
+  },
+  {
+    id: "int_glibenclamide_atenolol",
+    drug_a: "drug_glibenclamide",
+    drug_b: "drug_atenolol",
+    severity: "major",
+    description:
+      "Beta-blockers can both potentiate glibenclamide's hypoglycemic effect and mask the warning symptoms (tremor, palpitations) that would normally signal hypoglycemia.",
+    referenceSource:
+      "FDA glyburide label (glyburide is the US name for glibenclamide): \"Hypoglycemia may be difficult to recognize...in people who are taking beta-adrenergic blocking drugs\"; beta adrenergic blocking agents separately listed among drugs requiring close observation for hypoglycemia when combined with glyburide (via openFDA).",
+  },
+  {
+    id: "int_glibenclamide_bisoprolol",
+    drug_a: "drug_glibenclamide",
+    drug_b: "drug_bisoprolol",
+    severity: "major",
+    description:
+      "Beta-blockers can both potentiate glibenclamide's hypoglycemic effect and mask the warning symptoms (tremor, palpitations) that would normally signal hypoglycemia.",
+    referenceSource:
+      "FDA glyburide label (glyburide is the US name for glibenclamide): \"Hypoglycemia may be difficult to recognize...in people who are taking beta-adrenergic blocking drugs\"; beta adrenergic blocking agents separately listed among drugs requiring close observation for hypoglycemia when combined with glyburide (via openFDA).",
+  },
 ];
