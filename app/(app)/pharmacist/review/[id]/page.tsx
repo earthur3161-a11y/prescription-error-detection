@@ -13,6 +13,7 @@ import { FindingsPanel } from "@/components/pharmacy/FindingsPanel";
 import { PharmacistActionBar } from "@/components/pharmacy/PharmacistActionBar";
 import { PharmacyStatusBadge } from "@/components/pharmacy/PharmacyStatusBadge";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
+import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -178,10 +179,12 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
         </CardBody>
       </Card>
 
-      {/* AI findings */}
+      <ScreeningCoverageNotice formulary={formulary} />
+
+      {/* Automated screening findings */}
       <Card>
         <CardBody className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">AI verification findings</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">Automated screening findings</h2>
           <FindingsPanel flags={allFlags} />
         </CardBody>
       </Card>

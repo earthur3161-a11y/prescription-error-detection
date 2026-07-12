@@ -6,6 +6,7 @@ import { DrugSearchAdd } from "@/components/prescription/DrugSearchAdd";
 import { DrugLineList } from "@/components/prescription/DrugLineList";
 import { SignSubmitBar } from "@/components/prescription/SignSubmitBar";
 import { OverrideModal } from "@/components/prescription/OverrideModal";
+import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -206,6 +207,7 @@ export function PrescriptionBuilder({
           </div>
         ) : (
           <>
+            {formulary && <ScreeningCoverageNotice formulary={formulary} />}
             <DrugSearchAdd onAdd={handleAddDrug} />
             <DrugLineList
               lines={lines}

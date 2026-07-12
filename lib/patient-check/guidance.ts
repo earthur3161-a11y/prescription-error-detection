@@ -16,7 +16,7 @@ export function getPatientGuidance(verdict: Verdict): PatientGuidance {
     case "safe":
       return {
         headline: "This looks safe based on what you told us.",
-        detail: "We didn't find any allergy conflicts, interactions, or dosing concerns.",
+        detail: "We didn't find any allergy conflicts, interactions, or dosing concerns in what this tool checks for — it doesn't catch everything, so it's still worth mentioning to your pharmacist.",
         steps: [
           "Take it as directed on the label or by your doctor.",
           "If anything feels wrong after taking it, contact your pharmacist or doctor.",

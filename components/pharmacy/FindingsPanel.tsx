@@ -22,9 +22,10 @@ function GroupIcon({ severity }: { severity: Severity }) {
 }
 
 /**
- * The AI Findings panel: a one-line category summary at the top, then flags
- * grouped by distinct type (worst first), each expandable to full clinical
- * detail (message, severity, source, suggested correction lives in the text).
+ * The automated screening findings panel: a one-line category summary at
+ * the top, then flags grouped by distinct type (worst first), each
+ * expandable to full clinical detail (message, severity, source, suggested
+ * correction lives in the text).
  */
 export function FindingsPanel({ flags }: { flags: Flag[] }) {
   const groups = groupFlagsByType(flags);
@@ -34,7 +35,7 @@ export function FindingsPanel({ flags }: { flags: Flag[] }) {
     return (
       <div className="flex items-center gap-2 rounded-lg bg-safe-bg px-4 py-3 text-sm text-safe-fg">
         <ShieldCheck className="size-5" aria-hidden="true" />
-        No issues found — all automated checks passed.
+        No issues found against our known rules — this isn&rsquo;t a guarantee no interaction exists.
       </div>
     );
   }

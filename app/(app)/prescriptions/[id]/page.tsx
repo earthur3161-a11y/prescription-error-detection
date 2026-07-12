@@ -12,6 +12,7 @@ import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionS
 import { PrescriptionLineSummary } from "@/components/prescription/PrescriptionLineSummary";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
 import { PipelineAuditTrail } from "@/components/prescription/PipelineAuditTrail";
+import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -130,6 +131,8 @@ export default function PrescriptionDetailPage({
           )}
         </CardBody>
       </Card>
+
+      <ScreeningCoverageNotice formulary={formulary} />
 
       <div className="space-y-4">
         {prescription.drugs.map((line, i) => {
