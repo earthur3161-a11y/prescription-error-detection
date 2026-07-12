@@ -151,5 +151,9 @@ export async function POST(request: Request) {
     );
   }
 
-  return new Response(null, { status: 200 });
+  // A bare `new Response(null, { status: 200 })` has no Content-Type header,
+  // which GoTrue's hook-response validator rejects — confirmed empirically
+  // (it returned "hook_payload_invalid_content_type" until this was an
+  // explicit JSON response instead of a null body.
+  return Response.json({});
 }
