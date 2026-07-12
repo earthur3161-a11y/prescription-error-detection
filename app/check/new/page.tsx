@@ -2,19 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DrugPicker } from "@/components/patient-check/DrugPicker";
 import { ProfileStep } from "@/components/patient-check/ProfileStep";
+import { UnlockCheckStep } from "@/components/patient-check/UnlockCheckStep";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useCreatePatientCheck } from "@/lib/query/hooks/usePatientChecks";
 import { useLocalPatientProfile, useSaveLocalPatientProfile } from "@/lib/query/hooks/usePatientProfile";
+import { useToastStore } from "@/lib/store/toast-store";
 import { screenDrugLine } from "@/lib/screening-engine";
 import { buildSyntheticPatient } from "@/lib/patient-check/buildSyntheticPatient";
 import { buildDefaultLine } from "@/lib/prescription/lineDefaults";
 import type { Drug, PatientCheckProfile, PrescriptionDrugLine } from "@/lib/types";
 
-type Step = "add" | "profile";
+type Step = "add" | "profile" | "unlock";
+
+const STEP_PROGRESS: Record<Step, string> = { add: "33%", profile: "66%", unlock: "100%" };
 
 const EMPTY_PROFILE: PatientCheckProfile = {
   ageYears: null,
@@ -29,12 +33,18 @@ export default function NewCheckPage() {
   const { data: savedProfile } = useLocalPatientProfile();
   const createCheck = useCreatePatientCheck();
   const saveProfile = useSaveLocalPatientProfile();
+  const showToast = useToastStore((s) => s.show);
 
   const [step, setStep] = useState<Step>("add");
   const [addedDrugs, setAddedDrugs] = useState<Drug[]>([]);
   const [profile, setProfile] = useState<PatientCheckProfile>(EMPTY_PROFILE);
   const [rememberProfile, setRememberProfile] = useState(true);
   const [profileInitialized, setProfileInitialized] = useState(false);
+  // Stable per attempt so a payment-poll retry replays the same
+  // create_patient_check_with_quota call instead of spending a second
+  // credit; regenerated whenever the patient goes back and could change
+  // what's being screened.
+  const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
 
   if (!profileInitialized && savedProfile) {
     setProfile({
@@ -46,7 +56,18 @@ export default function NewCheckPage() {
     setProfileInitialized(true);
   }
 
-  function handleSeeResult() {
+  function goBack() {
+    if (step === "unlock") {
+      setClientRequestId(crypto.randomUUID());
+      setStep("profile");
+    } else if (step === "profile") {
+      setStep("add");
+    } else {
+      router.push("/check");
+    }
+  }
+
+  function handleUnlocked(phone: string) {
     if (!formulary || addedDrugs.length === 0) return;
 
     const lines: PrescriptionDrugLine[] = addedDrugs.map((drug) => buildDefaultLine(drug));
@@ -60,21 +81,23 @@ export default function NewCheckPage() {
     }
 
     createCheck.mutate(
+      { phone, drugs: lines, profile, verdicts, clientRequestId },
       {
-        // A real UUID, not a prefixed generateId() string: this id and the
-        // shareToken below are the entire access-control mechanism for the
-        // anonymous get_patient_check_by_id/by_share_token RPCs — anyone who
-        // guesses one can read that check's data, so they must be
-        // cryptographically unguessable, not just unique.
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        drugs: lines,
-        profile,
-        verdicts,
-        shareToken: crypto.randomUUID(),
-      },
-      {
-        onSuccess: (check) => router.push(`/check/result/${check.id}`),
+        onSuccess: (result) => {
+          if (result.allowed) {
+            router.push(`/check/result/${result.check.id}`);
+            return;
+          }
+          showToast({
+            title: result.reason === "not_verified" ? "Verification expired" : "No check available",
+            description:
+              result.reason === "not_verified"
+                ? "Please verify your phone number again."
+                : "This phone number doesn't have a free or paid check available.",
+            variant: "error",
+          });
+        },
+        onError: (err: Error) => showToast({ title: "Couldn't complete your check", description: err.message, variant: "error" }),
       }
     );
   }
@@ -82,19 +105,12 @@ export default function NewCheckPage() {
   return (
     <div className="space-y-6 pt-4">
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => (step === "profile" ? setStep("add") : router.push("/check"))}
-          aria-label="Back"
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
-        >
+        <button onClick={goBack} aria-label="Back" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
           <ArrowLeft className="size-5" />
         </button>
         <div className="flex-1">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-            <div
-              className="h-full bg-brand transition-all"
-              style={{ width: step === "add" ? "50%" : "100%" }}
-            />
+            <div className="h-full bg-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
           </div>
         </div>
       </div>
@@ -137,23 +153,14 @@ export default function NewCheckPage() {
             />
             Save this info on this device for next time
           </label>
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={handleSeeResult}
-            disabled={createCheck.isPending}
-          >
-            {createCheck.isPending ? (
-              <>
-                <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-                Checking…
-              </>
-            ) : (
-              "See my result"
-            )}
+          <Button size="lg" className="w-full" onClick={() => setStep("unlock")}>
+            Continue
+            <ArrowRight className="size-5" aria-hidden="true" />
           </Button>
         </div>
       )}
+
+      {step === "unlock" && <UnlockCheckStep onUnlocked={handleUnlocked} unlocking={createCheck.isPending} />}
     </div>
   );
 }

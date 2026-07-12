@@ -39,20 +39,53 @@ function mapRow(row: PatientCheckRow): PatientCheck {
   };
 }
 
-/** Records the new check's id in this device's local history list (read by listPatientChecksForDevice). */
-export async function createPatientCheck(check: PatientCheck): Promise<PatientCheck> {
-  const { error } = await supabase.from("patient_checks").insert({
-    id: check.id,
-    created_at: check.createdAt,
-    drugs: check.drugs,
-    profile: check.profile,
-    verdicts: check.verdicts,
-    share_token: check.shareToken,
-    pulled_into_prescription_id: check.pulledIntoPrescriptionId ?? null,
+export type CreateCheckResult =
+  | { allowed: true; check: PatientCheck }
+  | { allowed: false; reason: "not_verified" | "no_credit"; freeRemaining: number; paidAvailable: number };
+
+/**
+ * The only way an anonymous caller creates a patient_checks row —
+ * patient_checks_insert_any was dropped in 0003_self_check_quota.sql, so
+ * create_patient_check_with_quota (phone-verification + free/paid quota +
+ * the insert, all in one transaction) is the only path in. Records the new
+ * check's id in this device's local history list on success (read by
+ * listPatientChecksForDevice).
+ */
+export async function createPatientCheckWithQuota(params: {
+  phone: string;
+  drugs: PrescriptionDrugLine[];
+  profile: PatientCheckProfile;
+  verdicts: DrugLineVerdict[];
+  clientRequestId: string;
+}): Promise<CreateCheckResult> {
+  const { data, error } = await supabase.rpc("create_patient_check_with_quota", {
+    p_phone: params.phone,
+    p_drugs: params.drugs,
+    p_profile: params.profile,
+    p_verdicts: params.verdicts,
+    p_client_request_id: params.clientRequestId,
   });
   if (error) throw error;
+  const row = data?.[0];
+  if (!row || !row.allowed || !row.check_id || !row.created_at || !row.share_token) {
+    return {
+      allowed: false,
+      reason: (row?.reason as "not_verified" | "no_credit") ?? "no_credit",
+      freeRemaining: row?.free_remaining ?? 0,
+      paidAvailable: row?.paid_available ?? 0,
+    };
+  }
+
+  const check: PatientCheck = {
+    id: row.check_id,
+    createdAt: row.created_at,
+    drugs: params.drugs,
+    profile: params.profile,
+    verdicts: params.verdicts,
+    shareToken: row.share_token,
+  };
   rememberDeviceCheckId(check.id);
-  return check;
+  return { allowed: true, check };
 }
 
 /**

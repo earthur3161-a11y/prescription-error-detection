@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  createPatientCheck,
+  createPatientCheckWithQuota,
   getPatientCheckById,
   getPatientCheckByShareToken,
   listPatientChecks,
@@ -14,8 +14,9 @@ import type { PatientCheck } from "../../types";
 export function useCreatePatientCheck() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createPatientCheck,
-    onSuccess: () => {
+    mutationFn: createPatientCheckWithQuota,
+    onSuccess: (result) => {
+      if (!result.allowed) return;
       queryClient.invalidateQueries({ queryKey: ["patientChecks"] });
       queryClient.invalidateQueries({ queryKey: ["patientChecksForDevice"] });
     },
