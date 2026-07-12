@@ -1,0 +1,25 @@
+name: Verify deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm production is serving this commit
+        run: |
+          URL="https://prescription-error-detection-sandy.vercel.app/api/health"
+          EXPECTED="${{ github.sha }}"
+          for i in $(seq 1 20); do
+            ACTUAL=$(curl -s --max-time 10 "$URL" | jq -r '.sha // empty')
+            echo "Attempt $i: expected=$EXPECTED actual=$ACTUAL"
+            if [ "$ACTUAL" = "$EXPECTED" ]; then
+              echo "Deploy verified — production is serving this commit."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Production is still not serving commit $EXPECTED after 5 minutes. The Vercel build may have failed silently — check the Vercel dashboard build logs for this commit."
+          exit 1
