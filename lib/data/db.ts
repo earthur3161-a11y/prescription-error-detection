@@ -110,7 +110,7 @@ export class MediGuardDB extends Dexie {
  * browsers are refreshed from source when this differs from what's stored, so
  * data changes propagate without a manual cache clear.
  */
-const FORMULARY_VERSION = "2026-07-04-clinical-depth-v1";
+const FORMULARY_VERSION = "2026-07-13-allergy-reaction-text-v1";
 
 export const db = new MediGuardDB();
 
