@@ -12,17 +12,6 @@ const OTP_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const OTP_RATE_LIMIT_MAX_SENDS = 3;
 
 export async function POST(request: Request) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
-  if (!accountSid || !authToken || !verifyServiceSid) {
-    console.error("[otp/send] Missing TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_VERIFY_SERVICE_SID.");
-    return Response.json(
-      { error: "not_configured", message: "Phone verification is not fully configured yet." },
-      { status: 500 }
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -33,6 +22,26 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return Response.json({ error: "invalid_request", message: "A valid phone number is required." }, { status: 422 });
+  }
+
+  // Same simulated-verification convention already used by the seeded demo
+  // logins' MFA step (components/auth/PortalLoginForm.tsx) — gated behind
+  // the same flag, so it's off by default and never reaches production
+  // unless NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS is deliberately left on. No
+  // Twilio credentials needed at all in this mode.
+  if (process.env.NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS === "true") {
+    return Response.json({ sent: true, demoMode: true });
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!accountSid || !authToken || !verifyServiceSid) {
+    console.error("[otp/send] Missing TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_VERIFY_SERVICE_SID.");
+    return Response.json(
+      { error: "not_configured", message: "Phone verification is not fully configured yet." },
+      { status: 500 }
+    );
   }
 
   const { data: quota, error: quotaError } = await supabaseService.rpc("get_check_quota", {

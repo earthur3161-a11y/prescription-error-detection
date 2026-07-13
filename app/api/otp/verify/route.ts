@@ -4,18 +4,11 @@ import { supabaseService } from "@/lib/supabase/serviceClient";
 
 const bodySchema = z.object({ phone: z.string().min(6), code: z.string().min(3).max(10) });
 
-export async function POST(request: Request) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
-  if (!accountSid || !authToken || !verifyServiceSid) {
-    console.error("[otp/verify] Missing TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_VERIFY_SERVICE_SID.");
-    return Response.json(
-      { error: "not_configured", message: "Phone verification is not fully configured yet." },
-      { status: 500 }
-    );
-  }
+async function markPhoneVerified(phone: string) {
+  return supabaseService.from("self_check_accounts").upsert({ phone, phone_verified: true }, { onConflict: "phone" });
+}
 
+export async function POST(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -26,6 +19,30 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return Response.json({ error: "invalid_request", message: "A phone number and code are required." }, { status: 422 });
+  }
+
+  // Same simulated-verification convention already used by the seeded demo
+  // logins' MFA step — any code that passes the schema above is accepted.
+  // Gated behind the same flag, so this never reaches production unless
+  // NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS is deliberately left on.
+  if (process.env.NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS === "true") {
+    const { error } = await markPhoneVerified(parsed.data.phone);
+    if (error) {
+      console.error("[otp/verify] (demo mode) Failed to mark phone verified:", error);
+      return Response.json({ error: "internal_error", message: "Verification succeeded but couldn't be saved." }, { status: 500 });
+    }
+    return Response.json({ verified: true });
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!accountSid || !authToken || !verifyServiceSid) {
+    console.error("[otp/verify] Missing TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_VERIFY_SERVICE_SID.");
+    return Response.json(
+      { error: "not_configured", message: "Phone verification is not fully configured yet." },
+      { status: 500 }
+    );
   }
 
   const twilioRes = await fetch(
@@ -51,11 +68,9 @@ export async function POST(request: Request) {
     return Response.json({ verified: false });
   }
 
-  // The only writer of phone_verified: a client can never set this itself,
-  // only Twilio having actually confirmed the code gets here.
-  const { error } = await supabaseService
-    .from("self_check_accounts")
-    .upsert({ phone: parsed.data.phone, phone_verified: true }, { onConflict: "phone" });
+  // The only writer of phone_verified outside demo mode: a client can never
+  // set this itself, only Twilio having actually confirmed the code gets here.
+  const { error } = await markPhoneVerified(parsed.data.phone);
 
   if (error) {
     console.error("[otp/verify] Failed to mark phone verified:", error);
