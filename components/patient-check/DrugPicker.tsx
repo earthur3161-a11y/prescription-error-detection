@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Pill, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import { ScanLabelButton } from "./ScanLabelButton";
 import { useDrugSearchFuzzy } from "@/lib/query/hooks/useFormulary";
@@ -60,13 +61,15 @@ export function DrugPicker({ addedDrugs, onAdd, onRemove }: DrugPickerProps) {
                 <Pill className="size-4 text-brand" aria-hidden="true" />
                 <span className="text-sm font-medium text-foreground">{drug.generic_name}</span>
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onRemove(drug.id)}
                 aria-label={`Remove ${drug.generic_name}`}
-                className="rounded-lg p-1.5 text-subtle hover:bg-muted hover:text-blocked-fg"
+                className="px-1.5 text-subtle hover:text-blocked-fg"
               >
                 <X className="size-4" aria-hidden="true" />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

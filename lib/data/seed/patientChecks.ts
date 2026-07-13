@@ -14,6 +14,11 @@ export function buildSeedPatientChecks(formulary: FormularyBundle): PatientCheck
     weightKg: 60,
     allergies: [] as Patient["allergies"],
     activeMedications: [{ drugId: "drug_warfarin", startedAt: "2026-05-01" }],
+    isPregnant: null,
+    renalStatus: "unknown" as const,
+    hepaticStatus: "unknown" as const,
+    reportedConditions: [] as string[],
+    complaintNote: null,
   };
 
   const syntheticPatient: Patient = {

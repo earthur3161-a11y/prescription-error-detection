@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Textarea } from "@/components/ui/Textarea";
 import { useAuth } from "@/lib/auth/useAuth";
 import {
   useAccessRequests,
@@ -136,11 +137,10 @@ function SuperAdminDashboard() {
           </>
         }
       >
-        <textarea
+        <Textarea
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           placeholder="Reason shown to the applicant…"
         />
       </Modal>

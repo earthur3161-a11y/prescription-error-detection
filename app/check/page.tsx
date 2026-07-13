@@ -4,13 +4,14 @@ import Link from "next/link";
 import { Camera, ClipboardCheck, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
+import { Notice } from "@/components/ui/Notice";
 import { useLocalPatientProfile } from "@/lib/query/hooks/usePatientProfile";
 
 export default function CheckLandingPage() {
   const { data: profile } = useLocalPatientProfile();
 
   return (
-    <div className="space-y-8 pt-6">
+    <div className="space-y-8">
       <div className="text-center">
         <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-brand-subtle">
           <ShieldCheck className="size-8 text-brand" aria-hidden="true" />
@@ -61,14 +62,10 @@ export default function CheckLandingPage() {
         </Card>
       </div>
 
-      <Card className="border-amber-200 bg-amber-50/60">
-        <CardBody>
-          <p className="text-sm text-secondary">
-            <span className="font-semibold">MediGuard supports, but doesn&rsquo;t replace,</span> advice
-            from your doctor or pharmacist. Always talk to a professional about your health.
-          </p>
-        </CardBody>
-      </Card>
+      <Notice tone="caution">
+        <span className="font-semibold">MediGuard supports, but doesn&rsquo;t replace,</span> advice
+        from your doctor or pharmacist. Always talk to a professional about your health.
+      </Notice>
     </div>
   );
 }

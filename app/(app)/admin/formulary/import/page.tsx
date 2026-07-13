@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileUp, Upload } from
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Notice } from "@/components/ui/Notice";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useBulkUpsertDrugs } from "@/lib/query/hooks/useDrugMutations";
 import { parseDrugCsv, CSV_TEMPLATE_EXAMPLE, type DrugImportResult } from "@/lib/formulary/csvImport";
@@ -71,13 +72,11 @@ export default function FormularyImportPage() {
         </p>
       </div>
 
-      <Card className="border-amber-200 bg-amber-50/60">
-        <CardBody className="text-sm text-secondary">
-          <span className="font-semibold">Sourcing note:</span> the built-in list is an illustrative
-          demo set, not the authoritative Ghana FDA database. Supply a verified export to load the
-          complete medicines list — dosing should be clinician-verified before real-world use.
-        </CardBody>
-      </Card>
+      <Notice tone="caution" title="Sourcing note">
+        The built-in list is an illustrative demo set, not the authoritative Ghana FDA database.
+        Supply a verified export to load the complete medicines list — dosing should be
+        clinician-verified before real-world use.
+      </Notice>
 
       <Card>
         <CardBody className="space-y-4">

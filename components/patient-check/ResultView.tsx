@@ -1,6 +1,9 @@
-import { AlertTriangle, CheckCircle2, HelpCircle, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
+import { StepBadge } from "@/components/ui/StepBadge";
+import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { cn } from "@/lib/utils/cn";
+import { FLAG_ICON } from "@/lib/utils/flagPresentation";
 import { getPatientGuidance } from "@/lib/patient-check/guidance";
 import { buildSyntheticPatient } from "@/lib/patient-check/buildSyntheticPatient";
 import {
@@ -8,7 +11,6 @@ import {
   screenDrugLine,
   type DrugLineVerdict,
   type Flag,
-  type Severity,
   type Verdict,
 } from "@/lib/screening-engine";
 import type { FormularyBundle, PatientCheck } from "@/lib/types";
@@ -40,13 +42,10 @@ const verdictIcon: Record<Verdict, typeof CheckCircle2> = {
   blocked: XCircle,
 };
 
-const flagIcon: Record<Severity, typeof AlertTriangle> = {
-  none: AlertTriangle,
-  minor: AlertTriangle,
-  moderate: AlertTriangle,
-  major: XCircle,
-  severe: XCircle,
-  unknown: HelpCircle,
+const verdictLabel: Record<Verdict, string> = {
+  safe: "Looks safe",
+  caution: "Check with pharmacist",
+  blocked: "Talk to a professional",
 };
 
 interface ResultViewProps {
@@ -74,9 +73,9 @@ export function ResultView({ check, formulary }: ResultViewProps) {
 
   return (
     <div className="space-y-6">
-      <div className={cn("rounded-2xl border-2 p-6 text-center", verdictBannerClasses[verdict])}>
-        <Icon className="mx-auto mb-3 size-12" aria-hidden="true" />
-        <h1 className="text-xl font-semibold">{guidance.headline}</h1>
+      <div className={cn("rounded-2xl border-2 p-6 text-center sm:p-8", verdictBannerClasses[verdict])}>
+        <Icon className="mx-auto mb-3 size-12 sm:size-14" aria-hidden="true" />
+        <h1 className="text-xl font-semibold sm:text-2xl">{guidance.headline}</h1>
         <p className="mt-1.5 text-sm opacity-90">{guidance.detail}</p>
       </div>
 
@@ -88,9 +87,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
           <ul className="space-y-2 pt-1">
             {guidance.steps.map((step, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-secondary">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-xs font-semibold text-brand">
-                  {i + 1}
-                </span>
+                <StepBadge step={i + 1} className="mt-0.5" />
                 {step}
               </li>
             ))}
@@ -108,18 +105,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
               <CardBody className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-foreground">{drug.generic_name}</p>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                      verdictBannerClasses[lineVerdict.verdict]
-                    )}
-                  >
-                    {lineVerdict.verdict === "safe"
-                      ? "Looks safe"
-                      : lineVerdict.verdict === "caution"
-                        ? "Check with pharmacist"
-                        : "Talk to a professional"}
-                  </span>
+                  <VerdictBadge verdict={lineVerdict.verdict} label={verdictLabel[lineVerdict.verdict]} size="sm" />
                 </div>
                 <p className="text-xs text-subtle">
                   {drug.onEssentialMedicinesList
@@ -129,7 +115,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
                 {lineVerdict.flags.length > 0 && (
                   <ul className="space-y-1.5">
                     {dedupeByPatientText(lineVerdict.flags).map((flag, fi) => {
-                      const FlagIcon = flagIcon[flag.severity];
+                      const FlagIcon = FLAG_ICON[flag.severity];
                       return (
                         <li key={fi} className="flex items-start gap-2 text-sm text-secondary">
                           <FlagIcon className="mt-0.5 size-4 shrink-0 text-subtle" aria-hidden="true" />

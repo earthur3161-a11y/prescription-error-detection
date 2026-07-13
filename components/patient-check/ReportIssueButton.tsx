@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { Textarea } from "@/components/ui/Textarea";
 import { useCreatePatientFeedbackReport } from "@/lib/query/hooks/usePatientFeedback";
 
 interface ReportIssueButtonProps {
@@ -52,11 +53,10 @@ export function ReportIssueButton({ patientCheckId }: ReportIssueButtonProps) {
           </>
         }
       >
-        <textarea
+        <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={4}
-          className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           placeholder="e.g. This result didn't match what my pharmacist told me…"
         />
       </Modal>

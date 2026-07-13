@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { HeartPulse, Pill, ShieldAlert, Stethoscope, User, X } from "lucide-react";
+import { ChipToggleGroup } from "@/components/ui/ChipToggleGroup";
 import { Combobox } from "@/components/ui/Combobox";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useDrugSearchFuzzy } from "@/lib/query/hooks/useFormulary";
+import { PATIENT_CONDITIONS } from "@/lib/patient-check/conditions";
 import type { AllergyRecord, AllergySeverity, Drug, PatientCheckProfile } from "@/lib/types";
 
 const COMMON_ALLERGENS = [
@@ -19,38 +21,32 @@ const COMMON_ALLERGENS = [
 
 type TriState = "none" | "yes" | "unsure";
 
-function TriToggle({
-  value,
-  onChange,
-  yesLabel,
-}: {
-  value: TriState;
-  onChange: (v: TriState) => void;
-  yesLabel: string;
-}) {
-  const options: { value: TriState; label: string }[] = [
-    { value: "none", label: "No, none" },
+function triOptions(yesLabel: string, noLabel = "No, none", unsureLabel = "Not sure") {
+  return [
+    { value: "none", label: noLabel },
     { value: "yes", label: yesLabel },
-    { value: "unsure", label: "Not sure" },
+    { value: "unsure", label: unsureLabel },
   ];
+}
+
+interface SectionProps {
+  icon: typeof User;
+  title: string;
+  first?: boolean;
+  children: ReactNode;
+}
+
+function Section({ icon: Icon, title, first, children }: SectionProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          aria-pressed={value === opt.value}
-          className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-            value === opt.value
-              ? "border-brand bg-brand-subtle text-brand"
-              : "border-border-strong text-secondary hover:bg-surface-2"
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
+    <section className={first ? "space-y-3" : "space-y-3 border-t border-border pt-7"}>
+      <div className="flex items-center gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-subtle">
+          <Icon className="size-4 text-brand" aria-hidden="true" />
+        </span>
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      </div>
+      <div className="space-y-5 pl-[42px]">{children}</div>
+    </section>
   );
 }
 
@@ -70,19 +66,52 @@ export function ProfileStep({ profile, onChange, knownDrugs }: ProfileStepProps)
   const [medQuery, setMedQuery] = useState("");
   const { data: medResults, isLoading: medsLoading } = useDrugSearchFuzzy(medQuery);
   const [allergenText, setAllergenText] = useState("");
+  const [pregnancyState, setPregnancyState] = useState<TriState>(
+    profile.isPregnant === true ? "yes" : profile.isPregnant === false ? "none" : "unsure"
+  );
+  const [renalState, setRenalState] = useState<TriState>(
+    profile.renalStatus === "impaired" ? "yes" : profile.renalStatus === "normal" ? "none" : "unsure"
+  );
+  const [hepaticState, setHepaticState] = useState<TriState>(
+    profile.hepaticStatus === "impaired" ? "yes" : profile.hepaticStatus === "normal" ? "none" : "unsure"
+  );
 
-  function setAllergyTriState(v: TriState) {
-    setAllergyState(v);
-    if (v === "none") onChange({ ...profile, allergies: [] });
-    else if (v === "unsure") onChange({ ...profile, allergies: null });
+  function setAllergyTriState(v: string) {
+    const state = v as TriState;
+    setAllergyState(state);
+    if (state === "none") onChange({ ...profile, allergies: [] });
+    else if (state === "unsure") onChange({ ...profile, allergies: null });
     else if (profile.allergies === null) onChange({ ...profile, allergies: [] });
   }
 
-  function setMedsTriState(v: TriState) {
-    setMedsState(v);
-    if (v === "none") onChange({ ...profile, activeMedications: [] });
-    else if (v === "unsure") onChange({ ...profile, activeMedications: null });
+  function setMedsTriState(v: string) {
+    const state = v as TriState;
+    setMedsState(state);
+    if (state === "none") onChange({ ...profile, activeMedications: [] });
+    else if (state === "unsure") onChange({ ...profile, activeMedications: null });
     else if (profile.activeMedications === null) onChange({ ...profile, activeMedications: [] });
+  }
+
+  function setPregnancyTriState(v: string) {
+    const state = v as TriState;
+    setPregnancyState(state);
+    onChange({ ...profile, isPregnant: state === "yes" ? true : state === "none" ? false : null });
+  }
+
+  function setRenalTriState(v: string) {
+    const state = v as TriState;
+    setRenalState(state);
+    onChange({ ...profile, renalStatus: state === "yes" ? "impaired" : state === "none" ? "normal" : "unknown" });
+  }
+
+  function setHepaticTriState(v: string) {
+    const state = v as TriState;
+    setHepaticState(state);
+    onChange({ ...profile, hepaticStatus: state === "yes" ? "impaired" : state === "none" ? "normal" : "unknown" });
+  }
+
+  function toggleConditions(values: string[]) {
+    onChange({ ...profile, reportedConditions: values });
   }
 
   function addAllergen(allergen: string, severity: AllergySeverity) {
@@ -109,149 +138,214 @@ export function ProfileStep({ profile, onChange, knownDrugs }: ProfileStepProps)
   }
 
   return (
-    <div className="space-y-7">
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-secondary">
-          Your age <span className="text-subtle">(optional, helps us check the dose)</span>
-        </label>
-        <Input
-          type="number"
-          min={0}
-          max={120}
-          value={profile.ageYears ?? ""}
-          onChange={(e) =>
-            onChange({ ...profile, ageYears: e.target.value ? Number(e.target.value) : null })
-          }
-          placeholder="e.g. 34"
-          className="max-w-[140px]"
-        />
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-secondary">
-          Your weight in kg <span className="text-subtle">(optional, only needed for some medicines)</span>
-        </label>
-        <Input
-          type="number"
-          min={0}
-          max={300}
-          value={profile.weightKg ?? ""}
-          onChange={(e) =>
-            onChange({ ...profile, weightKg: e.target.value ? Number(e.target.value) : null })
-          }
-          placeholder="e.g. 60"
-          className="max-w-[140px]"
-        />
-      </div>
-
-      <div>
-        <p className="mb-2 text-sm font-medium text-secondary">Do you have any known allergies to medicines?</p>
-        <TriToggle value={allergyState} onChange={setAllergyTriState} yesLabel="Yes, let me add them" />
-        {allergyState === "yes" && (
-          <div className="mt-3 space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {COMMON_ALLERGENS.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => addAllergen(a, "moderate")}
-                  className="rounded-full border border-border-strong px-3 py-1.5 text-sm text-secondary hover:bg-surface-2"
-                >
-                  + {a}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={allergenText}
-                onChange={(e) => setAllergenText(e.target.value)}
-                placeholder="Or type another medicine/allergen…"
-              />
-              <Button type="button" variant="secondary" onClick={() => addAllergen(allergenText, "moderate")}>
-                Add
-              </Button>
-            </div>
-            {(profile.allergies ?? []).length > 0 && (
-              <ul className="space-y-1.5">
-                {(profile.allergies ?? []).map((a) => (
-                  <li
-                    key={a.allergen.toLowerCase()}
-                    className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-sm"
-                  >
-                    <span>{a.allergen}</span>
-                    <button
-                      onClick={() => removeAllergen(a.allergen)}
-                      aria-label={`Remove ${a.allergen}`}
-                      className="text-subtle hover:text-blocked-fg"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <p className="mb-2 text-sm font-medium text-secondary">Are you taking any other medicines right now?</p>
-        <TriToggle value={medsState} onChange={setMedsTriState} yesLabel="Yes, let me add them" />
-        {medsState === "yes" && (
-          <div className="mt-3 space-y-3">
-            <Combobox
-              items={medQuery ? medResults ?? [] : []}
-              getKey={(d) => d.id}
-              getLabel={(d) => d.generic_name}
-              query={medQuery}
-              onQueryChange={setMedQuery}
-              onSelect={(drug) => {
-                const existing = profile.activeMedications ?? [];
-                // Skip if this drug is already in the list, so we never render
-                // two rows keyed by the same drugId.
-                if (!existing.some((m) => m.drugId === drug.id)) {
-                  onChange({
-                    ...profile,
-                    activeMedications: [
-                      ...existing,
-                      { drugId: drug.id, startedAt: new Date().toISOString() },
-                    ],
-                  });
-                }
-                setMedQuery("");
-              }}
-              loading={medsLoading}
-              placeholder="Search the other medicine…"
+    <div className="space-y-0">
+      <Section icon={User} title="Basics" first>
+        <div className="flex flex-wrap gap-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-secondary">
+              Your age <span className="text-subtle">(optional)</span>
+            </label>
+            <Input
+              type="number"
+              min={0}
+              max={120}
+              value={profile.ageYears ?? ""}
+              onChange={(e) =>
+                onChange({ ...profile, ageYears: e.target.value ? Number(e.target.value) : null })
+              }
+              placeholder="e.g. 34"
+              className="max-w-[140px]"
             />
-            {(profile.activeMedications ?? []).length > 0 && (
-              <ul className="space-y-1.5">
-                {(profile.activeMedications ?? []).map((m) => (
-                  <li
-                    key={m.drugId}
-                    className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-sm"
-                  >
-                    <span>{knownDrugs.find((d) => d.id === m.drugId)?.generic_name ?? m.drugId}</span>
-                    <button
-                      onClick={() =>
-                        onChange({
-                          ...profile,
-                          activeMedications: (profile.activeMedications ?? []).filter(
-                            (x) => x.drugId !== m.drugId
-                          ),
-                        })
-                      }
-                      aria-label="Remove medicine"
-                      className="text-subtle hover:text-blocked-fg"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
-        )}
-      </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-secondary">
+              Weight in kg <span className="text-subtle">(optional)</span>
+            </label>
+            <Input
+              type="number"
+              min={0}
+              max={300}
+              value={profile.weightKg ?? ""}
+              onChange={(e) =>
+                onChange({ ...profile, weightKg: e.target.value ? Number(e.target.value) : null })
+              }
+              placeholder="e.g. 60"
+              className="max-w-[140px]"
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Section icon={Stethoscope} title="What's this for?">
+        <div>
+          <p className="mb-2 text-xs text-subtle">
+            Optional, but it helps us flag if a medicine looks like the wrong one for your condition. Select all that apply.
+          </p>
+          <ChipToggleGroup
+            type="multiple"
+            size="sm"
+            options={PATIENT_CONDITIONS.map((c) => ({ value: c, label: c }))}
+            values={profile.reportedConditions ?? []}
+            onChange={toggleConditions}
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-secondary">
+            Anything else about why you&rsquo;re taking this?{" "}
+            <span className="text-subtle">(optional, for your pharmacist&rsquo;s context)</span>
+          </label>
+          <Input
+            value={profile.complaintNote ?? ""}
+            onChange={(e) => onChange({ ...profile, complaintNote: e.target.value || null })}
+            placeholder="e.g. persistent cough for 3 days"
+          />
+        </div>
+      </Section>
+
+      <Section icon={HeartPulse} title="Pregnancy & organ function">
+        <div className="sm:grid sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
+          <div>
+            <p className="mb-2 text-sm font-medium text-secondary">Pregnant or breastfeeding?</p>
+            <ChipToggleGroup
+              size="sm"
+              value={pregnancyState}
+              onChange={setPregnancyTriState}
+              options={triOptions("Yes", "No", "Not sure")}
+            />
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium text-secondary">Known kidney problems?</p>
+            <ChipToggleGroup size="sm" value={renalState} onChange={setRenalTriState} options={triOptions("Yes", "No")} />
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium text-secondary">Known liver problems?</p>
+            <ChipToggleGroup size="sm" value={hepaticState} onChange={setHepaticTriState} options={triOptions("Yes", "No")} />
+          </div>
+        </div>
+      </Section>
+
+      <Section icon={ShieldAlert} title="Allergies">
+        <div>
+          <p className="mb-2 text-sm font-medium text-secondary">Any known allergies to medicines?</p>
+          <ChipToggleGroup
+            size="sm"
+            value={allergyState}
+            onChange={setAllergyTriState}
+            options={triOptions("Yes, let me add them")}
+          />
+          {allergyState === "yes" && (
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {COMMON_ALLERGENS.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => addAllergen(a, "moderate")}
+                    className="rounded-full border border-border-strong px-3 py-1.5 text-sm text-secondary hover:bg-surface-2"
+                  >
+                    + {a}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={allergenText}
+                  onChange={(e) => setAllergenText(e.target.value)}
+                  placeholder="Or type another medicine/allergen…"
+                />
+                <Button type="button" variant="secondary" onClick={() => addAllergen(allergenText, "moderate")}>
+                  Add
+                </Button>
+              </div>
+              {(profile.allergies ?? []).length > 0 && (
+                <ul className="space-y-1.5">
+                  {(profile.allergies ?? []).map((a) => (
+                    <li
+                      key={a.allergen.toLowerCase()}
+                      className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-sm"
+                    >
+                      <span>{a.allergen}</span>
+                      <button
+                        onClick={() => removeAllergen(a.allergen)}
+                        aria-label={`Remove ${a.allergen}`}
+                        className="text-subtle hover:text-blocked-fg"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section icon={Pill} title="Other medicines">
+        <div>
+          <p className="mb-2 text-sm font-medium text-secondary">Taking any other medicines right now?</p>
+          <ChipToggleGroup
+            size="sm"
+            value={medsState}
+            onChange={setMedsTriState}
+            options={triOptions("Yes, let me add them")}
+          />
+          {medsState === "yes" && (
+            <div className="mt-3 space-y-3">
+              <Combobox
+                items={medQuery ? medResults ?? [] : []}
+                getKey={(d) => d.id}
+                getLabel={(d) => d.generic_name}
+                query={medQuery}
+                onQueryChange={setMedQuery}
+                onSelect={(drug) => {
+                  const existing = profile.activeMedications ?? [];
+                  // Skip if this drug is already in the list, so we never render
+                  // two rows keyed by the same drugId.
+                  if (!existing.some((m) => m.drugId === drug.id)) {
+                    onChange({
+                      ...profile,
+                      activeMedications: [
+                        ...existing,
+                        { drugId: drug.id, startedAt: new Date().toISOString() },
+                      ],
+                    });
+                  }
+                  setMedQuery("");
+                }}
+                loading={medsLoading}
+                placeholder="Search the other medicine…"
+              />
+              {(profile.activeMedications ?? []).length > 0 && (
+                <ul className="space-y-1.5">
+                  {(profile.activeMedications ?? []).map((m) => (
+                    <li
+                      key={m.drugId}
+                      className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-sm"
+                    >
+                      <span>{knownDrugs.find((d) => d.id === m.drugId)?.generic_name ?? m.drugId}</span>
+                      <button
+                        onClick={() =>
+                          onChange({
+                            ...profile,
+                            activeMedications: (profile.activeMedications ?? []).filter(
+                              (x) => x.drugId !== m.drugId
+                            ),
+                          })
+                        }
+                        aria-label="Remove medicine"
+                        className="text-subtle hover:text-blocked-fg"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </Section>
     </div>
   );
 }

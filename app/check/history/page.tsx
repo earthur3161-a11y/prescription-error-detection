@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Loader2, Trash2, User } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -19,11 +19,25 @@ import {
 import { formatDateTime } from "@/lib/utils/date";
 import type { PatientCheckProfile } from "@/lib/types";
 
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-subtle">{label}</dt>
+      <dd className="text-sm text-secondary">{children}</dd>
+    </div>
+  );
+}
+
 const EMPTY_PROFILE: PatientCheckProfile = {
   ageYears: null,
   weightKg: null,
   allergies: null,
   activeMedications: null,
+  isPregnant: null,
+  renalStatus: "unknown",
+  hepaticStatus: "unknown",
+  reportedConditions: [],
+  complaintNote: null,
 };
 
 export default function CheckHistoryPage() {
@@ -44,6 +58,11 @@ export default function CheckHistoryPage() {
             weightKg: profile.weightKg,
             allergies: profile.allergies,
             activeMedications: profile.activeMedications,
+            isPregnant: profile.isPregnant,
+            renalStatus: profile.renalStatus,
+            hepaticStatus: profile.hepaticStatus,
+            reportedConditions: profile.reportedConditions,
+            complaintNote: profile.complaintNote,
           }
         : EMPTY_PROFILE
     );
@@ -51,8 +70,8 @@ export default function CheckHistoryPage() {
   }
 
   return (
-    <div className="space-y-6 pt-4">
-      <h1 className="text-xl font-semibold text-foreground">My health profile & checks</h1>
+    <div className="space-y-6">
+      <h1 className="text-xl font-semibold text-foreground sm:text-2xl">My health profile & checks</h1>
 
       <Card>
         <CardBody className="space-y-4">
@@ -78,32 +97,46 @@ export default function CheckHistoryPage() {
           )}
 
           {!editing && profile && (
-            <div className="space-y-1 text-sm text-secondary">
-              <p>Age: {profile.ageYears ?? "not set"}</p>
-              <p>Weight: {profile.weightKg ? `${profile.weightKg}kg` : "not set"}</p>
-              <p>
-                Allergies:{" "}
-                {profile.allergies === null
-                  ? "not sure / not answered"
-                  : profile.allergies.length === 0
-                    ? "none known"
-                    : profile.allergies.map((a) => a.allergen).join(", ")}
-              </p>
-              <p>
-                Other medicines:{" "}
-                {profile.activeMedications === null
-                  ? "not sure / not answered"
-                  : profile.activeMedications.length === 0
-                    ? "none"
-                    : `${profile.activeMedications.length} on file`}
-              </p>
-              <button
+            <div className="space-y-4">
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <Field label="Age">{profile.ageYears ?? "not set"}</Field>
+                <Field label="Weight">{profile.weightKg ? `${profile.weightKg}kg` : "not set"}</Field>
+                <Field label="Allergies">
+                  {profile.allergies === null
+                    ? "not sure / not answered"
+                    : profile.allergies.length === 0
+                      ? "none known"
+                      : profile.allergies.map((a) => a.allergen).join(", ")}
+                </Field>
+                <Field label="Other medicines">
+                  {profile.activeMedications === null
+                    ? "not sure / not answered"
+                    : profile.activeMedications.length === 0
+                      ? "none"
+                      : `${profile.activeMedications.length} on file`}
+                </Field>
+                <Field label="Pregnant/breastfeeding">
+                  {profile.isPregnant === null ? "not sure / not answered" : profile.isPregnant ? "yes" : "no"}
+                </Field>
+                <Field label="Kidney problems">
+                  {profile.renalStatus === "unknown" ? "not sure / not answered" : profile.renalStatus}
+                </Field>
+                <Field label="Liver problems">
+                  {profile.hepaticStatus === "unknown" ? "not sure / not answered" : profile.hepaticStatus}
+                </Field>
+                <Field label="Reason for prescriptions">
+                  {profile.reportedConditions.length === 0 ? "not set" : profile.reportedConditions.join(", ")}
+                </Field>
+              </dl>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => clearProfile.mutate()}
-                className="mt-2 flex items-center gap-1.5 text-sm text-blocked-fg hover:underline"
+                className="text-blocked-fg hover:text-blocked-fg"
               >
                 <Trash2 className="size-3.5" aria-hidden="true" />
                 Delete my saved profile
-              </button>
+              </Button>
             </div>
           )}
 

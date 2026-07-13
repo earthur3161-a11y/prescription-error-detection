@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useCheckQuota, useInitiatePayment, usePaymentStatus } from "@/lib/query/hooks/useCheckQuota";
@@ -173,7 +174,11 @@ export function UnlockCheckStep({ onUnlocked, unlocking }: UnlockCheckStepProps)
       <div className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Enter the code we texted you</h2>
-          <p className="mt-1 text-sm text-secondary">Sent to {confirmedPhone}.</p>
+          <p className="mt-1 text-sm text-secondary">
+            {process.env.NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS === "true"
+              ? "Simulated in this demo — enter any digits."
+              : `Sent to ${confirmedPhone}.`}
+          </p>
         </div>
         <Input
           type="text"
@@ -186,13 +191,15 @@ export function UnlockCheckStep({ onUnlocked, unlocking }: UnlockCheckStepProps)
         <Button size="lg" className="w-full" onClick={handleVerifyCode} disabled={verifyOtp.isPending || code.trim().length < 3}>
           {verifyOtp.isPending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : "Verify"}
         </Button>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
           onClick={() => confirmedPhone && sendOtp.mutate(confirmedPhone)}
           disabled={sendOtp.isPending}
-          className="w-full text-center text-sm font-medium text-brand hover:underline disabled:opacity-50"
         >
           Resend code
-        </button>
+        </Button>
       </div>
     );
   }
@@ -205,12 +212,11 @@ export function UnlockCheckStep({ onUnlocked, unlocking }: UnlockCheckStepProps)
     if (hasCredit) {
       return (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 rounded-lg bg-safe-bg px-4 py-3 text-sm text-safe-fg">
-            <ShieldCheck className="size-5 shrink-0" aria-hidden="true" />
+          <Notice tone="safe" icon={ShieldCheck}>
             {freeRemaining > 0
               ? `You have ${freeRemaining} free check${freeRemaining === 1 ? "" : "s"} remaining.`
               : "You have a paid check ready to use."}
-          </div>
+          </Notice>
           <Button
             size="lg"
             className="w-full"

@@ -9,6 +9,37 @@ interface ScanLabelButtonProps {
 }
 
 /**
+ * Upscales small photos and applies a grayscale contrast stretch before OCR.
+ * Tesseract's accuracy on phone-camera photos (as opposed to flatbed scans)
+ * degrades sharply on low-resolution or low-contrast shots — this is a real,
+ * measurable improvement for both printed and handwritten text. It does not
+ * make Tesseract a trained handwriting-recognition model: reliably reading
+ * arbitrary cursive handwriting is an unsolved problem for general-purpose
+ * OCR engines like this one, which is why the extracted text only ever seeds
+ * a fuzzy search for the patient to confirm rather than being trusted directly.
+ */
+async function preprocessForOcr(file: File): Promise<HTMLCanvasElement> {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  const scale = Math.min(2, 1600 / Math.max(bitmap.width, bitmap.height)) || 1;
+  canvas.width = bitmap.width * scale;
+  canvas.height = bitmap.height * scale;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas;
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const { data } = imageData;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    const contrasted = gray < 140 ? Math.max(0, gray - 30) : Math.min(255, gray + 30);
+    data[i] = data[i + 1] = data[i + 2] = contrasted;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+/**
  * Captures a photo of a prescription/label and runs it through client-side
  * OCR (tesseract.js, lazy-loaded only when this button is used — it's a
  * multi-MB dependency and must never sit in the initial bundle). The raw
@@ -24,7 +55,8 @@ export function ScanLabelButton({ onTextExtracted }: ScanLabelButtonProps) {
     setStatus("reading");
     try {
       const { recognize } = await import("tesseract.js");
-      const result = await recognize(file, "eng");
+      const image = await preprocessForOcr(file);
+      const result = await recognize(image, "eng");
       const text = result.data.text.trim();
       setStatus("idle");
       if (text) {
@@ -79,7 +111,9 @@ export function ScanLabelButton({ onTextExtracted }: ScanLabelButtonProps) {
         </p>
       )}
       <p className="mt-1.5 text-xs text-subtle">
-        We&rsquo;ll read the photo and suggest matches — you&rsquo;ll confirm the right one.
+        Works best on a printed label or typed prescription — we&rsquo;ll read the photo and suggest
+        matches for you to confirm. Handwritten notes are harder to read reliably, so double-check the
+        match carefully if yours is handwritten.
       </p>
     </div>
   );

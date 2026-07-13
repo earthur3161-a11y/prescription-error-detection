@@ -376,4 +376,53 @@ describe("screenDrugLine", () => {
     expect(result.flags.some((f) => f.code === "CONTRAINDICATED_IN_PREGNANCY")).toBe(true);
     expect(result.verdict).toBe("blocked");
   });
+
+  // --- Allergy reaction text: names the actual reaction, not a generic placeholder ---
+
+  it("states the concrete reaction for a direct allergy match instead of a generic placeholder", () => {
+    const patient = makePatient({ allergies: [{ allergen: "Penicillin", severity: "severe" }] });
+    const result = screen({ patient, drugLine: makeLine({ drugId: "drug_amoxicillin", doseMg: 500 }) });
+    const flag = result.flags.find((f) => f.code === "ALLERGY_DIRECT_MATCH");
+    expect(flag?.audience_variant.patient).toContain("anaphylaxis");
+    expect(flag?.audience_variant.patient).not.toContain("it could cause a reaction");
+  });
+
+  it("states the concrete cross-reactive reaction (penicillin -> cephalosporin)", () => {
+    const patient = makePatient({ allergies: [{ allergen: "Penicillin", severity: "moderate" }] });
+    const result = screen({
+      patient,
+      drugLine: makeLine({ drugId: "drug_ceftriaxone", doseMg: 1000, frequencyPerDay: 1 }),
+    });
+    const flag = result.flags.find((f) => f.code === "ALLERGY_CROSS_REACTIVE");
+    expect(flag?.audience_variant.patient).toContain("10% of patients");
+    expect(flag?.audience_variant.patient).not.toContain("could still cause a reaction in some people");
+  });
+
+  // --- Indication check: patient-reported reason vs. drug's therapeutic class ---
+
+  it("flags an indication mismatch when the drug's class doesn't match the reported condition", () => {
+    const patient = makePatient({ reportedConditions: ["Diabetes"] });
+    const result = screen({
+      patient,
+      drugLine: makeLine({ drugId: "drug_amoxicillin", doseMg: 500 }),
+    });
+    const flag = result.flags.find((f) => f.code === "INDICATION_MISMATCH");
+    expect(flag?.type).toBe("indication_mismatch");
+    expect(result.verdict).not.toBe("safe");
+  });
+
+  it("does not flag an indication mismatch when the drug's class matches the reported condition", () => {
+    const patient = makePatient({ reportedConditions: ["Bacterial infection"] });
+    const result = screen({
+      patient,
+      drugLine: makeLine({ drugId: "drug_amoxicillin", doseMg: 500 }),
+    });
+    expect(result.flags.some((f) => f.code === "INDICATION_MISMATCH")).toBe(false);
+  });
+
+  it("never raises an indication flag when no condition was reported", () => {
+    const patient = makePatient({ reportedConditions: [] });
+    const result = screen({ patient, drugLine: makeLine({ drugId: "drug_amoxicillin", doseMg: 500 }) });
+    expect(result.flags.some((f) => f.type === "indication_mismatch")).toBe(false);
+  });
 });

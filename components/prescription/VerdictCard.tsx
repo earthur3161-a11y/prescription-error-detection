@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, HelpCircle, Trash2, XCircle } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { Button } from "@/components/ui/Button";
@@ -9,8 +9,9 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils/cn";
+import { FLAG_COLOR_CLASS, FLAG_ICON } from "@/lib/utils/flagPresentation";
 import type { Drug, OverrideLog, PrescriptionDrugLine, Route } from "@/lib/types";
-import type { DrugLineVerdict, Flag, Severity } from "@/lib/screening-engine";
+import type { DrugLineVerdict, Flag } from "@/lib/screening-engine";
 
 interface VerdictCardProps {
   drug: Drug;
@@ -22,29 +23,11 @@ interface VerdictCardProps {
   onOverride: () => void;
 }
 
-const flagIcon: Record<Severity, typeof AlertTriangle> = {
-  none: AlertTriangle,
-  minor: AlertTriangle,
-  moderate: AlertTriangle,
-  major: XCircle,
-  severe: XCircle,
-  unknown: HelpCircle,
-};
-
-const flagColor: Record<Severity, string> = {
-  none: "text-subtle",
-  minor: "text-caution-fg",
-  moderate: "text-caution-fg",
-  major: "text-blocked-fg",
-  severe: "text-blocked-fg",
-  unknown: "text-muted-foreground",
-};
-
 function FlagRow({ flag }: { flag: Flag }) {
-  const Icon = flagIcon[flag.severity];
+  const Icon = FLAG_ICON[flag.severity];
   return (
     <li className="flex items-start gap-2.5 py-1.5">
-      <Icon className={cn("mt-0.5 size-4 shrink-0", flagColor[flag.severity])} aria-hidden="true" />
+      <Icon className={cn("mt-0.5 size-4 shrink-0", FLAG_COLOR_CLASS[flag.severity])} aria-hidden="true" />
       <p className="text-sm text-secondary">{flag.message}</p>
     </li>
   );

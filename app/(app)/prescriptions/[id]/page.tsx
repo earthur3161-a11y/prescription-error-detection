@@ -7,6 +7,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Textarea } from "@/components/ui/Textarea";
 import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { PrescriptionLineSummary } from "@/components/prescription/PrescriptionLineSummary";
@@ -223,11 +224,10 @@ export default function PrescriptionDetailPage({
           </>
         }
       >
-        <textarea
+        <Textarea
           value={sendBackNote}
           onChange={(e) => setSendBackNote(e.target.value)}
           rows={4}
-          className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           placeholder="e.g. Please switch to an alternative that doesn't interact with the patient's warfarin…"
         />
       </Modal>
@@ -257,11 +257,10 @@ export default function PrescriptionDetailPage({
           </>
         }
       >
-        <textarea
+        <Textarea
           value={flagNote}
           onChange={(e) => setFlagNote(e.target.value)}
           rows={4}
-          className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           placeholder="e.g. Please confirm renal function before dispensing…"
         />
       </Modal>

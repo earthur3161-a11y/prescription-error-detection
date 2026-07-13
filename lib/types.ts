@@ -65,6 +65,8 @@ export interface InteractionRule {
 export interface CrossReactiveClass {
   class: string;
   severity: InteractionSeverity;
+  /** Reaction specific to this cross-reactive class; falls back to the parent rule's `reaction` when omitted. */
+  reaction?: string;
 }
 
 export interface AllergyRule {
@@ -72,6 +74,8 @@ export interface AllergyRule {
   allergen: string;
   related_drug_classes: string[];
   severity: InteractionSeverity;
+  /** Concrete description of the reaction this allergy class can cause, shown to the patient in place of a generic "could cause a reaction." */
+  reaction: string;
   cross_reactive_classes?: CrossReactiveClass[];
   referenceSource?: string;
 }
@@ -114,6 +118,8 @@ export interface Patient {
   activeMedications: ActiveMedication[] | null;
   // null = not on file / not applicable; true/false = confirmed. Drives the pregnancy contraindication check.
   isPregnant?: boolean | null;
+  /** Patient-reported reason(s) for this prescription, from the curated PATIENT_CONDITIONS list. Drives the indication-mismatch check; empty = not reported, never treated as "no condition." */
+  reportedConditions?: string[];
 }
 
 export type UserRole = "prescriber" | "pharmacist" | "admin";
@@ -257,6 +263,14 @@ export interface PatientCheckProfile {
   weightKg: number | null;
   allergies: AllergyRecord[] | null;
   activeMedications: ActiveMedication[] | null;
+  // null = not sure / prefers not to say (falls back to "not on file", never treated as "confirmed no"); true/false = confirmed.
+  isPregnant: boolean | null;
+  renalStatus: RenalHepaticStatus;
+  hepaticStatus: RenalHepaticStatus;
+  /** Reason(s) for this prescription, picked from the curated PATIENT_CONDITIONS list — drives the indication-mismatch check. */
+  reportedConditions: string[];
+  /** Free-text elaboration on the reason for the prescription. Shown to the patient/pharmacist for context only — never fed into automated screening. */
+  complaintNote: string | null;
 }
 
 export interface PatientCheck {
@@ -286,6 +300,11 @@ export interface PatientProfile {
   weightKg: number | null;
   allergies: AllergyRecord[] | null;
   activeMedications: ActiveMedication[] | null;
+  isPregnant: boolean | null;
+  renalStatus: RenalHepaticStatus;
+  hepaticStatus: RenalHepaticStatus;
+  reportedConditions: string[];
+  complaintNote: string | null;
   updatedAt: string;
 }
 

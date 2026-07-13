@@ -1,35 +1,17 @@
-import { AlertTriangle, HelpCircle, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils/cn";
 import { formatDateTime } from "@/lib/utils/date";
+import { FLAG_COLOR_CLASS, FLAG_ICON } from "@/lib/utils/flagPresentation";
 import type { Drug, OverrideLog, PrescriptionDrugLine } from "@/lib/types";
-import type { DrugLineVerdict, Severity } from "@/lib/screening-engine";
+import type { DrugLineVerdict } from "@/lib/screening-engine";
 
 const REASON_LABELS: Record<string, string> = {
   benefit_outweighs_risk: "Benefit outweighs risk",
   verified_with_pharmacist: "Verified with pharmacist",
   patient_tolerates_combination: "Patient already tolerates this combination",
   other: "Other",
-};
-
-const flagIcon: Record<Severity, typeof AlertTriangle> = {
-  none: AlertTriangle,
-  minor: AlertTriangle,
-  moderate: AlertTriangle,
-  major: XCircle,
-  severe: XCircle,
-  unknown: HelpCircle,
-};
-
-const flagColor: Record<Severity, string> = {
-  none: "text-subtle",
-  minor: "text-caution-fg",
-  moderate: "text-caution-fg",
-  major: "text-blocked-fg",
-  severe: "text-blocked-fg",
-  unknown: "text-muted-foreground",
 };
 
 interface PrescriptionLineSummaryProps {
@@ -75,10 +57,10 @@ export function PrescriptionLineSummary({
         {verdict.flags.length > 0 && (
           <ul className="divide-y divide-border border-t border-border">
             {verdict.flags.map((flag, i) => {
-              const Icon = flagIcon[flag.severity];
+              const Icon = FLAG_ICON[flag.severity];
               return (
                 <li key={`${flag.code}-${i}`} className="flex items-start gap-2.5 py-2">
-                  <Icon className={cn("mt-0.5 size-4 shrink-0", flagColor[flag.severity])} aria-hidden="true" />
+                  <Icon className={cn("mt-0.5 size-4 shrink-0", FLAG_COLOR_CLASS[flag.severity])} aria-hidden="true" />
                   <div>
                     <p className="text-sm text-secondary">
                       <span className="mr-1.5 rounded bg-muted px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -6,6 +6,8 @@ interface VerdictBadgeProps {
   verdict: Verdict;
   size?: "sm" | "md" | "lg";
   className?: string;
+  /** Overrides the default clinical-register label (e.g. a patient-facing phrase). */
+  label?: string;
 }
 
 const config: Record<
@@ -35,8 +37,9 @@ const sizeClasses = {
   lg: "text-base px-4 py-1.5 gap-2 [&_svg]:size-5",
 };
 
-export function VerdictBadge({ verdict, size = "md", className }: VerdictBadgeProps) {
-  const { label, icon: Icon, classes } = config[verdict];
+export function VerdictBadge({ verdict, size = "md", className, label: labelOverride }: VerdictBadgeProps) {
+  const { label: defaultLabel, icon: Icon, classes } = config[verdict];
+  const label = labelOverride ?? defaultLabel;
   return (
     <span
       role="status"

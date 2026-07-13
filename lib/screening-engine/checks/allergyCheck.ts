@@ -43,7 +43,7 @@ export function checkAllergy(input: ScreeningInput): Flag[] {
           code: "ALLERGY_DIRECT_MATCH",
           severity: rule.severity,
           clinical: `Patient has a recorded ${allergy.severity} allergy to ${allergy.allergen} — ${drug.generic_name} is a ${drug.class} and is contraindicated.`,
-          patient: `You told us you're allergic to ${allergy.allergen}, and ${drug.generic_name} is that same type of medicine — it could cause a reaction.`,
+          patient: `Allergy alert: your profile lists a ${allergy.severity} allergy to ${allergy.allergen}. ${drug.generic_name} belongs to the same drug class and can cause ${rule.reaction}.`,
           referenceSource: rule.referenceSource,
           relatedDrugId: drug.id,
         })
@@ -61,7 +61,7 @@ export function checkAllergy(input: ScreeningInput): Flag[] {
           code: "ALLERGY_CROSS_REACTIVE",
           severity: crossReactive.severity,
           clinical: `Patient has a recorded allergy to ${allergy.allergen} — ${drug.generic_name} (${drug.class}) carries a risk of cross-reactivity.`,
-          patient: `You're allergic to ${allergy.allergen}. ${drug.generic_name} is a related medicine and could still cause a reaction in some people.`,
+          patient: `Allergy alert: your profile lists an allergy to ${allergy.allergen}. ${drug.generic_name} is a related medicine and can still cause ${crossReactive.reaction ?? rule.reaction}.`,
           referenceSource: rule.referenceSource,
           relatedDrugId: drug.id,
         })

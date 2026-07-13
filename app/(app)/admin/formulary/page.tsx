@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileUp, Plus, Trash2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
@@ -48,6 +49,7 @@ export default function AdminFormularyPage() {
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft());
+  const [deleteTarget, setDeleteTarget] = useState<Drug | null>(null);
 
   const drugs = (formulary?.drugs ?? [])
     .filter((d) => d.generic_name.toLowerCase().includes(query.toLowerCase()))
@@ -151,17 +153,15 @@ export default function AdminFormularyPage() {
                   {drug.onEssentialMedicinesList ? "On EML" : "Not on EML"}
                 </Badge>
                 <Badge tone="neutral">{drug.region_availability.join(", ")}</Badge>
-                <button
-                  onClick={() => {
-                    if (confirm(`Remove ${drug.generic_name} from the formulary?`)) {
-                      deleteDrug.mutate(drug.id);
-                    }
-                  }}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteTarget(drug)}
                   aria-label={`Remove ${drug.generic_name}`}
-                  className="rounded-lg p-2 text-subtle hover:bg-muted hover:text-blocked-fg"
+                  className="px-2 text-subtle hover:text-blocked-fg"
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
-                </button>
+                </Button>
               </div>
             </CardBody>
           </Card>
@@ -239,8 +239,7 @@ export default function AdminFormularyPage() {
           </div>
           <div className="sm:col-span-2">
             <label className="flex items-center gap-1.5 text-sm text-secondary">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={draft.onEssentialMedicinesList}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, onEssentialMedicinesList: e.target.checked }))
@@ -254,8 +253,7 @@ export default function AdminFormularyPage() {
             <div className="flex flex-wrap gap-3">
               {ALL_ROUTES.map((r) => (
                 <label key={r} className="flex items-center gap-1.5 text-sm text-secondary">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={draft.routes.includes(r)}
                     onChange={(e) =>
                       setDraft((d) => ({
@@ -270,6 +268,34 @@ export default function AdminFormularyPage() {
             </div>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Remove drug from formulary"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteDrug.isPending}
+              onClick={() => {
+                if (!deleteTarget) return;
+                deleteDrug.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
+              }}
+            >
+              Remove drug
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-secondary">
+          Remove <span className="font-medium text-foreground">{deleteTarget?.generic_name}</span> from
+          the formulary? It will no longer be screenable until re-added.
+        </p>
       </Modal>
     </div>
   );

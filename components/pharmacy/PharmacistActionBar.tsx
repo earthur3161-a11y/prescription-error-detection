@@ -5,6 +5,7 @@ import { CheckCircle2, HelpCircle, PackageCheck, PauseCircle, Stethoscope, XCirc
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import type { PharmacyState } from "@/lib/pharmacy/status";
 
 type Mode = "hold" | "reject" | "clarify" | "intervention";
@@ -145,11 +146,10 @@ export function PharmacistActionBar({
               <label className="mb-1.5 block text-sm font-medium text-secondary">
                 {mode === "clarify" ? "Your question" : mode === "intervention" ? "What did you catch?" : "Reason"}
               </label>
-              <textarea
+              <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                 placeholder={
                   mode === "clarify"
                     ? "e.g. Please confirm the intended frequency for amoxicillin."
@@ -162,11 +162,10 @@ export function PharmacistActionBar({
             {cfg.needsOutcome && (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-secondary">Outcome</label>
-                <textarea
+                <Textarea
                   value={outcome}
                   onChange={(e) => setOutcome(e.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                   placeholder="e.g. Dose reduced to 500mg after confirming with prescriber."
                 />
               </div>

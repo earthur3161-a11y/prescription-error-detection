@@ -13,7 +13,15 @@ export const ghanaAllergyRules: AllergyRule[] = [
     allergen: "Penicillin",
     related_drug_classes: ["Penicillin"],
     severity: "severe",
-    cross_reactive_classes: [{ class: "Cephalosporin", severity: "moderate" }],
+    reaction: "an allergic reaction — ranging from a skin rash or hives to a severe, life-threatening reaction (anaphylaxis)",
+    cross_reactive_classes: [
+      {
+        class: "Cephalosporin",
+        severity: "moderate",
+        reaction:
+          "a cross-reactive allergic reaction — FDA labeling reports this in up to 10% of patients with a penicillin allergy",
+      },
+    ],
     referenceSource:
       "Confirmed bidirectionally: FDA penicillin G label warns individuals with penicillin hypersensitivity \"have experienced severe reactions when treated with cephalosporins\"; FDA ceftriaxone label states patients with prior penicillin/beta-lactam hypersensitivity \"may be at greater risk of hypersensitivity to ceftriaxone.\" FDA cephalexin label quantifies this: \"cross-hypersensitivity among beta-lactam antibacterial drugs may occur in up to 10% of patients with a history of penicillin allergy\" (via openFDA).",
   },
@@ -22,6 +30,7 @@ export const ghanaAllergyRules: AllergyRule[] = [
     allergen: "NSAIDs/Aspirin",
     related_drug_classes: ["NSAID"],
     severity: "severe",
+    reaction: "a severe allergic reaction — hives, facial swelling, shock, or an asthma/wheezing attack",
     referenceSource:
       "Confirmed bidirectionally: FDA OTC aspirin label's \"Allergy alert\" warns of severe allergic reaction (hives, facial swelling, shock, asthma/wheezing); FDA OTC ibuprofen label separately warns \"Ibuprofen may cause a severe allergic reaction, especially in people allergic to aspirin.\" FDA naproxen label lists \"history of asthma, urticaria, or other allergic-type reactions after taking aspirin or other NSAIDs\" as an outright contraindication (via openFDA).",
   },
@@ -30,6 +39,8 @@ export const ghanaAllergyRules: AllergyRule[] = [
     allergen: "Sulfa drugs",
     related_drug_classes: ["Antifolate Antibacterial", "Antifolate Antimalarial", "Sulfonylurea (Antidiabetic)"],
     severity: "major",
+    reaction:
+      "a hypersensitivity reaction, which in rare but serious cases includes Stevens-Johnson syndrome, toxic epidermal necrolysis, or blood cell abnormalities",
     referenceSource:
       "FDA sulfamethoxazole/trimethoprim label, Contraindications: \"known hypersensitivity to trimethoprim or sulfonamides\"; Warnings section separately describes rare but serious sulfonamide hypersensitivity reactions (Stevens-Johnson syndrome, toxic epidermal necrolysis, blood dyscrasias) (via openFDA).",
   },
@@ -38,6 +49,7 @@ export const ghanaAllergyRules: AllergyRule[] = [
     allergen: "Fluoroquinolones",
     related_drug_classes: ["Fluoroquinolone"],
     severity: "severe",
+    reaction: "a serious, sometimes fatal, anaphylactic (severe allergic) reaction — which can occur even after the first dose",
     referenceSource:
       "FDA ciprofloxacin label, Warnings: \"Serious and occasionally fatal hypersensitivity (anaphylactic) reactions, some following the first dose, have been reported in patients receiving systemic quinolone therapy\" (via openFDA).",
   },
@@ -46,7 +58,15 @@ export const ghanaAllergyRules: AllergyRule[] = [
     allergen: "Cephalosporins",
     related_drug_classes: ["Cephalosporin"],
     severity: "major",
-    cross_reactive_classes: [{ class: "Penicillin", severity: "moderate" }],
+    reaction: "an allergic reaction — ranging from a skin rash or hives to a severe, life-threatening reaction (anaphylaxis)",
+    cross_reactive_classes: [
+      {
+        class: "Penicillin",
+        severity: "moderate",
+        reaction:
+          "a cross-reactive allergic reaction — FDA labeling reports this in up to 10% of patients with a penicillin allergy",
+      },
+    ],
     referenceSource:
       "Same bidirectional sourcing as alg_penicillin above: FDA cephalexin, ceftriaxone, and penicillin G labels (via openFDA) — cross-hypersensitivity reported in up to ~10% of penicillin-allergic patients.",
   },
@@ -55,6 +75,7 @@ export const ghanaAllergyRules: AllergyRule[] = [
     allergen: "Macrolides",
     related_drug_classes: ["Macrolide"],
     severity: "moderate",
+    reaction: "an allergic reaction to this class of antibiotics, similar to a reaction to erythromycin or clarithromycin",
     referenceSource:
       "FDA clarithromycin label, Contraindications, verbatim: \"Clarithromycin tablets are contraindicated in patients with a known hypersensitivity to clarithromycin, erythromycin, or any of the macrolide antibacterial drugs\" — an explicit, class-wide cross-hypersensitivity statement (via openFDA).",
   },

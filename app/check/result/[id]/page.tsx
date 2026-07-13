@@ -17,18 +17,18 @@ export default function CheckResultPage({ params }: { params: Promise<{ id: stri
 
   if (isLoading || !formulary) {
     return (
-      <div className="flex justify-center pt-16">
+      <div className="flex justify-center">
         <Loader2 className="size-6 animate-spin text-subtle" aria-hidden="true" />
       </div>
     );
   }
 
   if (!check) {
-    return <p className="pt-16 text-center text-muted-foreground">We couldn&rsquo;t find that result.</p>;
+    return <p className="text-center text-muted-foreground">We couldn&rsquo;t find that result.</p>;
   }
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-6">
       <ResultView check={check} formulary={formulary} />
       <ShareResultPanel shareToken={check.shareToken} />
       <ReportIssueButton patientCheckId={check.id} />

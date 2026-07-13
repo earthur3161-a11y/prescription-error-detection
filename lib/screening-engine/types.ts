@@ -18,7 +18,8 @@ export type FlagType =
   | "pregnancy_warning"
   | "missing_information"
   | "data_incomplete"
-  | "eml_compliance";
+  | "eml_compliance"
+  | "indication_mismatch";
 
 /**
  * The same underlying rule produces both a clinical and a plain-language

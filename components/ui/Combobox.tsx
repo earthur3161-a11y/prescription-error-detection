@@ -83,7 +83,7 @@ export function Combobox<T>({
           aria-controls={listboxId}
           aria-autocomplete="list"
           autoComplete="off"
-          className="h-11 w-full rounded-lg border border-border-strong bg-surface pl-9 pr-3 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
+          className="h-11 w-full rounded-xl border border-border-strong bg-surface pl-9 pr-3 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           placeholder={placeholder}
           value={query}
           onChange={(e) => {

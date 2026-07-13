@@ -5,6 +5,7 @@ import { checkDataCompleteness } from "./checks/dataCompletenessCheck";
 import { checkDoseRange } from "./checks/doseRangeCheck";
 import { checkDuplicateTherapy } from "./checks/duplicateTherapyCheck";
 import { checkEML } from "./checks/emlCheck";
+import { checkIndication } from "./checks/indicationCheck";
 import { checkInteraction } from "./checks/interactionCheck";
 import { checkPrescriptionCompleteness } from "./checks/prescriptionCompletenessCheck";
 import { deriveVerdict } from "./severity";
@@ -21,6 +22,7 @@ export function screenDrugLine(input: ScreeningInput): DrugLineVerdict {
     ...checkCumulativeDose(input),
     ...checkContraindication(input),
     ...checkEML(input),
+    ...checkIndication(input),
   ];
 
   return {

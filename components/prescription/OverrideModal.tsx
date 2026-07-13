@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import type { OverrideReasonCode, Verdict } from "@/lib/types";
 
 interface OverrideModalProps {
@@ -102,12 +103,11 @@ export function OverrideModal({
           <label htmlFor="override-detail" className="mb-1.5 block text-sm font-medium text-secondary">
             Additional detail {reasonCode === "other" && <span className="text-blocked-fg">*</span>}
           </label>
-          <textarea
+          <Textarea
             id="override-detail"
             value={reasonText}
             onChange={(e) => setReasonText(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             placeholder="Optional context for the audit trail…"
           />
           {error && <p className="mt-1.5 text-sm text-blocked-fg">{error}</p>}

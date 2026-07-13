@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { DrugPicker } from "@/components/patient-check/DrugPicker";
 import { ProfileStep } from "@/components/patient-check/ProfileStep";
 import { UnlockCheckStep } from "@/components/patient-check/UnlockCheckStep";
@@ -19,12 +20,18 @@ import type { Drug, PatientCheckProfile, PrescriptionDrugLine } from "@/lib/type
 type Step = "add" | "profile" | "unlock";
 
 const STEP_PROGRESS: Record<Step, string> = { add: "33%", profile: "66%", unlock: "100%" };
+const STEP_NUMBER: Record<Step, number> = { add: 1, profile: 2, unlock: 3 };
 
 const EMPTY_PROFILE: PatientCheckProfile = {
   ageYears: null,
   weightKg: null,
   allergies: null,
   activeMedications: null,
+  isPregnant: null,
+  renalStatus: "unknown",
+  hepaticStatus: "unknown",
+  reportedConditions: [],
+  complaintNote: null,
 };
 
 export default function NewCheckPage() {
@@ -52,6 +59,11 @@ export default function NewCheckPage() {
       weightKg: savedProfile.weightKg,
       allergies: savedProfile.allergies,
       activeMedications: savedProfile.activeMedications,
+      isPregnant: savedProfile.isPregnant,
+      renalStatus: savedProfile.renalStatus,
+      hepaticStatus: savedProfile.hepaticStatus,
+      reportedConditions: savedProfile.reportedConditions,
+      complaintNote: savedProfile.complaintNote,
     });
     setProfileInitialized(true);
   }
@@ -103,22 +115,23 @@ export default function NewCheckPage() {
   }
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={goBack} aria-label="Back" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
-          <ArrowLeft className="size-5" />
-        </button>
+        <Button variant="ghost" size="sm" aria-label="Back" className="px-1.5" onClick={goBack}>
+          <ArrowLeft className="size-5" aria-hidden="true" />
+        </Button>
         <div className="flex-1">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-            <div className="h-full bg-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full bg-gradient-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
           </div>
+          <p className="mt-1.5 hidden text-xs font-medium text-subtle sm:block">Step {STEP_NUMBER[step]} of 3</p>
         </div>
       </div>
 
       {step === "add" && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">What did you get?</h1>
+            <h1 className="text-xl font-semibold text-foreground sm:text-2xl">What did you get?</h1>
             <p className="mt-1 text-sm text-secondary">
               Add every medicine from this prescription or purchase.
             </p>
@@ -138,19 +151,14 @@ export default function NewCheckPage() {
       {step === "profile" && formulary && (
         <div className="space-y-6">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Tell us a bit about you</h1>
+            <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Tell us a bit about you</h1>
             <p className="mt-1 text-sm text-secondary">
               This is optional, but it makes the check much more accurate.
             </p>
           </div>
           <ProfileStep profile={profile} onChange={setProfile} knownDrugs={formulary.drugs} />
           <label className="flex items-center gap-2 text-sm text-secondary">
-            <input
-              type="checkbox"
-              checked={rememberProfile}
-              onChange={(e) => setRememberProfile(e.target.checked)}
-              className="size-4 rounded border-border-strong"
-            />
+            <Checkbox checked={rememberProfile} onChange={(e) => setRememberProfile(e.target.checked)} />
             Save this info on this device for next time
           </label>
           <Button size="lg" className="w-full" onClick={() => setStep("unlock")}>

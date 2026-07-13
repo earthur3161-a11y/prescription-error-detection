@@ -8,6 +8,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Textarea } from "@/components/ui/Textarea";
 import { RiskScoreBadge } from "@/components/pharmacy/RiskScoreBadge";
 import { FindingsPanel } from "@/components/pharmacy/FindingsPanel";
 import { PharmacistActionBar } from "@/components/pharmacy/PharmacistActionBar";
@@ -229,11 +230,10 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
             <NotebookPen className="size-4" aria-hidden="true" />
             Pharmacist notes
           </h2>
-          <textarea
+          <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
             placeholder="Notes attached permanently to this prescription's record…"
           />
           <div className="flex justify-end">

@@ -26,9 +26,10 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Information architecture
 
 - `/` — public landing page. **Check Your Medicine** (patient self-check) is
-  the primary, unauthenticated entry point everyone sees first. A secondary
-  "For Healthcare Professionals & Institutions" panel links each role card
-  directly to its own portal.
+  the primary, unauthenticated entry point everyone sees first, alongside a
+  "How We Operate" section outlining the screening process. A "Health
+  Professionals" tab in the header (not the page body) links to `/login`,
+  the portal chooser for the three role logins.
 - `/check/*` — the patient self-check flow. No login. Plain-language
   results. Always routes Caution/Blocked to "talk to a pharmacist or
   doctor," never "stop" or "ignore."

@@ -16,9 +16,11 @@ export function buildSyntheticPatient(profile: PatientCheckProfile): Patient {
     dob: `${birthYear}-01-01`,
     sex: "other",
     weightKg: profile.weightKg,
-    renalStatus: "unknown",
-    hepaticStatus: "unknown",
+    renalStatus: profile.renalStatus,
+    hepaticStatus: profile.hepaticStatus,
     allergies: profile.allergies,
     activeMedications: profile.activeMedications,
+    isPregnant: profile.isPregnant,
+    reportedConditions: profile.reportedConditions,
   };
 }
