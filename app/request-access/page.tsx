@@ -1,33 +1,21 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import {
   useAccessRequestStatus,
   useCreateAccessRequest,
 } from "@/lib/query/hooks/useAccessRequests";
-import type { UserRole } from "@/lib/types";
 
-const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-  { value: "prescriber", label: "Physician / Prescriber" },
-  { value: "pharmacist", label: "Pharmacist" },
-  { value: "admin", label: "Facility Admin" },
-];
+const REQUEST_ROLE = "admin" as const;
 
 function RequestAccessForm() {
-  const searchParams = useSearchParams();
-  const initialRole = (searchParams.get("role") as UserRole) ?? "prescriber";
   const createRequest = useCreateAccessRequest();
 
-  const [role, setRole] = useState<UserRole>(
-    ROLE_OPTIONS.some((r) => r.value === initialRole) ? initialRole : "prescriber"
-  );
   const [fullName, setFullName] = useState("");
   const [institution, setInstitution] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
@@ -35,15 +23,12 @@ function RequestAccessForm() {
   const [phone, setPhone] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
-  const licenseLabel =
-    role === "admin" ? "Proof of authority (official title / staff ID)" : "Professional license / registration no.";
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     createRequest.mutate(
       {
         fullName: fullName.trim(),
-        requestedRole: role,
+        requestedRole: REQUEST_ROLE,
         institution: institution.trim(),
         licenseNumber: licenseNumber.trim() || undefined,
         email: email.trim(),
@@ -73,16 +58,6 @@ function RequestAccessForm() {
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-secondary">Your role</label>
-        <Select value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-          {ROLE_OPTIONS.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div>
         <label className="mb-1.5 block text-sm font-medium text-secondary">Full name</label>
         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
       </div>
@@ -91,12 +66,10 @@ function RequestAccessForm() {
         <Input value={institution} onChange={(e) => setInstitution(e.target.value)} required />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-secondary">{licenseLabel}</label>
-        <Input
-          value={licenseNumber}
-          onChange={(e) => setLicenseNumber(e.target.value)}
-          required={role !== "admin"}
-        />
+        <label className="mb-1.5 block text-sm font-medium text-secondary">
+          Proof of authority (official title / staff ID)
+        </label>
+        <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -200,15 +173,22 @@ export default function RequestAccessPage() {
           {tab === "request" ? (
             <>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Request a MediGuard account</h1>
+                <h1 className="text-lg font-semibold text-foreground">Request Facility Admin access</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Accounts are provisioned after review — there are no shared or demo logins. We&rsquo;ll
-                  verify your details and send a secure invite link.
+                  For clinical institutions integrating MediGuard into their own systems — reviewed by a
+                  MediGuard operator before an invite is sent. Physicians and pharmacies don&rsquo;t need
+                  this: sign up directly at{" "}
+                  <Link href="/physician/signup" className="font-medium text-brand hover:underline">
+                    /physician/signup
+                  </Link>{" "}
+                  or{" "}
+                  <Link href="/pharmacy/signup" className="font-medium text-brand hover:underline">
+                    /pharmacy/signup
+                  </Link>
+                  .
                 </p>
               </div>
-              <Suspense fallback={null}>
-                <RequestAccessForm />
-              </Suspense>
+              <RequestAccessForm />
             </>
           ) : (
             <>

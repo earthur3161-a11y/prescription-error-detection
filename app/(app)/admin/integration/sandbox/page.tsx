@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Play } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { Notice } from "@/components/ui/Notice";
 import { VerdictBadge } from "@/components/ui/VerdictBadge";
-import { useIntegrationConfig } from "@/lib/query/hooks/useIntegrationConfig";
+import { useMyApiKeys } from "@/lib/query/hooks/useInstitution";
 import type { Verdict } from "@/lib/screening-engine";
 
 const EXAMPLE_PAYLOAD = {
@@ -34,17 +37,25 @@ interface ScreenResponse {
 
 export default function IntegrationSandboxPage() {
   const router = useRouter();
-  const { data: config } = useIntegrationConfig();
+  const { data: apiKeys } = useMyApiKeys();
+  const [apiKey, setApiKey] = useState("");
   const [payloadText, setPayloadText] = useState(JSON.stringify(EXAMPLE_PAYLOAD, null, 2));
   const [result, setResult] = useState<ScreenResponse | null>(null);
   const [status, setStatus] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const hasSandboxKey = (apiKeys ?? []).some((k) => k.mode === "sandbox" && !k.revokedAt);
+
   async function handleRun() {
     setError(null);
     setResult(null);
     setStatus(null);
+
+    if (!apiKey.trim()) {
+      setError("Paste a sandbox API key above — mint one on the dashboard if you don't have one yet.");
+      return;
+    }
 
     let payload: unknown;
     try {
@@ -60,8 +71,7 @@ export default function IntegrationSandboxPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Uses this facility's sandbox key — the same header a real integration sends.
-          Authorization: `Bearer ${config?.apiKeySandbox ?? "mg_sandbox_demo"}`,
+          Authorization: `Bearer ${apiKey.trim()}`,
         },
         body: JSON.stringify(payload),
       });
@@ -93,9 +103,28 @@ export default function IntegrationSandboxPage() {
         <h1 className="text-2xl font-semibold text-foreground">Sandbox tester</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Sends a live <code>POST /api/v1/screen</code> request — a real HTTP call to the running
-          screening API with your sandbox key — and shows the exact response your integration
-          receives.
+          screening API with your key — and shows the exact response your integration receives.
         </p>
+      </div>
+
+      {!hasSandboxKey && (
+        <Notice tone="caution">
+          No active sandbox key yet — mint one on the{" "}
+          <Link href="/admin/integration" className="font-medium underline">
+            dashboard
+          </Link>
+          , then paste it below (the raw key is only ever shown once, at mint time).
+        </Notice>
+      )}
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-secondary">API key</label>
+        <Input
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="mg_sandbox_…"
+          className="font-mono"
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

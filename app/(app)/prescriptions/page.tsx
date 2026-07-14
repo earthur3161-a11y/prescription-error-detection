@@ -66,8 +66,6 @@ export default function PrescriptionHistoryPage() {
           aria-label="Filter by status"
         >
           <option value="all">All statuses</option>
-          <option value="pending_admin_review">Admin Checkpoint Pending</option>
-          <option value="pending_admin_cosign">Held for Admin Co-sign</option>
           <option value="submitted">Awaiting Verification</option>
           <option value="verified">Verified</option>
           <option value="dispensed">Dispensed</option>

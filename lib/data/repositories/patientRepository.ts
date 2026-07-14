@@ -15,6 +15,7 @@ function mapRow(row: PatientRow): Patient {
     allergies: row.allergies as AllergyRecord[] | null,
     activeMedications: row.active_medications as ActiveMedication[] | null,
     isPregnant: row.is_pregnant,
+    ownerId: row.owner_id ?? undefined,
   };
 }
 
@@ -48,7 +49,7 @@ export async function searchPatients(query: string): Promise<Patient[]> {
   );
 }
 
-export async function createPatient(patient: Omit<Patient, "id">): Promise<Patient> {
+export async function createPatient(patient: Omit<Patient, "id" | "ownerId">, ownerId: string): Promise<Patient> {
   const id = crypto.randomUUID();
   const { data, error } = await supabase
     .from("patients")
@@ -64,6 +65,7 @@ export async function createPatient(patient: Omit<Patient, "id">): Promise<Patie
       allergies: patient.allergies,
       active_medications: patient.activeMedications,
       is_pregnant: patient.isPregnant ?? null,
+      owner_id: ownerId,
     })
     .select()
     .single();

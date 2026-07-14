@@ -10,12 +10,10 @@ import {
   FilePlus2,
   FileText,
   LayoutDashboard,
-  ListChecks,
   Package,
   Settings,
   ShieldAlert,
   ShieldCheck,
-  Workflow,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -36,7 +34,6 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   pharmacist: [
-    { href: "/pharmacist/queue", label: "Queue", icon: ListChecks },
     { href: "/pharmacist/inventory", label: "Inventory", icon: Package },
     { href: "/pharmacist/drug-info", label: "Drug Info", icon: BookOpen },
     { href: "/pharmacist/reports", label: "Reports", icon: FileText },
@@ -45,7 +42,6 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   admin: [
-    { href: "/admin/pipeline", label: "Prescription Pipeline", icon: Workflow },
     { href: "/admin/analytics", label: "Facility Analytics", icon: BarChart3 },
     { href: "/admin/formulary", label: "Formulary Management", icon: ClipboardList },
     { href: "/admin/compliance", label: "Audit & Compliance", icon: ShieldCheck },

@@ -54,7 +54,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_kwabena_owusu", rx1Lines, formulary),
     status: "dispensed",
     createdAt: "2026-06-28T09:15:00.000Z",
-    source: "hospital",
+    source: "physician",
   });
 
   // 2. Caution (interaction with warfarin), overridden, verified by pharmacist.
@@ -78,7 +78,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_kojo_asante", rx2Lines, formulary),
     status: "verified",
     createdAt: "2026-06-29T11:40:00.000Z",
-    source: "hospital",
+    source: "physician",
   });
   overrideLogs.push({
     id: "ovr_kojo_1",
@@ -112,7 +112,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_abena_sarpong", rx3Lines, formulary),
     status: "submitted",
     createdAt: "2026-07-01T14:05:00.000Z",
-    source: "hospital",
+    source: "physician",
   });
   overrideLogs.push({
     id: "ovr_abena_1",

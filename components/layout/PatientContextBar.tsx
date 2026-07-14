@@ -12,6 +12,7 @@ import { DataIncompleteBanner } from "@/components/patient/DataIncompleteBanner"
 import { usePatients } from "@/lib/query/hooks/usePatients";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useCreatePatient } from "@/lib/query/hooks/useCreatePatient";
+import { useAuth } from "@/lib/auth/useAuth";
 import { calculateAgeYears } from "@/lib/utils/date";
 import type { AllergySeverity } from "@/lib/types";
 
@@ -31,24 +32,28 @@ const allergySeverityTone: Record<AllergySeverity, "safe" | "caution" | "blocked
 
 function QuickAddPatientForm({ onCreated, onCancel }: { onCreated: (id: string) => void; onCancel: () => void }) {
   const createPatient = useCreatePatient();
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [ageYears, setAgeYears] = useState("");
   const [sex, setSex] = useState<"male" | "female" | "other">("other");
   const [weightKg, setWeightKg] = useState("");
 
   function handleCreate() {
-    if (!name.trim()) return;
+    if (!name.trim() || !user) return;
     const birthYear = new Date().getFullYear() - (ageYears ? Number(ageYears) : 30);
     createPatient.mutate(
       {
-        name: name.trim(),
-        dob: `${birthYear}-01-01`,
-        sex,
-        weightKg: weightKg ? Number(weightKg) : null,
-        renalStatus: "unknown",
-        hepaticStatus: "unknown",
-        allergies: null,
-        activeMedications: null,
+        patient: {
+          name: name.trim(),
+          dob: `${birthYear}-01-01`,
+          sex,
+          weightKg: weightKg ? Number(weightKg) : null,
+          renalStatus: "unknown",
+          hepaticStatus: "unknown",
+          allergies: null,
+          activeMedications: null,
+        },
+        ownerId: user.id,
       },
       { onSuccess: (patient) => onCreated(patient.id) }
     );

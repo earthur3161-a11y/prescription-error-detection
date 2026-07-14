@@ -12,7 +12,7 @@ import {
  * flags — the same engine the app UI uses.
  */
 export async function POST(request: Request) {
-  const auth = authorizeApiKey(request);
+  const auth = await authorizeApiKey(request);
   if (!auth.ok) {
     return Response.json(
       { error: "unauthorized", message: "Missing or invalid API key. Send 'Authorization: Bearer mg_live_…'." },
@@ -51,6 +51,8 @@ export async function POST(request: Request) {
       flags: result.verdict.flags,
       screenedAt: result.verdict.screenedAt,
       mode: auth.mode,
+      institution: auth.institutionName,
+      enforcementLevel: auth.enforcementLevel,
     },
     { status: 200 }
   );

@@ -120,6 +120,8 @@ export interface Patient {
   isPregnant?: boolean | null;
   /** Patient-reported reason(s) for this prescription, from the curated PATIENT_CONDITIONS list. Drives the indication-mismatch check; empty = not reported, never treated as "no condition." */
   reportedConditions?: string[];
+  /** The account this patient record belongs to (RLS-enforced ownership) — undefined only on not-yet-persisted seed/template objects, never on a real DB row. */
+  ownerId?: string;
 }
 
 export type UserRole = "prescriber" | "pharmacist" | "admin";
@@ -206,8 +208,6 @@ export interface PrescriptionDrugLine {
 
 export type PrescriptionStatus =
   | "draft"
-  | "pending_admin_review"
-  | "pending_admin_cosign"
   | "submitted" // arrived at the pharmacy queue — shown as "New"
   | "under_review" // a pharmacist has opened it in Review
   | "held" // paused pending info / clarification / stock
@@ -217,8 +217,8 @@ export type PrescriptionStatus =
   | "dispensed"
   | "flagged";
 
-/** Where a prescription entered the pharmacist's queue from. */
-export type PrescriptionSource = "hospital" | "patient_submitted" | "walk_in";
+/** How this prescription's drug-check request arrived. */
+export type PrescriptionSource = "physician" | "patient_submitted" | "walk_in";
 
 export interface Prescription {
   id: string;
@@ -308,76 +308,34 @@ export interface PatientProfile {
   updatedAt: string;
 }
 
-// --- Institution Integration (Goal 3.2) ---
+// --- Facility Admin API integration ---
+// A Facility Admin has no internal MediGuard workflow of its own (that
+// pipeline was removed) — the entire product is integrating MediGuard's
+// screening into the institution's own prescribing/dispensing system via a
+// real, per-institution API key. See lib/integration/screenService.ts.
 
-export type InstitutionMode = "standalone" | "integrated";
 export type EnforcementLevel = "advisory" | "enforced";
+export type InstitutionStatus = "active" | "suspended";
 
-export interface IntegrationErrorLogEntry {
+export interface Institution {
   id: string;
-  timestamp: string;
-  message: string;
-}
-
-export interface IntegrationConfig {
-  id: "local";
-  mode: InstitutionMode;
+  name: string;
+  status: InstitutionStatus;
   enforcementLevel: EnforcementLevel;
-  apiKeyLive: string;
-  apiKeySandbox: string;
-  webhookUrl: string | null;
-  lastSyncAt: string | null;
-  errorLogs: IntegrationErrorLogEntry[];
-}
-
-// --- Physician <-> Facility Admin screening checkpoint pipeline ---
-
-/**
- * Institution-wide policy controlling the Facility Admin checkpoint. Every
- * doctor-authored prescription passes through this checkpoint before it can
- * reach the pharmacist queue — it is not an optional step the doctor can skip.
- */
-export interface FacilityPolicy {
-  id: "local";
-  /** When true, any line resolving to "blocked" holds the prescription for Admin co-sign before it proceeds to the pharmacist queue. */
-  requireAdminCosignOnBlocked: boolean;
-}
-
-export type ClinicalAlertStatus = "pending_cosign" | "acknowledged" | "cosigned" | "sent_back";
-
-/**
- * Raised by the Facility Admin checkpoint whenever it re-screens a
- * doctor-authored prescription and finds risk — visible to both the
- * prescribing doctor and the Facility Admin dashboard, per the real-time
- * clinical alert requirement.
- */
-export interface ClinicalAlert {
-  id: string;
-  prescriptionId: string;
-  prescriberId: string;
-  verdict: Verdict;
-  requiresCosign: boolean;
-  message: string;
-  status: ClinicalAlertStatus;
   createdAt: string;
-  resolvedAt?: string;
-  resolvedBy?: string;
 }
 
-export type PipelineEventType =
-  | "admin_checkpoint_cleared"
-  | "admin_checkpoint_held_for_cosign"
-  | "admin_cosigned"
-  | "admin_sent_back";
+export type ApiKeyMode = "live" | "sandbox";
 
-/** Append-only trace of every step a prescription takes through the Admin checkpoint, alongside the existing override log. */
-export interface PipelineEvent {
+/** Never carries the raw key or its hash — see institution_api_keys_public in 0007_institutions_api.sql. */
+export interface InstitutionApiKey {
   id: string;
-  prescriptionId: string;
-  type: PipelineEventType;
-  note?: string;
-  userId?: string;
-  timestamp: string;
+  institutionId: string;
+  mode: ApiKeyMode;
+  keyPrefix: string;
+  lastUsedAt?: string;
+  revokedAt?: string;
+  createdAt: string;
 }
 
 export type OutboxItemType = "prescription" | "override_log";

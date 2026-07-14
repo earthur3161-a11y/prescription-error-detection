@@ -130,70 +130,26 @@ hides non-EML results.
 > clinician-verified before real-world use. Claude does not fabricate
 > authoritative drug/dosing data.
 
-## Physician → Facility Admin → Pharmacist pipeline
+## Three independent products, not one shared workflow
 
-Every doctor-authored prescription (`source: "hospital"`) is structurally
-routed through the Facility Admin checkpoint the moment it's created —
-`useCreatePrescription` calls `lib/pipeline/adminCheckpoint.ts` directly, so
-there is no code path from the prescribing workspace straight to the
-pharmacist queue for this source. (Pharmacist-initiated intake — walk-in and
-pulled-up patient checks — is already professionally verified at the point
-of entry, so it proceeds straight to the queue as before.)
+MediGuard is three separately-subscribing offerings, each with its own
+isolated data (enforced at the database layer via Row Level Security, not
+just in the UI):
 
-```
-Doctor Prescribes Medication
-        |
-Prescription auto-submitted to the MediGuard Screening Engine
-(routed through the Facility Admin checkpoint - not bypassable)
-        |
-Full Screening Runs:
-  - Drug-Drug Interactions
-  - Dosage Verification
-  - Allergy Conflicts
-  - Duplicate Medication
-  - Ghana EML Compliance
-        |
-   +----+----+
-   |         |
-No Risks   Risks Identified
-   |         |
-Verdict:   Real-Time Clinical Alert Generated
- Safe      (sent to Doctor + visible to Facility Admin)
-   |         |
-   |       Doctor already resolved Caution/Blocked with a
-   |       mandatory logged override before submitting.
-   |       If the verdict is Blocked and facility policy
-   |       requires it, Admin co-sign is still needed
-   |       before the prescription can proceed.
-   |         |
-   +----+----+
-        |
-Prescription Enters Pharmacist Queue
-        |
-Pharmacist Runs Full Verification
-(same six checks, full clinical detail)
-        |
-   +----+----+
-   |         |
-Confirmed   Pharmacist Flags Concern
- Safe         |
-   |       Sent back to Doctor/Admin with a structured note
-   |         |
-   +----+----+
-        |
-Safe Prescription Issued to Patient
-        |
-(Patient may independently re-verify via Patient Check
- at any point in this journey)
-```
+- **Physician Portal** — an independent physician's own patients and
+  prescriptions (`prescriptions.prescriber_id = auth.uid()`), screened the
+  moment they're written.
+- **Pharmacy Portal** — an independent pharmacy verifying drugs before
+  dispensing, on its own account.
+- **Facility Admin** — a clinical institution that integrates MediGuard into
+  *its own* prescribing/dispensing system via the API (`/api/v1/screen`,
+  CDS Hooks), rather than using MediGuard's own screens directly.
 
-Every step — the checkpoint's own re-screen, any override, any Admin
-co-sign or send-back — is written to an append-only trail
-(`overrideLogRepository` + `pipelineEventRepository`) and rendered as a
-single timeline on each prescription's detail page
-(`components/prescription/PipelineAuditTrail.tsx`). The co-sign policy
-itself (`FacilityPolicy.requireAdminCosignOnBlocked`) is configurable from
-`/admin/pipeline`.
+There is no internal Physician → Facility Admin checkpoint → Pharmacist
+queue anymore — that shared pipeline (and the co-sign/clinical-alert
+machinery around it) has been removed. An institution that wants
+prescriptions checked before dispensing does so by calling the API, not by
+routing staff through a shared internal queue.
 
 ## Error reporting, at each tier
 

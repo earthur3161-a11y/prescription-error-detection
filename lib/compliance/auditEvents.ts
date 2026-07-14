@@ -1,26 +1,17 @@
 // Unified Audit & Compliance model.
 //
-// The system records safety activity in six separate append-only stores —
-// prescription screenings, patient self-checks, clinical alerts, override
-// logs, pharmacist actions, and Admin-checkpoint pipeline events. Each is the
-// source of truth for its own surface, but compliance oversight needs them as
-// ONE stream: "every check, alert and decision permanently recorded" (the
-// final node of the system workflow). This module normalises all six into a
-// single `AuditEvent[]`, purely and testably, so the page stays thin.
+// The system records safety activity in four separate append-only stores —
+// prescription screenings, patient self-checks, override logs, and
+// pharmacist actions. Each is the source of truth for its own surface, but
+// compliance oversight needs them as ONE stream: "every check and decision
+// permanently recorded." This module normalises all four into a single
+// `AuditEvent[]`, purely and testably, so the page stays thin.
 
-import type {
-  ClinicalAlert,
-  Drug,
-  OverrideLog,
-  PatientCheck,
-  PharmacistAction,
-  PipelineEvent,
-  Prescription,
-} from "../types";
+import type { Drug, OverrideLog, PatientCheck, PharmacistAction, Prescription } from "../types";
 import type { Verdict } from "../screening-engine/types";
 
 /** Which of the three independent operations the event originated from. */
-export type AuditChannel = "patient" | "pharmacy" | "hospital" | "system";
+export type AuditChannel = "patient" | "pharmacy" | "physician" | "system";
 
 /** The diagram's three record kinds: a screening check, a raised alert, or a human decision. */
 export type AuditCategory = "check" | "alert" | "decision";
@@ -48,7 +39,7 @@ export interface AuditEvent {
 export const CHANNEL_LABEL: Record<AuditChannel, string> = {
   patient: "Patient",
   pharmacy: "Pharmacy",
-  hospital: "Clinic / Hospital",
+  physician: "Physician",
   system: "System",
 };
 
@@ -76,20 +67,6 @@ const PHARMACIST_ACTION_TONE: Record<PharmacistAction["action"], AuditTone> = {
   record_intervention: "info",
 };
 
-const PIPELINE_EVENT_LABEL: Record<PipelineEvent["type"], string> = {
-  admin_checkpoint_cleared: "Admin checkpoint cleared",
-  admin_checkpoint_held_for_cosign: "Held for Admin co-sign",
-  admin_cosigned: "Admin co-signed",
-  admin_sent_back: "Sent back to prescriber",
-};
-
-const PIPELINE_EVENT_TONE: Record<PipelineEvent["type"], AuditTone> = {
-  admin_checkpoint_cleared: "safe",
-  admin_checkpoint_held_for_cosign: "caution",
-  admin_cosigned: "info",
-  admin_sent_back: "blocked",
-};
-
 const OVERRIDE_REASON_LABEL: Record<string, string> = {
   benefit_outweighs_risk: "Benefit outweighs risk",
   verified_with_pharmacist: "Verified with pharmacist",
@@ -111,7 +88,7 @@ function worstVerdict(verdicts: { verdict: Verdict }[]): Verdict {
 function channelFromSource(source: Prescription["source"]): AuditChannel {
   if (source === "patient_submitted") return "patient";
   if (source === "walk_in") return "pharmacy";
-  return "hospital";
+  return "physician";
 }
 
 export interface AuditSources {
@@ -119,8 +96,6 @@ export interface AuditSources {
   patientChecks: PatientCheck[];
   overrideLogs: OverrideLog[];
   pharmacistActions: PharmacistAction[];
-  clinicalAlerts: ClinicalAlert[];
-  pipelineEvents: PipelineEvent[];
 }
 
 export interface AuditLookups {
@@ -203,24 +178,7 @@ export function buildAuditEvents(sources: AuditSources, lookups: AuditLookups): 
     });
   }
 
-  // 3. Clinical alerts — the "alert" category, raised at the Admin checkpoint.
-  for (const alert of sources.clinicalAlerts) {
-    const rx = rxById.get(alert.prescriptionId);
-    events.push({
-      id: `alert:${alert.id}`,
-      timestamp: alert.createdAt,
-      channel: "hospital",
-      category: "alert",
-      action: alert.requiresCosign ? "Clinical alert — co-sign required" : "Clinical alert raised",
-      actor: resolveActor(alert.prescriberId),
-      subject: rxSubject(rx) ?? patientFor(rx?.patientId),
-      detail: alert.message,
-      tone: toneFromVerdict(alert.verdict),
-      prescriptionId: alert.prescriptionId,
-    });
-  }
-
-  // 4. Override logs — a prescriber/pharmacist "decision" to proceed past a flag.
+  // Override logs — a prescriber/pharmacist "decision" to proceed past a flag.
   for (const log of sources.overrideLogs) {
     const rx = rxById.get(log.prescriptionId);
     events.push({
@@ -237,7 +195,7 @@ export function buildAuditEvents(sources: AuditSources, lookups: AuditLookups): 
     });
   }
 
-  // 5. Pharmacist actions — the pharmacy channel's dispensing "decision".
+  // Pharmacist actions — the pharmacy channel's dispensing "decision".
   for (const action of sources.pharmacistActions) {
     const rx = rxById.get(action.prescriptionId);
     const extra =
@@ -254,23 +212,6 @@ export function buildAuditEvents(sources: AuditSources, lookups: AuditLookups): 
       detail: [action.reason, extra].filter(Boolean).join(" · ") || undefined,
       tone: PHARMACIST_ACTION_TONE[action.action],
       prescriptionId: action.prescriptionId,
-    });
-  }
-
-  // 6. Pipeline events — the Admin checkpoint's "decision" steps.
-  for (const event of sources.pipelineEvents) {
-    const rx = rxById.get(event.prescriptionId);
-    events.push({
-      id: `pev:${event.id}`,
-      timestamp: event.timestamp,
-      channel: "hospital",
-      category: "decision",
-      action: PIPELINE_EVENT_LABEL[event.type],
-      actor: resolveActor(event.userId),
-      subject: rxSubject(rx) ?? patientFor(rx?.patientId),
-      detail: event.note,
-      tone: PIPELINE_EVENT_TONE[event.type],
-      prescriptionId: event.prescriptionId,
     });
   }
 

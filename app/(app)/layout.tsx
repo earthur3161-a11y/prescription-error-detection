@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { RoleGuard } from "@/components/layout/RoleGuard";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { SubscriptionGuard } from "@/components/layout/SubscriptionGuard";
 import { Topbar } from "@/components/layout/Topbar";
 import { useAuth } from "@/lib/auth/useAuth";
 import { PROFESSIONAL_ROLES } from "@/lib/auth/roles";
@@ -59,7 +60,9 @@ function Shell({ children }: { children: ReactNode }) {
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <RoleGuard allowedRoles={PROFESSIONAL_ROLES}>
-      <Shell>{children}</Shell>
+      <SubscriptionGuard>
+        <Shell>{children}</Shell>
+      </SubscriptionGuard>
     </RoleGuard>
   );
 }

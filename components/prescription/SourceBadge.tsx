@@ -1,9 +1,9 @@
-import { Building2, ClipboardCheck, Smartphone } from "lucide-react";
+import { ClipboardCheck, Smartphone, Stethoscope } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import type { PrescriptionSource } from "@/lib/types";
 
-const SOURCE_CONFIG: Record<PrescriptionSource, { label: string; icon: typeof Building2 }> = {
-  hospital: { label: "Hospital", icon: Building2 },
+const SOURCE_CONFIG: Record<PrescriptionSource, { label: string; icon: typeof Stethoscope }> = {
+  physician: { label: "Physician", icon: Stethoscope },
   patient_submitted: { label: "Patient-submitted", icon: Smartphone },
   walk_in: { label: "Walk-in", icon: ClipboardCheck },
 };

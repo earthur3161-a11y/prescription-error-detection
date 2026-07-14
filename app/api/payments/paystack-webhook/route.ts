@@ -43,24 +43,67 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
+  const succeeded = status === "success";
+  const failed = status === "failed" || status === "abandoned" || status === "reversed";
+  if (!succeeded && !failed) {
+    return Response.json({ ok: true });
+  }
+
   // Check the actual data.status field, not just the event name — and
   // guard the update with .eq("status", "pending") so a redelivered webhook
   // is a safe no-op and a stray out-of-order "failed" can't downgrade an
   // already-successful payment.
-  if (status === "success") {
-    const { error } = await supabaseService
-      .from("check_payments")
-      .update({ status: "success", verified_at: new Date().toISOString() })
+  const { data: checkPaymentRows, error: checkPaymentError } = await supabaseService
+    .from("check_payments")
+    .update(succeeded ? { status: "success", verified_at: new Date().toISOString() } : { status: "failed" })
+    .eq("provider_reference", reference)
+    .eq("status", "pending")
+    .select("id");
+  if (checkPaymentError) console.error("[payments/paystack-webhook] Failed to update check_payments:", checkPaymentError);
+
+  // A given reference belongs to exactly one of the two payment tables
+  // (self-check pay-as-you-go vs. Physician/Pharmacy subscription) — only
+  // look at subscription_payments if it wasn't a check_payments row.
+  if (!checkPaymentRows || checkPaymentRows.length === 0) {
+    const { data: subPaymentRows, error: subPaymentError } = await supabaseService
+      .from("subscription_payments")
+      .update(succeeded ? { status: "success", verified_at: new Date().toISOString() } : { status: "failed" })
       .eq("provider_reference", reference)
-      .eq("status", "pending");
-    if (error) console.error("[payments/paystack-webhook] Failed to mark payment success:", error);
-  } else if (status === "failed" || status === "abandoned" || status === "reversed") {
-    const { error } = await supabaseService
-      .from("check_payments")
-      .update({ status: "failed" })
-      .eq("provider_reference", reference)
-      .eq("status", "pending");
-    if (error) console.error("[payments/paystack-webhook] Failed to mark payment failed:", error);
+      .eq("status", "pending")
+      .select("id, owner_id, product, period_days");
+    if (subPaymentError) {
+      console.error("[payments/paystack-webhook] Failed to update subscription_payments:", subPaymentError);
+    }
+
+    // Activation happens here, at payment confirmation — not at moment of
+    // use like the self-check quota pattern — since this webhook is the
+    // actual source of truth for whether money moved.
+    const payment = subPaymentRows?.[0];
+    if (succeeded && payment) {
+      const { data: existing } = await supabaseService
+        .from("subscriptions")
+        .select("period_end")
+        .eq("owner_id", payment.owner_id)
+        .eq("product", payment.product)
+        .maybeSingle();
+      // Extend from the current expiry (if still in the future) rather than
+      // from now(), so an early renewal never discards already-paid-for days.
+      const currentEnd = existing?.period_end ? new Date(existing.period_end) : null;
+      const base = currentEnd && currentEnd > new Date() ? currentEnd : new Date();
+      const newPeriodEnd = new Date(base.getTime() + payment.period_days * 24 * 60 * 60 * 1000);
+
+      const { error: subError } = await supabaseService.from("subscriptions").upsert(
+        {
+          owner_id: payment.owner_id,
+          product: payment.product,
+          status: "active",
+          period_end: newPeriodEnd.toISOString(),
+          provider_reference: reference,
+        },
+        { onConflict: "owner_id,product" }
+      );
+      if (subError) console.error("[payments/paystack-webhook] Failed to activate subscription:", subError);
+    }
   }
 
   // Always a JSON 200 — a null body / non-2xx response makes Paystack keep

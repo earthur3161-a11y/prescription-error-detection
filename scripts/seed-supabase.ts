@@ -197,6 +197,7 @@ async function seedClinicalData(): Promise<void> {
       allergies: p.allergies,
       active_medications: p.activeMedications,
       is_pregnant: p.isPregnant ?? null,
+      owner_id: prescriberId,
     });
     if (error) {
       console.error(`  FAILED to insert patient ${p.name}:`, error.message);
@@ -241,7 +242,7 @@ async function seedClinicalData(): Promise<void> {
       verdicts: rx1Lines.map((l) => screenLine(patientByOldId("patient_kwabena_owusu"), l, rx1Lines, formulary)),
       status: "dispensed",
       created_at: "2026-06-28T09:15:00.000Z",
-      source: "hospital",
+      source: "physician",
     },
     {
       id: rx2Id,
@@ -251,7 +252,7 @@ async function seedClinicalData(): Promise<void> {
       verdicts: rx2Lines.map((l) => screenLine(patientByOldId("patient_kojo_asante"), l, rx2Lines, formulary)),
       status: "verified",
       created_at: "2026-06-29T11:40:00.000Z",
-      source: "hospital",
+      source: "physician",
     },
     {
       id: rx3Id,
@@ -261,7 +262,7 @@ async function seedClinicalData(): Promise<void> {
       verdicts: rx3Lines.map((l) => screenLine(patientByOldId("patient_abena_sarpong"), l, rx3Lines, formulary)),
       status: "submitted",
       created_at: "2026-07-01T14:05:00.000Z",
-      source: "hospital",
+      source: "physician",
     },
     {
       id: randomUUID(),

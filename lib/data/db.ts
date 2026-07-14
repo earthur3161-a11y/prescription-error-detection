@@ -5,11 +5,8 @@ import type {
   Account,
   AllergyRule,
   Batch,
-  ClinicalAlert,
   DispenseRecord,
   Drug,
-  FacilityPolicy,
-  IntegrationConfig,
   InteractionRule,
   OutboxItem,
   OverrideLog,
@@ -19,7 +16,6 @@ import type {
   PatientProfile,
   PharmacistAction,
   PharmacySettings,
-  PipelineEvent,
   Prescription,
   StockAdjustment,
   User,
@@ -30,11 +26,7 @@ import { buildSeedData } from "./seed/prescriptions";
 import { seedUsers } from "./seed/users";
 import { buildDevAccounts, DEV_ACCOUNT_PASSWORD, DEV_ACCOUNTS_ENABLED } from "./seed/accounts";
 import { buildSeedBatches, DEFAULT_PHARMACY_SETTINGS } from "./seed/pharmacyInventory";
-import {
-  buildSeedClinicalAlerts,
-  buildSeedPharmacistActions,
-  buildSeedPipelineEvents,
-} from "./seed/auditTrail";
+import { buildSeedPharmacistActions } from "./seed/auditTrail";
 
 export class MediGuardDB extends Dexie {
   patients!: Table<Patient, string>;
@@ -47,10 +39,6 @@ export class MediGuardDB extends Dexie {
   outbox!: Table<OutboxItem, number>;
   patientChecks!: Table<PatientCheck, string>;
   patientProfile!: Table<PatientProfile, string>;
-  integrationConfig!: Table<IntegrationConfig, string>;
-  clinicalAlerts!: Table<ClinicalAlert, string>;
-  facilityPolicy!: Table<FacilityPolicy, string>;
-  pipelineEvents!: Table<PipelineEvent, string>;
   patientFeedbackReports!: Table<PatientFeedbackReport, string>;
   accounts!: Table<Account, string>;
   accessRequests!: Table<AccessRequest, string>;
@@ -93,14 +81,30 @@ export class MediGuardDB extends Dexie {
     this.version(4).stores(v4Stores);
     const v5Stores = { ...v4Stores, meta: "id" };
     this.version(5).stores(v5Stores);
-    this.version(6).stores({
+    const v6Stores = {
       ...v5Stores,
       batches: "id, drugId, expiryDate, status",
       dispenseRecords: "id, prescriptionId, patientId, pharmacistId, dispensedAt",
       pharmacistActions: "id, prescriptionId, pharmacistId, action, timestamp",
       stockAdjustments: "id, batchId, drugId, timestamp",
       pharmacySettings: "id",
-    });
+    };
+    this.version(6).stores(v6Stores);
+    // The internal Physician -> Facility Admin -> Pharmacist pipeline
+    // (checkpoint, co-sign, shared queue) is removed — these three stores
+    // go with it. Dexie requires an explicit `null` to actually drop a
+    // store on upgrade, not just omitting it from the next version's map.
+    const v7Stores = {
+      ...v6Stores,
+      clinicalAlerts: null,
+      facilityPolicy: null,
+      pipelineEvents: null,
+    };
+    this.version(7).stores(v7Stores);
+    // integrationConfig moved to Supabase (institutions/institution_api_keys,
+    // real per-institution API keys) — the old browser-local, insecure config
+    // this table held is gone with it.
+    this.version(8).stores({ ...v7Stores, integrationConfig: null });
   }
 }
 
@@ -159,20 +163,7 @@ async function runBootstrap(): Promise<void> {
         );
       }
 
-      const policyCount = await db.facilityPolicy.count();
-      if (policyCount === 0) {
-        await db.facilityPolicy.put({ id: "local", requireAdminCosignOnBlocked: true });
-      }
-
-      // Demo alerts + decisions for the Audit & Compliance Center. Each is
-      // gated on its own table so the unified trail shows all three categories
-      // even in browsers that seeded before these were added.
-      if ((await db.clinicalAlerts.count()) === 0) {
-        await db.clinicalAlerts.bulkPut(buildSeedClinicalAlerts());
-      }
-      if ((await db.pipelineEvents.count()) === 0) {
-        await db.pipelineEvents.bulkPut(buildSeedPipelineEvents());
-      }
+      // Demo dispensing decisions for the Audit & Compliance Center.
       if ((await db.pharmacistActions.count()) === 0) {
         await db.pharmacistActions.bulkPut(buildSeedPharmacistActions());
       }

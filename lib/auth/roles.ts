@@ -9,8 +9,8 @@ export const ROLE_LABELS: Record<AccountRole, string> = {
 
 export const ROLE_HOME_ROUTE: Record<AccountRole, string> = {
   prescriber: "/dashboard",
-  pharmacist: "/pharmacist/queue",
-  admin: "/admin/pipeline",
+  pharmacist: "/pharmacist/inventory",
+  admin: "/admin/analytics",
   superadmin: "/superadmin",
 };
 

@@ -66,12 +66,13 @@ export type PatientRow = {
   active_medications: unknown | null;
   is_pregnant: boolean | null;
   created_at: string;
+  // Nullable at the DB level (existing rows predate this column) but always
+  // set by the app on every insert — see patientRepository.createPatient().
+  owner_id: string | null;
 };
 
 export type PrescriptionStatusDb =
   | "draft"
-  | "pending_admin_review"
-  | "pending_admin_cosign"
   | "submitted"
   | "under_review"
   | "held"
@@ -80,7 +81,7 @@ export type PrescriptionStatusDb =
   | "verified"
   | "dispensed"
   | "flagged";
-export type PrescriptionSourceDb = "hospital" | "patient_submitted" | "walk_in";
+export type PrescriptionSourceDb = "physician" | "patient_submitted" | "walk_in";
 
 export type PrescriptionRow = {
   id: string;
@@ -152,6 +153,65 @@ export type CheckPaymentRow = {
   verified_at: string | null;
 };
 
+export type SubscriptionProduct = "physician_portal" | "pharmacy_portal";
+export type SubscriptionStatus = "inactive" | "active" | "past_due" | "canceled";
+
+export type SubscriptionRow = {
+  id: string;
+  owner_id: string;
+  product: SubscriptionProduct;
+  status: SubscriptionStatus;
+  period_end: string | null;
+  provider: string;
+  provider_reference: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SubscriptionPaymentStatus = "pending" | "success" | "failed";
+
+export type SubscriptionPaymentRow = {
+  id: string;
+  owner_id: string;
+  product: SubscriptionProduct;
+  amount_pesewas: number;
+  period_days: number;
+  provider: string;
+  provider_reference: string;
+  status: SubscriptionPaymentStatus;
+  created_at: string;
+  verified_at: string | null;
+};
+
+export type InstitutionStatus = "active" | "suspended";
+export type EnforcementLevel = "advisory" | "enforced";
+
+export type InstitutionRow = {
+  id: string;
+  name: string;
+  status: InstitutionStatus;
+  enforcement_level: EnforcementLevel;
+  created_at: string;
+  created_by: string | null;
+};
+
+export type ApiKeyMode = "live" | "sandbox";
+
+/** The service-role-only base table row — includes key_hash. Never exposed to a client; see InstitutionApiKeyPublicRow. */
+export type InstitutionApiKeyRow = {
+  id: string;
+  institution_id: string;
+  mode: ApiKeyMode;
+  key_prefix: string;
+  key_hash: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
+/** Mirrors the institution_api_keys_public view — never carries key_hash. */
+export type InstitutionApiKeyPublicRow = Omit<InstitutionApiKeyRow, "key_hash">;
+
 export type Database = {
   public: {
     Tables: {
@@ -170,7 +230,7 @@ export type Database = {
       };
       patients: {
         Row: PatientRow;
-        Insert: Partial<PatientRow> & Pick<PatientRow, "id" | "name" | "dob" | "sex" | "renal_status" | "hepatic_status">;
+        Insert: Partial<PatientRow> & Pick<PatientRow, "id" | "name" | "dob" | "sex" | "renal_status" | "hepatic_status" | "owner_id">;
         Update: Partial<PatientRow>;
         Relationships: [];
       };
@@ -206,6 +266,38 @@ export type Database = {
         Insert: Partial<CheckPaymentRow> &
           Pick<CheckPaymentRow, "phone" | "amount_pesewas" | "provider_reference">;
         Update: Partial<CheckPaymentRow>;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: SubscriptionRow;
+        Insert: Partial<SubscriptionRow> & Pick<SubscriptionRow, "owner_id" | "product">;
+        Update: Partial<SubscriptionRow>;
+        Relationships: [];
+      };
+      subscription_payments: {
+        Row: SubscriptionPaymentRow;
+        Insert: Partial<SubscriptionPaymentRow> &
+          Pick<SubscriptionPaymentRow, "owner_id" | "product" | "amount_pesewas" | "provider_reference">;
+        Update: Partial<SubscriptionPaymentRow>;
+        Relationships: [];
+      };
+      institutions: {
+        Row: InstitutionRow;
+        Insert: Partial<InstitutionRow> & Pick<InstitutionRow, "name">;
+        Update: Partial<InstitutionRow>;
+        Relationships: [];
+      };
+      institution_api_keys: {
+        Row: InstitutionApiKeyRow;
+        Insert: Partial<InstitutionApiKeyRow> &
+          Pick<InstitutionApiKeyRow, "institution_id" | "mode" | "key_prefix" | "key_hash">;
+        Update: Partial<InstitutionApiKeyRow>;
+        Relationships: [];
+      };
+      institution_api_keys_public: {
+        Row: InstitutionApiKeyPublicRow;
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
     };
@@ -248,6 +340,19 @@ export type Database = {
       get_payment_status: {
         Args: { p_reference: string };
         Returns: { status: CheckPaymentStatus }[];
+      };
+      get_my_subscription_status: {
+        Args: Record<string, never>;
+        Returns: {
+          product: SubscriptionProduct;
+          status: SubscriptionStatus;
+          period_end: string | null;
+          days_remaining: number;
+        }[];
+      };
+      update_my_institution_enforcement_level: {
+        Args: { p_level: string };
+        Returns: undefined;
       };
     };
   };

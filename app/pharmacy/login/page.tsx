@@ -8,7 +8,7 @@ export default function PharmacyLoginPage() {
     <PortalLoginForm
       config={{
         role: "pharmacist",
-        requestRole: "pharmacist",
+        signupHref: "/pharmacy/signup",
         portalName: "Pharmacy Portal",
         tagline: "Verify prescriptions, screen for conflicts, and dispense safely.",
         icon: ClipboardCheck,

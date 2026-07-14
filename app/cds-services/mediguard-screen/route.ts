@@ -7,7 +7,7 @@ import { buildCards, parseCdsRequest } from "@/lib/integration/cdsHooks";
  * screen each and return CDS Hooks cards (the interruptive in-EHR alert).
  */
 export async function POST(request: Request) {
-  const auth = authorizeApiKey(request);
+  const auth = await authorizeApiKey(request);
   if (!auth.ok) {
     return Response.json(
       { error: "unauthorized", message: "Missing or invalid API key." },

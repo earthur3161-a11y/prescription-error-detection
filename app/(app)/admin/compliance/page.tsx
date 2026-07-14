@@ -34,7 +34,7 @@ const BADGE_TONE: Record<AuditTone, "safe" | "caution" | "blocked" | "brand" | "
 const CHANNEL_TONE: Record<AuditChannel, "safe" | "caution" | "blocked" | "brand" | "neutral"> = {
   patient: "safe",
   pharmacy: "brand",
-  hospital: "caution",
+  physician: "caution",
   system: "neutral",
 };
 
@@ -178,7 +178,7 @@ export default function CompliancePage() {
               <option value="all">All channels</option>
               <option value="patient">{CHANNEL_LABEL.patient}</option>
               <option value="pharmacy">{CHANNEL_LABEL.pharmacy}</option>
-              <option value="hospital">{CHANNEL_LABEL.hospital}</option>
+              <option value="physician">{CHANNEL_LABEL.physician}</option>
               <option value="system">{CHANNEL_LABEL.system}</option>
             </Select>
           </div>

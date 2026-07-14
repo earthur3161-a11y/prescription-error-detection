@@ -44,12 +44,7 @@ export async function getPrescriptionById(id: string): Promise<Prescription | nu
   return data ? mapRow(data) : null;
 }
 
-/**
- * Upsert, not a pure insert: the hospital flow writes the same prescription
- * id twice — once when the doctor submits (status "pending_admin_review"),
- * again when the Facility Admin checkpoint re-screens it moments later
- * (adminCheckpoint.ts) — matching the previous Dexie `.put()` semantics.
- */
+/** Upsert rather than a pure insert so a retried submit (e.g. after a dropped response) is safe to replay. */
 export async function createPrescription(prescription: Prescription): Promise<Prescription> {
   const { data, error } = await supabase
     .from("prescriptions")

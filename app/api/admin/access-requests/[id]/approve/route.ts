@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { supabaseService } from "@/lib/supabase/serviceClient";
+import { generateApiKey } from "@/lib/integration/apiKeys";
 import type { AccessRequestRole } from "@/lib/supabase/types";
 
 const ROLE_TITLE: Record<AccessRequestRole, string> = {
@@ -71,11 +72,31 @@ export async function POST(
     );
   }
 
+  // Facility Admin approval also provisions the institution itself — the
+  // free-text `institution` field finally becomes load-bearing, not just a
+  // display label. Every other role has no institution concept at all.
+  let institutionId: string | null = null;
+  if (reqRow.requested_role === "admin") {
+    const { data: institution, error: institutionError } = await supabaseService
+      .from("institutions")
+      .insert({ name: reqRow.institution, created_by: callerData.user.id })
+      .select("id")
+      .single();
+    if (institutionError || !institution) {
+      return Response.json(
+        { error: "institution_creation_failed", message: institutionError?.message ?? "Couldn't create the institution." },
+        { status: 500 }
+      );
+    }
+    institutionId = institution.id;
+  }
+
   // inviteUserByEmail's `data` option sets user_metadata (client-editable
-  // later by that user) — role must live in app_metadata instead, which is
-  // only ever writable through this admin API, never by the signed-in user.
+  // later by that user) — role (and institution_id, for admins) must live
+  // in app_metadata instead, which is only ever writable through this admin
+  // API, never by the signed-in user.
   const { error: metadataError } = await supabaseService.auth.admin.updateUserById(invited.user.id, {
-    app_metadata: { role: reqRow.requested_role },
+    app_metadata: { role: reqRow.requested_role, ...(institutionId ? { institution_id: institutionId } : {}) },
   });
   if (metadataError) {
     return Response.json(
@@ -94,6 +115,15 @@ export async function POST(
   });
   if (profileError) {
     return Response.json({ error: "profile_creation_failed", message: profileError.message }, { status: 500 });
+  }
+
+  // One initial sandbox key so the institution has something to test with
+  // immediately, without a separate manual step.
+  if (institutionId) {
+    const { keyPrefix, keyHash } = generateApiKey("sandbox");
+    await supabaseService
+      .from("institution_api_keys")
+      .insert({ institution_id: institutionId, mode: "sandbox", key_prefix: keyPrefix, key_hash: keyHash });
   }
 
   await supabaseService

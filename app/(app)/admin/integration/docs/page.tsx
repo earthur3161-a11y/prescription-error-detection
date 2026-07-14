@@ -191,23 +191,6 @@ export default function IntegrationDocsPage() {
 
       <Card>
         <CardBody className="space-y-3">
-          <h2 className="font-semibold text-foreground">Webhook callback</h2>
-          <p className="text-sm text-secondary">
-            When configured, MediGuard pushes the verdict and any override log to your webhook URL
-            so it lands in the patient&rsquo;s unified chart.
-          </p>
-          <CodeBlock>{`POST {your webhookUrl}
-{
-  "event": "verdict.recorded" | "override.logged",
-  "prescriptionId": "rx_...",
-  "patientId": "...",
-  "payload": { /* verdict or override log object */ }
-}`}</CodeBlock>
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardBody className="space-y-3">
           <h2 className="font-semibold text-foreground">Embeddable widget</h2>
           <p className="text-sm text-secondary">
             Embed the screening UI directly in your prescribing screen so staff never leave your

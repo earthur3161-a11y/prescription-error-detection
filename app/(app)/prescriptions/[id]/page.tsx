@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Flag, PackageCheck, ShieldCheck, Undo2 } from "lucide-react";
+import { ArrowLeft, Flag, PackageCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -12,15 +12,12 @@ import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { PrescriptionLineSummary } from "@/components/prescription/PrescriptionLineSummary";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
-import { PipelineAuditTrail } from "@/components/prescription/PipelineAuditTrail";
 import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useOverrideLogs } from "@/lib/query/hooks/useOverrideLogs";
 import { useUpdatePrescriptionStatus } from "@/lib/query/hooks/useUpdatePrescriptionStatus";
-import { useClinicalAlerts } from "@/lib/query/hooks/useClinicalAlerts";
-import { useCosignPrescription, useSendBackToDoctor } from "@/lib/query/hooks/usePipelineActions";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
@@ -32,21 +29,16 @@ export default function PrescriptionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { role, user } = useAuth();
+  const { role } = useAuth();
   const { data: prescription, isLoading } = usePrescription(id);
   const { data: patient } = usePatient(prescription?.patientId ?? null);
   const { data: formulary } = useFormulary();
   const { data: overrideLogs } = useOverrideLogs({ prescriptionId: id });
-  const { data: alerts } = useClinicalAlerts({ status: "pending_cosign" });
   const { data: profiles } = useProfiles();
   const updateStatus = useUpdatePrescriptionStatus();
-  const cosignPrescription = useCosignPrescription();
-  const sendBackToDoctor = useSendBackToDoctor();
 
   const [flagModalOpen, setFlagModalOpen] = useState(false);
   const [flagNote, setFlagNote] = useState("");
-  const [sendBackModalOpen, setSendBackModalOpen] = useState(false);
-  const [sendBackNote, setSendBackNote] = useState("");
 
   if (isLoading || !formulary) {
     return (
@@ -69,13 +61,6 @@ export default function PrescriptionDetailPage({
   const prescriber = profiles?.get(prescription.prescriberId);
   const overrideByDrugId = new Map((overrideLogs ?? []).map((log) => [log.drugId, log]));
   const canPharmacistAct = role === "pharmacist" && prescription.status === "submitted";
-  // The clinical alert is still Dexie-only (per-browser) — a device other
-  // than the one that ran the Admin checkpoint won't have this row, even
-  // though prescription.status (now shared via Postgres) genuinely is
-  // "pending_admin_cosign". The alert is auxiliary display data only; it
-  // must never gate whether the co-sign/send-back buttons render.
-  const pendingAlert = (alerts ?? []).find((a) => a.prescriptionId === prescription.id);
-  const canAdminAct = role === "admin" && prescription.status === "pending_admin_cosign";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -152,29 +137,6 @@ export default function PrescriptionDetailPage({
         })}
       </div>
 
-      {canAdminAct && (
-        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
-          <Button
-            onClick={() =>
-              user &&
-              cosignPrescription.mutate({
-                prescriptionId: prescription.id,
-                alertId: pendingAlert?.id,
-                adminId: user.id,
-              })
-            }
-            disabled={cosignPrescription.isPending}
-          >
-            <ShieldCheck className="size-5" aria-hidden="true" />
-            Co-sign & release to pharmacy
-          </Button>
-          <Button variant="secondary" onClick={() => setSendBackModalOpen(true)}>
-            <Undo2 className="size-5" aria-hidden="true" />
-            Send back to prescriber
-          </Button>
-        </div>
-      )}
-
       {canPharmacistAct && (
         <div className="flex flex-wrap gap-3 border-t border-border pt-4">
           <Button
@@ -190,47 +152,6 @@ export default function PrescriptionDetailPage({
           </Button>
         </div>
       )}
-
-      <PipelineAuditTrail prescriptionId={prescription.id} overrideLogs={overrideLogs ?? []} />
-
-      <Modal
-        open={sendBackModalOpen}
-        onOpenChange={setSendBackModalOpen}
-        title="Send prescription back to prescriber"
-        description="Explain what needs to change before this can proceed to the pharmacy."
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setSendBackModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={sendBackNote.trim().length === 0 || sendBackToDoctor.isPending}
-              onClick={() => {
-                if (!user) return;
-                sendBackToDoctor.mutate(
-                  {
-                    prescriptionId: prescription.id,
-                    alertId: pendingAlert?.id,
-                    adminId: user.id,
-                    note: sendBackNote.trim(),
-                  },
-                  { onSuccess: () => setSendBackModalOpen(false) }
-                );
-              }}
-            >
-              Send back
-            </Button>
-          </>
-        }
-      >
-        <Textarea
-          value={sendBackNote}
-          onChange={(e) => setSendBackNote(e.target.value)}
-          rows={4}
-          placeholder="e.g. Please switch to an alternative that doesn't interact with the patient's warfarin…"
-        />
-      </Modal>
 
       <Modal
         open={flagModalOpen}

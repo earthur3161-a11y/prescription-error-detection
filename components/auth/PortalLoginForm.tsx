@@ -14,8 +14,10 @@ import type { AccountRole } from "@/lib/types";
 
 export interface PortalConfig {
   role: AccountRole;
-  /** URL segment used for the request-access role, when this portal supports it. */
-  requestRole?: "prescriber" | "pharmacist" | "admin";
+  /** URL segment used for the request-access role — only Facility Admin still uses human-reviewed onboarding. */
+  requestRole?: "admin";
+  /** Self-serve signup route — Physician/Pharmacy Portals use this instead of request-access. */
+  signupHref?: string;
   portalName: string;
   tagline: string;
   icon: ComponentType<{ className?: string }>;
@@ -151,6 +153,14 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
                 className="font-medium text-brand hover:underline"
               >
                 Request access
+              </Link>
+            </p>
+          )}
+          {config.signupHref && (
+            <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+              Don&rsquo;t have an account?{" "}
+              <Link href={config.signupHref} className="font-medium text-brand hover:underline">
+                Create an account
               </Link>
             </p>
           )}

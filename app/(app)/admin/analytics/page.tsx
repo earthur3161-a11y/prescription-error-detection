@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, TrendingUp } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -126,13 +126,6 @@ export default function AnalyticsPage() {
               { label: "Blocked", value: verdictCounts.blocked, color: CHART_COLORS.blocked },
             ]}
           />
-          {metrics.activeAlerts > 0 && (
-            <p className="flex items-center gap-1.5 text-sm text-caution-fg">
-              <TrendingUp className="size-4" aria-hidden="true" />
-              {metrics.activeAlerts} clinical alert{metrics.activeAlerts === 1 ? "" : "s"} currently
-              open
-            </p>
-          )}
         </SectionCard>
 
         <SectionCard title="Most common flag types">

@@ -10,7 +10,7 @@ export default function AdminLoginPage() {
         role: "admin",
         requestRole: "admin",
         portalName: "Facility Admin Portal",
-        tagline: "Oversee the prescribing pipeline, formulary, and institution-wide reporting.",
+        tagline: "Integrate MediGuard's screening into your own systems, and oversee formulary and reporting.",
         icon: Building2,
         accentClass: "bg-indigo-100",
         iconClass: "text-indigo-600",

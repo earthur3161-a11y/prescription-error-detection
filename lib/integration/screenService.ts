@@ -9,7 +9,10 @@
 import { z } from "zod";
 import { DEFAULT_REGION, getFormularyBundle } from "../formulary";
 import { screenDrugLine } from "../screening-engine";
+import { hashApiKey } from "./apiKeys";
+import { supabaseService } from "../supabase/serviceClient";
 import type { DrugLineVerdict } from "../screening-engine/types";
+import type { EnforcementLevel } from "../types";
 import type {
   ActiveMedication,
   AllergyRecord,
@@ -141,36 +144,57 @@ export function runScreen(request: ScreenRequest): ScreenResult | null {
   return { verdict, drugName: drug.generic_name };
 }
 
-// --- API-key authentication (demo-grade) ---
+// --- API-key authentication (real) ---
 //
-// Production keys would live server-side (e.g. MEDIGUARD_API_KEYS env var). In
-// dev, since keys are minted client-side in the Integration Dashboard, we also
-// accept any well-formed mg_live_/mg_sandbox_ key so the sandbox works end to
-// end. This is deliberately NOT production authentication.
-
-const DEV_KEY_PATTERN = /^mg_(live|sandbox)_[\w-]{6,}$/;
+// Looks up the presented Bearer token by its sha256 hash against
+// institution_api_keys, then confirms the owning institution is active.
+// Replaces the old demo-grade check (a global MEDIGUARD_API_KEYS env-var
+// allowlist, with a fallback regex that accepted almost any well-formed
+// mg_live_/mg_sandbox_-shaped string) — this is the actual "make it real"
+// step: a garbage or revoked key is now genuinely rejected, and a caller is
+// now resolved to a real institution identity, not just a live/sandbox mode.
 
 export interface AuthResult {
   ok: boolean;
+  institutionId?: string;
+  institutionName?: string;
   mode?: "live" | "sandbox";
+  enforcementLevel?: EnforcementLevel;
 }
 
-export function authorizeApiKey(request: Request): AuthResult {
+export async function authorizeApiKey(request: Request): Promise<AuthResult> {
   const header = request.headers.get("authorization") ?? "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) return { ok: false };
   const key = match[1].trim();
+  const keyHash = hashApiKey(key);
 
-  const configured = (process.env.MEDIGUARD_API_KEYS ?? "")
-    .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean);
-  if (configured.includes(key)) {
-    return { ok: true, mode: key.startsWith("mg_live") ? "live" : "sandbox" };
-  }
+  const { data: keyRow } = await supabaseService
+    .from("institution_api_keys")
+    .select("id, institution_id, mode, revoked_at")
+    .eq("key_hash", keyHash)
+    .maybeSingle();
+  if (!keyRow || keyRow.revoked_at) return { ok: false };
 
-  const devMatch = key.match(DEV_KEY_PATTERN);
-  if (devMatch) return { ok: true, mode: devMatch[1] as "live" | "sandbox" };
+  const { data: institution } = await supabaseService
+    .from("institutions")
+    .select("id, name, status, enforcement_level")
+    .eq("id", keyRow.institution_id)
+    .maybeSingle();
+  if (!institution || institution.status !== "active") return { ok: false };
 
-  return { ok: false };
+  // Fire-and-forget — a slow/failed write here shouldn't hold up the actual
+  // screening response.
+  void supabaseService
+    .from("institution_api_keys")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", keyRow.id);
+
+  return {
+    ok: true,
+    institutionId: institution.id,
+    institutionName: institution.name,
+    mode: keyRow.mode,
+    enforcementLevel: institution.enforcement_level,
+  };
 }

@@ -6,15 +6,7 @@
 
 import { FLAG_TYPE_LABEL } from "../screening-engine/findings";
 import type { FlagType, Verdict } from "../screening-engine/types";
-import type {
-  ClinicalAlert,
-  Drug,
-  OverrideLog,
-  PatientCheck,
-  PharmacistAction,
-  PharmacistActionType,
-  Prescription,
-} from "../types";
+import type { Drug, OverrideLog, PatientCheck, PharmacistAction, PharmacistActionType, Prescription } from "../types";
 
 export interface DailyPoint {
   date: string; // YYYY-MM-DD
@@ -37,7 +29,6 @@ export interface FacilityMetrics {
   overrideCount: number;
   overrideRate: number; // overrides / (caution+blocked lines), 0..1 (capped)
   emlCompliancePct: number; // % of prescriptions with NO non-EML drug
-  activeAlerts: number;
   daily: DailyPoint[];
   flagTypes: LabeledCount[];
   topFlaggedDrugs: LabeledCount[];
@@ -80,7 +71,6 @@ export interface MetricsSources {
   patientChecks: PatientCheck[];
   overrideLogs: OverrideLog[];
   pharmacistActions: PharmacistAction[];
-  clinicalAlerts: ClinicalAlert[];
 }
 
 export function buildFacilityMetrics(sources: MetricsSources, drugs: Drug[]): FacilityMetrics {
@@ -171,10 +161,6 @@ export function buildFacilityMetrics(sources: MetricsSources, drugs: Drug[]): Fa
     .map((a) => ({ outcome: a.interventionOutcome as string, timestamp: a.timestamp }))
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
-  const activeAlerts = sources.clinicalAlerts.filter(
-    (a) => a.status === "pending_cosign" || a.status === "acknowledged"
-  ).length;
-
   return {
     totalScreenings: sources.prescriptions.length + sources.patientChecks.length,
     totalLines,
@@ -183,7 +169,6 @@ export function buildFacilityMetrics(sources: MetricsSources, drugs: Drug[]): Fa
     overrideCount: sources.overrideLogs.length,
     overrideRate: flaggedLines === 0 ? 0 : Math.min(1, sources.overrideLogs.length / flaggedLines),
     emlCompliancePct,
-    activeAlerts,
     daily,
     flagTypes,
     topFlaggedDrugs,

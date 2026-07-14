@@ -8,7 +8,7 @@ export default function PhysicianLoginPage() {
     <PortalLoginForm
       config={{
         role: "prescriber",
-        requestRole: "prescriber",
+        signupHref: "/physician/signup",
         portalName: "Physician Portal",
         tagline: "Prescribe with live decision support and route scripts for verification.",
         icon: Stethoscope,
