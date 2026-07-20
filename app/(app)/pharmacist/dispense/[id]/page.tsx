@@ -176,10 +176,10 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
                 <Printer className="size-5" aria-hidden="true" />
                 Print label &amp; handout
               </Button>
-              <Link href="/pharmacist/queue">
+              <Link href="/prescriptions">
                 <Button variant="secondary">
                   <Home className="size-5" aria-hidden="true" />
-                  Back to queue
+                  Back to prescriptions
                 </Button>
               </Link>
             </div>

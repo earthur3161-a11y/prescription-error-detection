@@ -9,13 +9,18 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
+import { Button } from "@/components/ui/Button";
+import { FilePlus2 } from "lucide-react";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { usePatients } from "@/lib/query/hooks/usePatients";
+import { useAuth } from "@/lib/auth/useAuth";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict, type Verdict } from "@/lib/screening-engine";
 import type { PrescriptionStatus } from "@/lib/types";
 
 export default function PrescriptionHistoryPage() {
+  const { role } = useAuth();
+  const isPharmacist = role === "pharmacist";
   const [patientQuery, setPatientQuery] = useState("");
   const [verdictFilter, setVerdictFilter] = useState<Verdict | "all">("all");
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "all">("all");
@@ -38,9 +43,19 @@ export default function PrescriptionHistoryPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Prescription History</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Browse and filter past prescriptions.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Prescription History</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Browse and filter past prescriptions.</p>
+        </div>
+        {isPharmacist && (
+          <Link href="/pharmacist/verify/new">
+            <Button size="sm">
+              <FilePlus2 className="size-4" aria-hidden="true" />
+              Verify a prescription
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -67,6 +82,10 @@ export default function PrescriptionHistoryPage() {
         >
           <option value="all">All statuses</option>
           <option value="submitted">Awaiting Verification</option>
+          <option value="under_review">Under Review</option>
+          <option value="held">Held</option>
+          <option value="cleared">Cleared</option>
+          <option value="rejected">Rejected</option>
           <option value="verified">Verified</option>
           <option value="dispensed">Dispensed</option>
           <option value="flagged">Flagged</option>
@@ -86,7 +105,7 @@ export default function PrescriptionHistoryPage() {
 
       <div className="space-y-3">
         {filtered.map((rx) => (
-          <Link key={rx.id} href={`/prescriptions/${rx.id}`}>
+          <Link key={rx.id} href={isPharmacist ? `/pharmacist/review/${rx.id}` : `/prescriptions/${rx.id}`}>
             <Card className="transition-shadow hover:shadow-md">
               <CardBody className="flex flex-wrap items-center justify-between gap-3">
                 <div>

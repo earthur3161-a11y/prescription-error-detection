@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, PackagePlus, Pencil, Search, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, FilePlus2, PackagePlus, Pencil, Search, TriangleAlert } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -114,6 +115,21 @@ export default function InventoryPage() {
           Add batch
         </Button>
       </div>
+
+      <Card className="border-brand/30 bg-brand-subtle/40">
+        <CardBody className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-medium text-foreground">Have a prescription to dispense?</p>
+            <p className="text-sm text-muted-foreground">Screen it for allergies, interactions, and dosing before you hand it over.</p>
+          </div>
+          <Link href="/pharmacist/verify/new">
+            <Button>
+              <FilePlus2 className="size-5" aria-hidden="true" />
+              Verify a prescription
+            </Button>
+          </Link>
+        </CardBody>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Low stock</p><p className="mt-1 text-2xl font-semibold text-caution-fg">{totals.lowStock}</p><p className="text-sm text-muted-foreground">drugs below threshold</p></CardBody></Card>

@@ -127,9 +127,9 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 p-6 sm:p-8">
-      <Link href="/pharmacist/queue" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
+      <Link href="/prescriptions" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to queue
+        Back to prescriptions
       </Link>
 
       {/* Header: patient + risk score + always-visible actions */}

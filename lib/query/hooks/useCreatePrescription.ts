@@ -28,7 +28,7 @@ export function useCreatePrescription() {
         title: "Prescription submitted",
         description: simulateOffline
           ? "Saved locally — will sync when back online."
-          : `Prescription ${idLabel} sent for pharmacist verification.`,
+          : `Prescription ${idLabel} saved.`,
         variant: "success",
       });
     },
