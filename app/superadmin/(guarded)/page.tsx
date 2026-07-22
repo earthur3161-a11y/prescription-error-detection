@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { LogOut, Mail, ShieldAlert } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Mail } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Textarea } from "@/components/ui/Textarea";
-import { useAuth } from "@/lib/auth/useAuth";
 import {
   useAccessRequests,
   useApproveAccessRequest,
@@ -149,45 +147,16 @@ function SuperAdminDashboard() {
 }
 
 export default function SuperAdminPage() {
-  const router = useRouter();
-  const { role, hasHydrated, logout } = useAuth();
-
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (role !== "superadmin") router.replace("/superadmin/login");
-  }, [hasHydrated, role, router]);
-
-  if (!hasHydrated || role !== "superadmin") return null;
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="size-6 text-foreground" aria-hidden="true" />
-          <span className="font-semibold text-foreground">MediGuard Operations</span>
-        </div>
-        <button
-          onClick={() => {
-            logout();
-            router.replace("/superadmin/login");
-          }}
-          aria-label="Sign out"
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-        >
-          <LogOut className="size-4" aria-hidden="true" />
-          Sign out
-        </button>
-      </header>
-      <main className="mx-auto max-w-3xl px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-foreground">Access requests</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Review and approve facility account requests. Approving provisions an account and sends a
-            secure invite email — no plaintext password is ever created or sent.
-          </p>
-        </div>
-        <SuperAdminDashboard />
-      </main>
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Access requests</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Review and approve facility account requests. Approving provisions an account and sends a
+          secure invite email — no plaintext password is ever created or sent.
+        </p>
+      </div>
+      <SuperAdminDashboard />
     </div>
   );
 }

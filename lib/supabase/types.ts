@@ -1,11 +1,11 @@
 // Hand-written types for the Supabase schema (profiles, access_requests,
 // check_access_request_status from Phase 1; patients, prescriptions,
 // override_logs, patient_checks and their RPCs from Phase 2; self_check_accounts,
-// check_payments and their RPCs from Phase 3). Mirrors
-// supabase/migrations/0001_phase1_auth.sql, 0002_phase2_clinical_data.sql, and
-// 0003_self_check_quota.sql exactly — update all four together. If the
-// Supabase CLI is ever linked to the project, `supabase gen types typescript`
-// can regenerate/replace this file directly.
+// check_payments and their RPCs from Phase 3; superadmin oversight RPCs/views
+// from Phase E). Mirrors supabase/migrations/0001_phase1_auth.sql through
+// 0009_superadmin_oversight.sql exactly — update together. If the Supabase
+// CLI is ever linked to the project, `supabase gen types typescript` can
+// regenerate/replace this file directly.
 //
 // Row/Insert/Update shapes are declared with `type`, not `interface`. This
 // is required, not stylistic: @supabase/postgrest-js's GenericTable
@@ -212,6 +212,50 @@ export type InstitutionApiKeyRow = {
 /** Mirrors the institution_api_keys_public view — never carries key_hash. */
 export type InstitutionApiKeyPublicRow = Omit<InstitutionApiKeyRow, "key_hash">;
 
+/** Mirrors the institution_api_keys_superadmin view — same shape, scoped to the caller having the superadmin role instead of "my own institution". */
+export type InstitutionApiKeySuperadminRow = Omit<InstitutionApiKeyRow, "key_hash">;
+
+/** Row shape of get_superadmin_accounts() — profiles joined to auth.users.email, since profiles has no email column of its own. */
+export type SuperadminAccountRow = {
+  id: string;
+  role: ProfileRole;
+  name: string;
+  title: string;
+  status: ProfileStatus;
+  institution: string | null;
+  created_at: string;
+  email: string | null;
+};
+
+/** Row shape of get_superadmin_prescription_activity() — administrative metadata only, no drugs/verdicts/notes. */
+export type SuperadminPrescriptionActivityRow = {
+  id: string;
+  created_at: string;
+  status: PrescriptionStatusDb;
+  source: PrescriptionSourceDb;
+  prescriber_id: string;
+  prescriber_name: string;
+  patient_id: string;
+  patient_name: string;
+};
+
+/** Row shape of get_superadmin_override_activity() — that an override happened, not what it was. */
+export type SuperadminOverrideActivityRow = {
+  id: string;
+  timestamp: string;
+  user_id: string;
+  user_name: string;
+  prescription_id: string;
+};
+
+/** Row shape of get_superadmin_patient_check_activity() — no drugs/verdicts/profile. */
+export type SuperadminPatientCheckActivityRow = {
+  id: string;
+  created_at: string;
+  phone: string | null;
+  pulled_into_prescription_id: string | null;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -300,6 +344,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      institution_api_keys_superadmin: {
+        Row: InstitutionApiKeySuperadminRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -353,6 +403,22 @@ export type Database = {
       update_my_institution_enforcement_level: {
         Args: { p_level: string };
         Returns: undefined;
+      };
+      get_superadmin_accounts: {
+        Args: Record<string, never>;
+        Returns: SuperadminAccountRow[];
+      };
+      get_superadmin_prescription_activity: {
+        Args: Record<string, never>;
+        Returns: SuperadminPrescriptionActivityRow[];
+      };
+      get_superadmin_override_activity: {
+        Args: Record<string, never>;
+        Returns: SuperadminOverrideActivityRow[];
+      };
+      get_superadmin_patient_check_activity: {
+        Args: Record<string, never>;
+        Returns: SuperadminPatientCheckActivityRow[];
       };
     };
   };
