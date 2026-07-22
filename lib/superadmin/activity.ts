@@ -11,6 +11,17 @@
 // No amount of client-side filtering here can "leak" clinical content,
 // because that content was never selected out of Postgres in the first
 // place.
+//
+// KNOWN GAP, TRACKED FOLLOW-UP (not fixed here): pharmacy dispense records,
+// stock adjustments, and other pharmacist-side inventory actions
+// (dispenseRecordRepository, pharmacistActionRepository, batchRepository)
+// still live entirely in per-browser Dexie/IndexedDB, never migrated to
+// Supabase — see the "stays on Dexie" scoping note in
+// 0002_phase2_clinical_data.sql. That means this feed structurally cannot
+// see them; they're not filtered out, they were never written to a place
+// this module can read from. Surfacing them here requires a migration
+// moving that data server-side first — out of scope for this feature, but
+// flagged so it doesn't get silently assumed to already be covered.
 
 import type {
   CheckPaymentRow,
