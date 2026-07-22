@@ -71,6 +71,29 @@ export function checkContraindication(input: ScreeningInput): Flag[] {
         })
       );
     }
+  } else if (
+    (patient.isPregnant === null || patient.isPregnant === undefined) &&
+    patient.sex !== "male"
+  ) {
+    // Pregnancy status not confirmed — never treat this the same as "confirmed
+    // not pregnant" (which correctly raises nothing). Only raise this for
+    // drugs that actually carry meaningful pregnancy risk, matching the same
+    // universe of drugs that would have flagged above had pregnancy been
+    // confirmed true.
+    const isHighRiskCategory = drug.pregnancyCategory === "X" || drug.pregnancyCategory === "D";
+    const isTextFlagged = !drug.pregnancyCategory && /pregnan/.test(contraText);
+    if (isHighRiskCategory || isTextFlagged) {
+      flags.push(
+        buildFlag({
+          type: "pregnancy_warning",
+          code: "PREGNANCY_STATUS_UNKNOWN",
+          severity: "unknown",
+          clinical: `${drug.generic_name} carries significant pregnancy risk (${drug.pregnancyCategory ? `category ${drug.pregnancyCategory}` : "contraindicated/cautioned in pregnancy"}) and this patient's pregnancy status is not confirmed — verify before dispensing.`,
+          patient: `${drug.generic_name} can be risky during pregnancy, and we don't know your pregnancy status — please tell your pharmacist or doctor if there's any chance you could be pregnant before taking it.`,
+          relatedDrugId: drug.id,
+        })
+      );
+    }
   }
 
   // --- Renal impairment: structured dose guidance first, contraindication text as fallback. ---
@@ -105,6 +128,26 @@ export function checkContraindication(input: ScreeningInput): Flag[] {
           severity: "major",
           clinical: `${drug.generic_name} carries a renal contraindication/caution and this patient has impaired renal function — review dose or choose an alternative.`,
           patient: `Because of your kidney function, ${drug.generic_name} needs a pharmacist's review before you take it.`,
+          relatedDrugId: drug.id,
+        })
+      );
+    }
+  } else if (patient.renalStatus === "unknown") {
+    // Renal function not confirmed — never treat this the same as "confirmed
+    // normal" (which correctly raises nothing). Only raise this for drugs
+    // that actually have renal dosing considerations on file.
+    const needsRenalReview =
+      drug.renalDoseGuidance === "avoid" ||
+      drug.renalDoseGuidance === "caution" ||
+      (!drug.renalDoseGuidance && /renal|kidney/.test(contraText));
+    if (needsRenalReview) {
+      flags.push(
+        buildFlag({
+          type: "contraindication",
+          code: "RENAL_STATUS_UNKNOWN",
+          severity: "unknown",
+          clinical: `${drug.generic_name} has renal dosing considerations (${drug.renalDoseGuidance ?? "renal caution noted"}) and this patient's renal function is not confirmed — verify renal status before prescribing.`,
+          patient: `${drug.generic_name}'s dose can depend on kidney function, and we don't have yours on file — please confirm with your pharmacist or doctor.`,
           relatedDrugId: drug.id,
         })
       );
@@ -147,20 +190,58 @@ export function checkContraindication(input: ScreeningInput): Flag[] {
         })
       );
     }
+  } else if (patient.hepaticStatus === "unknown") {
+    // Hepatic function not confirmed — never treat this the same as
+    // "confirmed normal" (which correctly raises nothing). Only raise this
+    // for drugs that actually have hepatic dosing considerations on file.
+    const needsHepaticReview =
+      drug.hepaticDoseGuidance === "avoid" ||
+      drug.hepaticDoseGuidance === "caution" ||
+      (!drug.hepaticDoseGuidance && /hepatic|liver/.test(contraText));
+    if (needsHepaticReview) {
+      flags.push(
+        buildFlag({
+          type: "contraindication",
+          code: "HEPATIC_STATUS_UNKNOWN",
+          severity: "unknown",
+          clinical: `${drug.generic_name} has hepatic dosing considerations (${drug.hepaticDoseGuidance ?? "hepatic caution noted"}) and this patient's hepatic function is not confirmed — verify hepatic status before prescribing.`,
+          patient: `${drug.generic_name}'s dose can depend on liver function, and we don't have yours on file — please confirm with your pharmacist or doctor.`,
+          relatedDrugId: drug.id,
+        })
+      );
+    }
   }
 
-  const age = calculateAgeYears(patient.dob);
-  if (age >= GERIATRIC_AGE && GERIATRIC_CAUTION_CLASSES.has(drug.class)) {
-    flags.push(
-      buildFlag({
-        type: "pediatric_geriatric_dosing",
-        code: "GERIATRIC_CAUTION_CLASS",
-        severity: "moderate",
-        clinical: `${drug.generic_name} (${drug.class}) warrants caution in older adults (age ${age}) — consider a lower starting dose and review appropriateness.`,
-        patient: `${drug.generic_name} can affect older adults more strongly — a pharmacist should confirm the dose is right for you.`,
-        relatedDrugId: drug.id,
-      })
-    );
+  if (patient.ageYearsUnknown) {
+    // Age not confirmed — never treat this the same as "confirmed under 65"
+    // (which correctly raises nothing). Only raise this for drug classes
+    // that actually warrant geriatric caution.
+    if (GERIATRIC_CAUTION_CLASSES.has(drug.class)) {
+      flags.push(
+        buildFlag({
+          type: "pediatric_geriatric_dosing",
+          code: "AGE_DATA_UNKNOWN",
+          severity: "unknown",
+          clinical: `${drug.generic_name} (${drug.class}) warrants extra caution in older adults and this patient's age is not on file — confirm age before prescribing.`,
+          patient: `${drug.generic_name} can affect older adults more strongly, and we don't know your age — please confirm with your pharmacist that this is right for you.`,
+          relatedDrugId: drug.id,
+        })
+      );
+    }
+  } else {
+    const age = calculateAgeYears(patient.dob);
+    if (age >= GERIATRIC_AGE && GERIATRIC_CAUTION_CLASSES.has(drug.class)) {
+      flags.push(
+        buildFlag({
+          type: "pediatric_geriatric_dosing",
+          code: "GERIATRIC_CAUTION_CLASS",
+          severity: "moderate",
+          clinical: `${drug.generic_name} (${drug.class}) warrants caution in older adults (age ${age}) — consider a lower starting dose and review appropriateness.`,
+          patient: `${drug.generic_name} can affect older adults more strongly — a pharmacist should confirm the dose is right for you.`,
+          relatedDrugId: drug.id,
+        })
+      );
+    }
   }
 
   return flags;

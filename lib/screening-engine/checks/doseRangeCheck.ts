@@ -83,18 +83,34 @@ export function checkDoseRange(input: ScreeningInput): Flag[] {
   // adult range can't confirm an age-appropriate dose, so surface it rather
   // than silently validating against adult figures.
   if (patient && !range.pediatric) {
-    const ageYears = calculateAgeYears(patient.dob);
-    if (ageYears < PEDIATRIC_AGE_CUTOFF_YEARS) {
+    if (patient.ageYearsUnknown) {
+      // Age not confirmed — can't rule out this being a pediatric case, so
+      // never treat this the same as "confirmed 12+" (which correctly raises
+      // nothing here).
       flags.push(
         buildFlag({
           type: "pediatric_geriatric_dosing",
-          code: "PEDIATRIC_DOSE_REFERENCE_MISSING",
-          severity: "moderate",
-          clinical: `No pediatric dosing reference is on file for ${drug.generic_name}, prescribed for a ${ageYears}-year-old — verify an age/weight-appropriate dose before dispensing rather than relying on the adult range.`,
-          patient: `${drug.generic_name} doesn't have a standard child dose on file — please confirm with your pharmacist that this dose is right for a child.`,
+          code: "AGE_DATA_UNKNOWN",
+          severity: "unknown",
+          clinical: `No pediatric dosing reference is on file for ${drug.generic_name}, and this patient's age is not on file — cannot rule out a pediatric case. Confirm age before dispensing.`,
+          patient: `We don't know your age, and ${drug.generic_name} doesn't have a standard child dose on file — please confirm with your pharmacist that this is safe for you.`,
           relatedDrugId: drug.id,
         })
       );
+    } else {
+      const ageYears = calculateAgeYears(patient.dob);
+      if (ageYears < PEDIATRIC_AGE_CUTOFF_YEARS) {
+        flags.push(
+          buildFlag({
+            type: "pediatric_geriatric_dosing",
+            code: "PEDIATRIC_DOSE_REFERENCE_MISSING",
+            severity: "moderate",
+            clinical: `No pediatric dosing reference is on file for ${drug.generic_name}, prescribed for a ${ageYears}-year-old — verify an age/weight-appropriate dose before dispensing rather than relying on the adult range.`,
+            patient: `${drug.generic_name} doesn't have a standard child dose on file — please confirm with your pharmacist that this dose is right for a child.`,
+            relatedDrugId: drug.id,
+          })
+        );
+      }
     }
   }
 
@@ -107,6 +123,20 @@ export function checkDoseRange(input: ScreeningInput): Flag[] {
           severity: "unknown",
           clinical: `${drug.generic_name} is weight-dosed and patient weight is not on file — dose cannot be fully verified.`,
           patient: `${drug.generic_name}'s dose depends on body weight, and we don't have yours — please confirm this dose with your pharmacist.`,
+          relatedDrugId: drug.id,
+        })
+      );
+    } else if (range.pediatric && patient.ageYearsUnknown) {
+      // Age not confirmed — can't determine whether the pediatric weight-based
+      // ceiling should even apply, so never treat this the same as "confirmed
+      // 12+" (which correctly skips the pediatric ceiling here).
+      flags.push(
+        buildFlag({
+          type: "pediatric_geriatric_dosing",
+          code: "AGE_DATA_UNKNOWN",
+          severity: "unknown",
+          clinical: `${drug.generic_name} has a weight-based pediatric dosing ceiling and this patient's age is not on file — cannot confirm whether that ceiling applies. Confirm age before dispensing.`,
+          patient: `We don't know your age, so we can't confirm whether the child-size dosing limit for ${drug.generic_name} applies to you — please confirm with your pharmacist.`,
           relatedDrugId: drug.id,
         })
       );

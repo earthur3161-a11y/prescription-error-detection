@@ -31,6 +31,13 @@ function makePatient(overrides: Partial<Patient> = {}): Patient {
     hepaticStatus: "normal",
     allergies: [],
     activeMedications: [],
+    // Explicitly confirmed-negative, matching every other field above — a
+    // "clean baseline" patient must be fully known-clean, not silently
+    // undefined-and-therefore-unknown. Before the unknown-pregnancy fix this
+    // gap was invisible (undefined behaved identically to false); now it
+    // would otherwise leak a PREGNANCY_STATUS_UNKNOWN flag into every test
+    // that doesn't care about pregnancy.
+    isPregnant: false,
     ...overrides,
   };
 }
@@ -424,5 +431,105 @@ describe("screenDrugLine", () => {
     const patient = makePatient({ reportedConditions: [] });
     const result = screen({ patient, drugLine: makeLine({ drugId: "drug_amoxicillin", doseMg: 500 }) });
     expect(result.flags.some((f) => f.type === "indication_mismatch")).toBe(false);
+  });
+
+  // ---------------------------------------------------------------------
+  // "Unknown" must never resolve the same way as "confirmed normal/negative"
+  // — this exact invariant was missing for renalStatus/hepaticStatus,
+  // isPregnant, and age before this fix, which is how all three shipped
+  // unnoticed. Each test below directly compares the confirmed-negative case
+  // against the unknown case on the same drug, so a regression that makes
+  // them collapse back to identical behaviour fails loudly.
+  // ---------------------------------------------------------------------
+
+  it("flags unknown renal status differently from confirmed-normal on a renally-avoided drug", () => {
+    const line = makeLine({ drugId: "drug_metformin", doseMg: 500, frequencyPerDay: 2 });
+
+    const normal = screen({ patient: makePatient({ renalStatus: "normal" }), drugLine: line });
+    expect(normal.flags.some((f) => f.code === "RENAL_STATUS_UNKNOWN")).toBe(false);
+    expect(normal.verdict).toBe("safe");
+
+    const unknown = screen({ patient: makePatient({ renalStatus: "unknown" }), drugLine: line });
+    expect(unknown.flags.some((f) => f.code === "RENAL_STATUS_UNKNOWN")).toBe(true);
+    expect(unknown.verdict).not.toBe("safe");
+    // Distinct from the confirmed-impaired outcome too (RENAL_AVOID blocks) —
+    // "unknown" floors at caution, it doesn't assume the worst case either.
+    expect(unknown.verdict).not.toBe("blocked");
+  });
+
+  it("flags unknown hepatic status differently from confirmed-normal on a hepatically-adjusted drug", () => {
+    const line = makeLine({ drugId: "drug_metronidazole", doseMg: 400, frequencyPerDay: 3 });
+
+    const normal = screen({ patient: makePatient({ hepaticStatus: "normal" }), drugLine: line });
+    expect(normal.flags.some((f) => f.code === "HEPATIC_STATUS_UNKNOWN")).toBe(false);
+
+    const unknown = screen({ patient: makePatient({ hepaticStatus: "unknown" }), drugLine: line });
+    expect(unknown.flags.some((f) => f.code === "HEPATIC_STATUS_UNKNOWN")).toBe(true);
+    expect(unknown.verdict).not.toBe("safe");
+  });
+
+  it("flags unknown pregnancy status differently from confirmed-not-pregnant on a category X drug", () => {
+    const line = makeLine({ drugId: "drug_warfarin", doseMg: 5, frequencyPerDay: 1 });
+
+    const confirmedNegative = screen({ patient: makePatient({ isPregnant: false }), drugLine: line });
+    expect(confirmedNegative.flags.some((f) => f.code === "PREGNANCY_STATUS_UNKNOWN")).toBe(false);
+    expect(confirmedNegative.verdict).toBe("safe");
+
+    const unknown = screen({ patient: makePatient({ isPregnant: null }), drugLine: line });
+    expect(unknown.flags.some((f) => f.code === "PREGNANCY_STATUS_UNKNOWN")).toBe(true);
+    expect(unknown.verdict).not.toBe("safe");
+    // Distinct from the confirmed-pregnant outcome too (PREGNANCY_CATEGORY_X
+    // blocks) — "unknown" floors at caution, it doesn't assume pregnant.
+    expect(unknown.verdict).not.toBe("blocked");
+  });
+
+  it("does not flag pregnancy status unknown for a male patient", () => {
+    const patient = makePatient({ isPregnant: null, sex: "male" });
+    const result = screen({
+      patient,
+      drugLine: makeLine({ drugId: "drug_warfarin", doseMg: 5, frequencyPerDay: 1 }),
+    });
+    expect(result.flags.some((f) => f.code === "PREGNANCY_STATUS_UNKNOWN")).toBe(false);
+  });
+
+  it("flags unknown age differently from a confirmed adult on a geriatric-caution drug class", () => {
+    const line = makeLine({ drugId: "drug_diazepam", doseMg: 5, frequencyPerDay: 2 });
+
+    const knownAdult = screen({ patient: makePatient(), drugLine: line });
+    expect(knownAdult.flags.some((f) => f.code === "AGE_DATA_UNKNOWN")).toBe(false);
+
+    const ageUnknown = screen({ patient: makePatient({ ageYearsUnknown: true }), drugLine: line });
+    expect(ageUnknown.flags.some((f) => f.code === "AGE_DATA_UNKNOWN")).toBe(true);
+    expect(ageUnknown.verdict).not.toBe("safe");
+  });
+
+  it("flags unknown age differently from a confirmed adult when a drug has no pediatric dosing reference", () => {
+    const line = makeLine({ drugId: "drug_metformin", doseMg: 500, frequencyPerDay: 1 });
+
+    const knownAdult = screen({ patient: makePatient(), drugLine: line });
+    expect(knownAdult.flags.some((f) => f.code === "AGE_DATA_UNKNOWN")).toBe(false);
+
+    const ageUnknown = screen({ patient: makePatient({ ageYearsUnknown: true }), drugLine: line });
+    expect(ageUnknown.flags.some((f) => f.code === "AGE_DATA_UNKNOWN")).toBe(true);
+  });
+
+  it("data completeness banner distinguishes renal/hepatic/pregnancy/age unknown from confirmed-normal patients", () => {
+    const clean = screen({ patient: makePatient(), drugLine: makeLine() });
+    expect(clean.flags.some((f) => f.severity === "unknown")).toBe(false);
+
+    const allUnknown = screen({
+      patient: makePatient({ renalStatus: "unknown", hepaticStatus: "unknown", isPregnant: null, ageYearsUnknown: true }),
+      drugLine: makeLine(),
+    });
+    const unknownCodes = allUnknown.flags.filter((f) => f.severity === "unknown").map((f) => f.code);
+    expect(unknownCodes).toEqual(
+      expect.arrayContaining([
+        "RENAL_STATUS_UNKNOWN",
+        "HEPATIC_STATUS_UNKNOWN",
+        "PREGNANCY_STATUS_UNKNOWN",
+        "AGE_DATA_UNKNOWN",
+      ])
+    );
+    expect(allUnknown.verdict).not.toBe("safe");
   });
 });

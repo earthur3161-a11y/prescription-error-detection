@@ -8,7 +8,14 @@ import type { Patient, PatientCheckProfile } from "../types";
  */
 export function buildSyntheticPatient(profile: PatientCheckProfile): Patient {
   const currentYear = new Date().getFullYear();
-  const birthYear = profile.ageYears !== null ? currentYear - profile.ageYears : currentYear - 30;
+  // Age left blank: ageYearsUnknown tells every age-dependent check to flag
+  // age as unknown rather than trust a derived dob. The placeholder dob below
+  // is never meant to be interpreted as real when that flag is set — it only
+  // exists because `dob` itself isn't nullable (every real, persisted patient
+  // record always has a confirmed one; only this synthetic self-check patient
+  // can lack one, so the "unknown" state is carried by the flag, not by dob).
+  const ageYearsUnknown = profile.ageYears === null;
+  const birthYear = ageYearsUnknown ? currentYear - 30 : currentYear - profile.ageYears!;
 
   return {
     id: "patient_check_synthetic",
@@ -22,5 +29,6 @@ export function buildSyntheticPatient(profile: PatientCheckProfile): Patient {
     activeMedications: profile.activeMedications,
     isPregnant: profile.isPregnant,
     reportedConditions: profile.reportedConditions,
+    ageYearsUnknown,
   };
 }

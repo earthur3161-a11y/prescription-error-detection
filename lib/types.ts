@@ -118,6 +118,14 @@ export interface Patient {
   activeMedications: ActiveMedication[] | null;
   // null = not on file / not applicable; true/false = confirmed. Drives the pregnancy contraindication check.
   isPregnant?: boolean | null;
+  /**
+   * True only for the Patient Self-Check synthetic patient when the age field
+   * was left blank — every real patient record has a confirmed `dob` from the
+   * required date input on patient creation and never sets this. When true,
+   * age-dependent checks (pediatric/geriatric) must flag age as unknown
+   * rather than deriving a (necessarily wrong) age from `dob`.
+   */
+  ageYearsUnknown?: boolean;
   /** Patient-reported reason(s) for this prescription, from the curated PATIENT_CONDITIONS list. Drives the indication-mismatch check; empty = not reported, never treated as "no condition." */
   reportedConditions?: string[];
   /** The account this patient record belongs to (RLS-enforced ownership) — undefined only on not-yet-persisted seed/template objects, never on a real DB row. */
