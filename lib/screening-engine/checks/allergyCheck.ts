@@ -34,6 +34,18 @@ export function checkAllergy(input: ScreeningInput): Flag[] {
     const rule = formulary.allergyRules.find(
       (r) => r.allergen.toLowerCase() === allergy.allergen.toLowerCase()
     );
+    // KNOWN GAP, TRACKED FOLLOW-UP (not fixed here): a patient-reported
+    // allergen with no matching AllergyRule (i.e. not one of the curated
+    // categories in allergyRules.ts — Penicillin, NSAIDs/Aspirin, Sulfa
+    // drugs, Fluoroquinolones, Cephalosporins, Macrolides) is silently
+    // unscreened, with no "allergen not recognized, verify manually"
+    // fallback flag. This is a *different* category from the unknown-data
+    // gaps fixed elsewhere in this engine (renalStatus/hepaticStatus/
+    // isPregnant/age): those were confirmed patient data with no rule to
+    // interpret it; this is missing/sparse *reference* data (the allergen
+    // itself was reported, we just have no rule authored for it) — same
+    // root cause as an unrecognized drugId, not the null-vs-normal pattern.
+    // Worth a "manual verification recommended" fallback flag eventually.
     if (!rule) continue;
 
     if (rule.related_drug_classes.includes(drug.class)) {

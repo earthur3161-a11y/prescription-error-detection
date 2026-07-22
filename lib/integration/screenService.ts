@@ -105,10 +105,17 @@ function toPatient(input: PatientInput): Patient | null {
           drugId: m.drugId,
           startedAt: m.startedAt ?? new Date().toISOString(),
         }));
+  // dob has no nullable representation of its own (every real Patient always
+  // has one) — an omitted dob is flagged via ageYearsUnknown instead, same
+  // mechanism as the Patient Self-Check flow. The placeholder date below is
+  // never meant to be interpreted as real when that flag is set; every
+  // age-dependent check looks at ageYearsUnknown before ever reading dob.
+  const ageYearsUnknown = input.dob == null;
   return {
     id: "api_patient",
     name: "API Patient",
     dob: input.dob ?? "1970-01-01",
+    ageYearsUnknown,
     sex: input.sex ?? "other",
     weightKg: input.weightKg ?? null,
     renalStatus: input.renalStatus ?? "unknown",

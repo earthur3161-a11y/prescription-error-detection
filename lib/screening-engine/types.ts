@@ -19,7 +19,14 @@ export type FlagType =
   | "missing_information"
   | "data_incomplete"
   | "eml_compliance"
-  | "indication_mismatch";
+  | "indication_mismatch"
+  /**
+   * The drugId on this line isn't in the formulary at all — none of the
+   * other 9 checks can meaningfully run (most require looking the drug up),
+   * so this must fail loudly with its own explicit flag rather than let each
+   * check silently no-op and let the line resolve as if nothing were wrong.
+   */
+  | "unrecognized_drug";
 
 /**
  * The same underlying rule produces both a clinical and a plain-language

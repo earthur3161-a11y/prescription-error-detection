@@ -532,4 +532,52 @@ describe("screenDrugLine", () => {
     );
     expect(allUnknown.verdict).not.toBe("safe");
   });
+
+  // ---------------------------------------------------------------------
+  // Unrecognized drugId: 6+ of the 10 checks independently bail with []
+  // when a drug isn't found, which stacked together meant an unrecognized
+  // drug produced zero signal anywhere and resolved "safe" — the same
+  // failure shape as the unknown-patient-attribute gaps above, just for
+  // drug identity. Must fail loudly with one explicit flag instead.
+  // ---------------------------------------------------------------------
+
+  it("flags an unrecognized drugId instead of silently resolving safe", () => {
+    const result = screen({
+      patient: makePatient(),
+      drugLine: makeLine({ drugId: "drug_totally_made_up_xyz" }),
+    });
+    expect(result.flags.some((f) => f.code === "UNRECOGNIZED_DRUG" && f.type === "unrecognized_drug")).toBe(
+      true
+    );
+    expect(result.verdict).toBe("blocked");
+  });
+
+  it("a recognized drug never raises UNRECOGNIZED_DRUG", () => {
+    const result = screen({ patient: makePatient(), drugLine: makeLine({ drugId: "drug_paracetamol" }) });
+    expect(result.flags.some((f) => f.code === "UNRECOGNIZED_DRUG")).toBe(false);
+  });
+
+  it("still raises patient-level data-completeness flags for an unrecognized drug rather than suppressing them", () => {
+    const result = screen({
+      patient: makePatient({ allergies: null }),
+      drugLine: makeLine({ drugId: "drug_totally_made_up_xyz" }),
+    });
+    expect(result.flags.some((f) => f.code === "UNRECOGNIZED_DRUG")).toBe(true);
+    expect(result.flags.some((f) => f.code === "ALLERGY_DATA_UNKNOWN")).toBe(true);
+  });
+
+  it("does not run the other 9 checks for an unrecognized drug (no drug-specific flags beyond UNRECOGNIZED_DRUG)", () => {
+    // A patient whose profile would trigger several other flags on a real
+    // drug (missing weight, unknown renal status) should still only get the
+    // one unrecognized-drug flag plus the patient-level banner — not a
+    // confusing mix of "we don't know the drug" and "here's a dosing issue
+    // for a drug we just said we don't recognize."
+    const result = screen({
+      patient: makePatient({ weightKg: null, renalStatus: "unknown" }),
+      drugLine: makeLine({ drugId: "drug_totally_made_up_xyz", doseMg: 999999 }),
+    });
+    const nonBannerFlags = result.flags.filter((f) => f.type !== "data_incomplete");
+    expect(nonBannerFlags).toHaveLength(1);
+    expect(nonBannerFlags[0].code).toBe("UNRECOGNIZED_DRUG");
+  });
 });

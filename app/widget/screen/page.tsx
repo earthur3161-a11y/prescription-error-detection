@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { VerdictBadge } from "@/components/ui/VerdictBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
-import { screenDrugLine, type DrugLineVerdict } from "@/lib/screening-engine";
+import { screenDrugLine, type Flag, type Verdict } from "@/lib/screening-engine";
 import { generateId } from "@/lib/utils/id";
 import type { Patient, PrescriptionDrugLine } from "@/lib/types";
 
@@ -27,6 +27,13 @@ const DEMO_MESSAGE: HostMessage = {
   drug: { drugId: "drug_amoxicillin", doseMg: 500, frequencyPerDay: 3, durationDays: 7, route: "oral" },
 };
 
+type WidgetState =
+  | { status: "waiting" }
+  | { status: "missing-key" }
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "result"; drugName: string; verdict: Verdict; flags: Flag[] };
+
 export default function WidgetScreenPage() {
   return (
     <Suspense fallback={null}>
@@ -38,12 +45,19 @@ export default function WidgetScreenPage() {
 function WidgetInner() {
   const searchParams = useSearchParams();
   const isDemo = searchParams.get("demo") === "1";
-  const { data: formulary, isLoading } = useFormulary();
-  const [result, setResult] = useState<DrugLineVerdict | null>(null);
-  const [drugName, setDrugName] = useState<string | null>(null);
+  const apiKey = searchParams.get("apiKey");
+  // Demo mode is a deliberately unauthenticated, zero-config preview (no real
+  // institution data, canned example) — it keeps using the engine locally.
+  // Every other embed is a real integration and must go through the
+  // authenticated /api/v1/screen endpoint, the same one server-to-server
+  // callers use, so it gets the same key check and formulary validation.
+  const { data: formulary, isLoading: formularyLoading } = useFormulary();
+  const [state, setState] = useState<WidgetState>(
+    isDemo ? { status: "waiting" } : apiKey ? { status: "waiting" } : { status: "missing-key" }
+  );
 
   useEffect(() => {
-    function runScreen(msg: HostMessage, bundle: NonNullable<typeof formulary>) {
+    function runDemoScreen(msg: HostMessage, bundle: NonNullable<typeof formulary>) {
       const drugLine: PrescriptionDrugLine = {
         id: generateId("line"),
         drugId: msg.drug.drugId,
@@ -55,7 +69,7 @@ function WidgetInner() {
         durationDays: msg.drug.durationDays,
       };
       const patient: Patient = {
-        id: "widget_patient",
+        id: "widget_demo_patient",
         name: "Patient",
         dob: msg.patient.dob ?? "1990-01-01",
         sex: "other",
@@ -65,23 +79,71 @@ function WidgetInner() {
         allergies: msg.patient.allergies ?? null,
         activeMedications: msg.patient.activeMedications ?? null,
       };
-      const verdict = screenDrugLine({ patient, drugLine, otherLines: [drugLine], formulary: bundle });
-      setResult(verdict);
-      setDrugName(bundle.drugs.find((d) => d.id === msg.drug.drugId)?.generic_name ?? msg.drug.drugId);
-      window.parent.postMessage({ type: "mediguard:verdict", verdict }, "*");
+      const result = screenDrugLine({ patient, drugLine, otherLines: [drugLine], formulary: bundle });
+      const drugName = bundle.drugs.find((d) => d.id === msg.drug.drugId)?.generic_name ?? msg.drug.drugId;
+      setState({ status: "result", drugName, verdict: result.verdict, flags: result.flags });
+      window.parent.postMessage({ type: "mediguard:verdict", verdict: result }, "*");
+    }
+
+    async function runAuthenticatedScreen(msg: HostMessage) {
+      if (!apiKey) {
+        setState({ status: "missing-key" });
+        return;
+      }
+      setState({ status: "loading" });
+      let body: Record<string, unknown>;
+      try {
+        const res = await fetch("/api/v1/screen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({ patient: msg.patient, drug: msg.drug, otherDrugs: [] }),
+        });
+        body = await res.json();
+        if (!res.ok) {
+          const message =
+            typeof body.message === "string"
+              ? body.message
+              : "This screening request could not be completed.";
+          setState({ status: "error", message });
+          window.parent.postMessage({ type: "mediguard:error", error: body.error ?? "unknown_error" }, "*");
+          return;
+        }
+      } catch {
+        setState({ status: "error", message: "Couldn't reach the screening service — check your connection and try again." });
+        return;
+      }
+      // /api/v1/screen's response is flat — verdict is the Verdict string,
+      // flags is a sibling field, not nested under verdict (unlike the local
+      // engine's DrugLineVerdict shape the demo path below uses). Normalize
+      // to the same shape posted to the host either way, so an embedding
+      // page sees one consistent event contract regardless of demo mode.
+      const verdict = body.verdict as Verdict;
+      const flags = body.flags as Flag[];
+      setState({ status: "result", drugName: String(body.drug), verdict, flags });
+      window.parent.postMessage(
+        {
+          type: "mediguard:verdict",
+          verdict: { drugId: body.drugId, verdict, flags, screenedAt: body.screenedAt },
+        },
+        "*"
+      );
     }
 
     function handleMessage(event: MessageEvent) {
-      if (!formulary) return;
       const data = event.data as HostMessage;
-      if (data?.type === "mediguard:screen") runScreen(data, formulary);
+      if (data?.type !== "mediguard:screen") return;
+      if (isDemo) {
+        if (formulary) runDemoScreen(data, formulary);
+        return;
+      }
+      void runAuthenticatedScreen(data);
     }
 
     window.addEventListener("message", handleMessage);
-    if (isDemo && formulary) runScreen(DEMO_MESSAGE, formulary);
+    if (isDemo && formulary) runDemoScreen(DEMO_MESSAGE, formulary);
 
     return () => window.removeEventListener("message", handleMessage);
-  }, [formulary, isDemo]);
+  }, [apiKey, isDemo, formulary]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-transparent p-4">
@@ -90,17 +152,37 @@ function WidgetInner() {
           <ShieldCheck className="size-4 text-brand" aria-hidden="true" />
           MediGuard screening
         </div>
-        {isLoading && <Skeleton className="h-16 w-full" />}
-        {!isLoading && !result && (
+
+        {state.status === "missing-key" && (
+          <p className="flex items-start gap-2 text-sm text-blocked-fg">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            This widget needs a valid API key — add <code>?apiKey=mg_live_…</code> (or{" "}
+            <code>mg_sandbox_…</code>) to the embed URL.
+          </p>
+        )}
+
+        {state.status === "waiting" && isDemo && formularyLoading && <Skeleton className="h-16 w-full" />}
+
+        {state.status === "waiting" && !isDemo && (
           <p className="text-sm text-subtle">Waiting for prescription data from host system…</p>
         )}
-        {result && (
+
+        {state.status === "loading" && <Skeleton className="h-16 w-full" />}
+
+        {state.status === "error" && (
+          <p className="flex items-start gap-2 text-sm text-blocked-fg">
+            <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            {state.message}
+          </p>
+        )}
+
+        {state.status === "result" && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">{drugName}</p>
-            <VerdictBadge verdict={result.verdict} />
-            {result.flags.length > 0 && (
+            <p className="text-sm font-medium text-foreground">{state.drugName}</p>
+            <VerdictBadge verdict={state.verdict} />
+            {state.flags.length > 0 && (
               <ul className="space-y-1 pt-1">
-                {result.flags.slice(0, 2).map((f, i) => (
+                {state.flags.slice(0, 2).map((f, i) => (
                   <li key={i} className="text-xs text-secondary">
                     {f.audience_variant.clinical}
                   </li>

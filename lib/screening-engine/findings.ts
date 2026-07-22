@@ -17,6 +17,7 @@ export const FLAG_TYPE_LABEL: Record<FlagType, string> = {
   data_incomplete: "Incomplete patient data",
   eml_compliance: "Formulary (EML)",
   indication_mismatch: "Possible indication mismatch",
+  unrecognized_drug: "Unrecognized drug",
 };
 
 /** Coarser category for the one-line summary ("2 dosing issues, 1 interaction, 1 missing field"). */
@@ -36,6 +37,7 @@ const CATEGORY: Record<FlagType, string> = {
   data_incomplete: "missing field",
   eml_compliance: "formulary",
   indication_mismatch: "indication note",
+  unrecognized_drug: "unrecognized drug",
 };
 
 const CATEGORY_PLURAL: Record<string, string> = {
@@ -47,6 +49,7 @@ const CATEGORY_PLURAL: Record<string, string> = {
   "missing field": "missing fields",
   formulary: "formulary notes",
   "indication note": "indication notes",
+  "unrecognized drug": "unrecognized drugs",
 };
 
 export const SEVERITY_RANK: Record<Severity, number> = {
