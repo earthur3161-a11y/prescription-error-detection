@@ -2,23 +2,36 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { UserRound } from "lucide-react";
+import { UserPlus, UserRound } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePatients } from "@/lib/query/hooks/usePatients";
+import { useAuth } from "@/lib/auth/useAuth";
 import { calculateAgeYears } from "@/lib/utils/date";
 
 export default function PatientsPage() {
+  const { role } = useAuth();
   const [query, setQuery] = useState("");
   const { data: patients, isLoading } = usePatients(query);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Patients</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Search for a patient to view their profile.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Patients</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Search for a patient to view their profile.</p>
+        </div>
+        {role === "prescriber" && (
+          <Link href="/patients/new">
+            <Button size="sm">
+              <UserPlus className="size-4" aria-hidden="true" />
+              Add patient
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Input

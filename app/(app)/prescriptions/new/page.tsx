@@ -26,6 +26,7 @@ function NewPrescriptionWorkspace() {
       subtitle="Add drugs below — each line is screened instantly against allergies, interactions, duplicate therapy, and dosing guidelines."
       prescriberId={user.id}
       source="physician"
+      allowPatientCreate
       initialPatientId={searchParams.get("patientId")}
       onSubmitted={(id) => router.push(`/prescriptions/${id}`)}
     />
