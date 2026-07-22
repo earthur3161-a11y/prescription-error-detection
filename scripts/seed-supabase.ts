@@ -41,6 +41,11 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 const DEMO_PASSWORD = "MediGuard!24";
 
+// Everything below is real, permanent seed data — not throwaway test/
+// verification data. Writing a one-off test account instead? Prefix it
+// per the ZZTEST_ convention (see AGENTS.md) so a later cleanup pass is a
+// single filtered query instead of manual recognition.
+
 interface DemoAccount {
   email: string;
   role: ProfileRole;
@@ -157,6 +162,9 @@ function screenLine(
   return screenDrugLine({ patient, drugLine: line, otherLines, formulary });
 }
 
+// Same rule as above: real seed data only. Test patients/prescriptions/
+// checks created during verification belong under the ZZTEST_ convention
+// (AGENTS.md), not appended here.
 async function seedClinicalData(): Promise<void> {
   console.log("\nSeeding clinical demo data...");
 

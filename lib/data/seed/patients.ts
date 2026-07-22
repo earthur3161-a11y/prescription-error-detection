@@ -1,5 +1,8 @@
 import type { Patient } from "../../types";
 
+// Real, permanent seed patients — not test/verification data. A one-off
+// test patient belongs under the ZZTEST_ naming convention (AGENTS.md)
+// instead, so it can be found and removed with one filtered query later.
 export const seedPatients: Patient[] = [
   {
     id: "patient_abena_sarpong",
