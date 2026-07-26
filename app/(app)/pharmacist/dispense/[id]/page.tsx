@@ -14,7 +14,6 @@ import { CounselingSheet } from "@/components/pharmacy/CounselingSheet";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
-import { useUpdatePrescriptionStatus } from "@/lib/query/hooks/useUpdatePrescriptionStatus";
 import { useBatches, useCreateDispenseRecord, usePharmacySettings, useAppendPharmacistAction } from "@/lib/query/hooks/usePharmacy";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useToastStore } from "@/lib/store/toast-store";
@@ -47,7 +46,6 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
   const { data: settings } = usePharmacySettings();
 
   const createDispense = useCreateDispenseRecord();
-  const updateStatus = useUpdatePrescriptionStatus();
   const appendAction = useAppendPharmacistAction();
 
   const [lineState, setLineState] = useState<Record<string, LineState>>({});
@@ -186,7 +184,10 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
       }
     }
     await appendAction.mutateAsync({ prescriptionId: id, pharmacistId: user.id, action: "dispense" });
-    await updateStatus.mutateAsync({ id, status: "dispensed" });
+    // No separate status update here — dispense_drug() now flips
+    // prescriptions.status to "dispensed" itself, atomically, as of
+    // 0015_close_raw_dispense_status_bypass.sql. A pharmacist's own RLS-gated
+    // session can no longer set that status via a raw update at all.
     setDispensedItems(items);
     setVerificationItems(verifications);
     setFinalized(true);
@@ -386,7 +387,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
         <p className="text-sm text-muted-foreground">
           {canDispense ? "Ready to dispense." : "Resolve the highlighted items to continue."}
         </p>
-        <Button size="lg" onClick={handleFinalize} disabled={!canDispense || createDispense.isPending || updateStatus.isPending}>
+        <Button size="lg" onClick={handleFinalize} disabled={!canDispense || createDispense.isPending}>
           Dispense &amp; finalize
         </Button>
       </div>

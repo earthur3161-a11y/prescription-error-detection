@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Flag, PackageCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +30,7 @@ export default function PrescriptionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { role } = useAuth();
   const { data: prescription, isLoading } = usePrescription(id);
   const { data: patient } = usePatient(prescription?.patientId ?? null);
@@ -139,12 +141,14 @@ export default function PrescriptionDetailPage({
 
       {canPharmacistAct && (
         <div className="flex flex-wrap gap-3 border-t border-border pt-4">
-          <Button
-            onClick={() => updateStatus.mutate({ id: prescription.id, status: "dispensed" })}
-            disabled={updateStatus.isPending}
-          >
+          {/* Navigates into the real gated flow (review -> approve -> dispense)
+              rather than setting status directly — this page is a read-only
+              detail view, not a substitute for the screening-verified dispense
+              gate at /pharmacist/dispense/[id]. See
+              0015_close_raw_dispense_status_bypass.sql. */}
+          <Button onClick={() => router.push(`/pharmacist/review/${prescription.id}`)}>
             <PackageCheck className="size-5" aria-hidden="true" />
-            Verify & Dispense
+            Review & Dispense
           </Button>
           <Button variant="secondary" onClick={() => setFlagModalOpen(true)}>
             <Flag className="size-5" aria-hidden="true" />
