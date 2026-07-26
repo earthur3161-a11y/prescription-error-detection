@@ -124,6 +124,28 @@ describe("screenDrugLine", () => {
     expect(result.verdict).not.toBe("safe");
   });
 
+  it("attributes unknown active-medication data to duplicate-therapy screening specifically, not just interaction/data-completeness", () => {
+    // dataCompletenessCheck and interactionCheck both independently raise
+    // MEDICATION_DATA_UNKNOWN for this same null case (defense in depth) —
+    // duplicateTherapyCheck reads the identical field for a different
+    // clinical question (duplicate class, not interactions) and must raise
+    // its own copy too, rather than silently skipping duplicate-class
+    // detection and letting the other two checks' flags stand in for it.
+    const patient = makePatient({ activeMedications: null });
+    const result = screen({ patient, drugLine: makeLine() });
+    expect(
+      result.flags.some((f) => f.code === "MEDICATION_DATA_UNKNOWN" && f.type === "duplicate_therapy")
+    ).toBe(true);
+    // The other two independent copies still fire too — this isn't a
+    // replacement for them, just the missing third one.
+    expect(
+      result.flags.some((f) => f.code === "MEDICATION_DATA_UNKNOWN" && f.type === "data_incomplete")
+    ).toBe(true);
+    expect(
+      result.flags.some((f) => f.code === "MEDICATION_DATA_UNKNOWN" && f.type === "interaction")
+    ).toBe(true);
+  });
+
   it("never resolves to safe when no patient is selected", () => {
     const result = screen({ patient: null, drugLine: makeLine() });
     expect(result.verdict).not.toBe("safe");
