@@ -31,6 +31,9 @@ export function useCreateAccessRequest() {
       queryClient.invalidateQueries({ queryKey: ["accessRequests"] });
       showToast({ title: "Request submitted", description: "We'll review it and be in touch.", variant: "success" });
     },
+    onError: (error: Error) => {
+      showToast({ title: "Couldn't submit request", description: error.message, variant: "error" });
+    },
   });
 }
 
@@ -38,7 +41,8 @@ export function useApproveAccessRequest() {
   const queryClient = useQueryClient();
   const showToast = useToastStore((s) => s.show);
   return useMutation({
-    mutationFn: approveAccessRequest,
+    mutationFn: ({ id, confirmedInstitutionName }: { id: string; confirmedInstitutionName?: string }) =>
+      approveAccessRequest(id, confirmedInstitutionName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accessRequests"] });
       showToast({ title: "Approved", description: "An invite email has been sent.", variant: "success" });

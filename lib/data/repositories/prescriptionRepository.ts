@@ -17,6 +17,7 @@ function mapRow(row: PrescriptionRow): Prescription {
     source: row.source,
     externalPrescriberName: row.external_prescriber_name ?? undefined,
     patientCheckId: row.patient_check_id ?? undefined,
+    institutionId: row.institution_id,
   };
 }
 
@@ -44,7 +45,12 @@ export async function getPrescriptionById(id: string): Promise<Prescription | nu
   return data ? mapRow(data) : null;
 }
 
-/** Upsert rather than a pure insert so a retried submit (e.g. after a dropped response) is safe to replay. */
+/**
+ * Upsert rather than a pure insert so a retried submit (e.g. after a dropped
+ * response) is safe to replay. institutionId must be the prescriber's own
+ * JWT claim (null for an independent practitioner) — prescriptions_insert_own's
+ * WITH CHECK (0012_institution_boundary.sql) rejects any other value.
+ */
 export async function createPrescription(prescription: Prescription): Promise<Prescription> {
   const { data, error } = await supabase
     .from("prescriptions")
@@ -61,6 +67,7 @@ export async function createPrescription(prescription: Prescription): Promise<Pr
       source: prescription.source,
       external_prescriber_name: prescription.externalPrescriberName ?? null,
       patient_check_id: prescription.patientCheckId ?? null,
+      institution_id: prescription.institutionId ?? null,
     })
     .select()
     .single();

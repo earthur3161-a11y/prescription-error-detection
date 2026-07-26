@@ -27,6 +27,8 @@ interface PrescriptionBuilderProps {
   title: string;
   subtitle: string;
   prescriberId: string;
+  /** null = independent practitioner. Stamped onto the created prescription and patient (when created inline) so RLS scopes them correctly — see 0012_institution_boundary.sql. */
+  institutionId: string | null;
   source: PrescriptionSource;
   externalPrescriberName?: string;
   patientCheckId?: string;
@@ -47,6 +49,7 @@ export function PrescriptionBuilder({
   title,
   subtitle,
   prescriberId,
+  institutionId,
   source,
   externalPrescriberName,
   patientCheckId,
@@ -165,6 +168,7 @@ export function PrescriptionBuilder({
       status: "submitted",
       createdAt: new Date().toISOString(),
       source,
+      institutionId,
       ...(externalPrescriberName ? { externalPrescriberName } : {}),
       ...(patientCheckId ? { patientCheckId } : {}),
     };

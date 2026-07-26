@@ -53,5 +53,6 @@ export async function authenticate(
     role,
     name: profile.name,
     title: profile.title,
+    institutionId: (data.session.user.app_metadata?.institution_id as string | undefined) ?? null,
   };
 }

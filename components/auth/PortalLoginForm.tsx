@@ -66,6 +66,7 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
         role: account.role,
         title: account.title,
         email: account.email,
+        institutionId: account.institutionId,
       });
       router.replace(ROLE_HOME_ROUTE[account.role]);
     } finally {

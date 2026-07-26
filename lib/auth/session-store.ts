@@ -9,6 +9,8 @@ export interface SessionUser {
   role: AccountRole;
   title: string;
   email: string;
+  /** null = independent practitioner (no institution). Sourced straight from the JWT app_metadata claim, never client-editable. */
+  institutionId: string | null;
 }
 
 interface SessionState {

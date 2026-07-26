@@ -29,6 +29,7 @@ async function resolveSessionUser(authUser: User | null): Promise<SessionUser | 
     role,
     name: profile.name,
     title: profile.title,
+    institutionId: (authUser.app_metadata?.institution_id as string | undefined) ?? null,
   };
 }
 

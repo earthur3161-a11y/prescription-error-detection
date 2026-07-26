@@ -7,8 +7,11 @@ import type { Patient } from "../../types";
 export function useCreatePatient() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { patient: Omit<Patient, "id" | "ownerId">; ownerId: string }) =>
-      createPatient(vars.patient, vars.ownerId),
+    mutationFn: (vars: {
+      patient: Omit<Patient, "id" | "ownerId" | "institutionId">;
+      ownerId: string;
+      institutionId: string | null;
+    }) => createPatient(vars.patient, vars.ownerId, vars.institutionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
     },

@@ -5,6 +5,7 @@ import { Mail } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Textarea } from "@/components/ui/Textarea";
@@ -28,6 +29,8 @@ function SuperAdminDashboard() {
   const reject = useRejectAccessRequest();
   const [rejectTarget, setRejectTarget] = useState<AccessRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [approveTarget, setApproveTarget] = useState<AccessRequest | null>(null);
+  const [approveInstitutionName, setApproveInstitutionName] = useState("");
 
   const pending = useMemo(() => (requests ?? []).filter((r) => r.status === "pending"), [requests]);
   const reviewed = useMemo(() => (requests ?? []).filter((r) => r.status !== "pending"), [requests]);
@@ -58,7 +61,13 @@ function SuperAdminDashboard() {
                     <p className="text-xs text-subtle">Requested {formatDateTime(req.createdAt)}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => approve.mutate(req.id)} disabled={approve.isPending}>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setApproveTarget(req);
+                        setApproveInstitutionName(req.institution);
+                      }}
+                    >
                       Approve
                     </Button>
                     <Button
@@ -141,6 +150,50 @@ function SuperAdminDashboard() {
           rows={3}
           placeholder="Reason shown to the applicant…"
         />
+      </Modal>
+
+      <Modal
+        open={!!approveTarget}
+        onOpenChange={(open) => !open && setApproveTarget(null)}
+        title="Approve access request"
+        description={
+          approveTarget
+            ? `${approveTarget.fullName} will be provisioned as ${ROLE_LABEL[approveTarget.requestedRole]} at the institution below.`
+            : ""
+        }
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setApproveTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={approveInstitutionName.trim().length === 0 || approve.isPending}
+              onClick={() => {
+                if (!approveTarget) return;
+                approve.mutate(
+                  { id: approveTarget.id, confirmedInstitutionName: approveInstitutionName.trim() },
+                  { onSuccess: () => setApproveTarget(null) }
+                );
+              }}
+            >
+              Confirm & approve
+            </Button>
+          </>
+        }
+      >
+        <label htmlFor="approve-institution-name" className="mb-1.5 block text-sm font-medium text-secondary">
+          Institution name
+        </label>
+        <Input
+          id="approve-institution-name"
+          value={approveInstitutionName}
+          onChange={(e) => setApproveInstitutionName(e.target.value)}
+          placeholder="Institution name"
+        />
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Matched case-insensitively against existing institutions, or created if none match. Fix typos here
+          before confirming — this becomes the institution every staff member at this name shares.
+        </p>
       </Modal>
     </div>
   );

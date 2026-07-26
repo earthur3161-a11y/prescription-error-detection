@@ -94,6 +94,27 @@ export async function POST(request: Request) {
   if (rxError || !rxRow) {
     return Response.json({ error: "not_found", message: "Prescription not found." }, { status: 404 });
   }
+
+  // This route runs on the service-role client, so RLS's institution
+  // scoping (0012_institution_boundary.sql) never applies here — without
+  // this explicit check, any authenticated pharmacist could dispense
+  // against any prescriptionId in the system, institution-boundary or not.
+  // Institutional pharmacist: only their own institution's prescriptions.
+  // Independent pharmacist (institution_id claim is null): only a
+  // prescription with no institution that they themselves entered — the
+  // walk-in flow at /pharmacist/verify/new always sets prescriber_id to the
+  // entering pharmacist's own id, so this is the only prescription shape an
+  // independent pharmacist can legitimately act on.
+  const callerInstitutionId = (callerData.user.app_metadata?.institution_id as string | undefined) ?? null;
+  const sameInstitution = callerInstitutionId !== null && rxRow.institution_id === callerInstitutionId;
+  const ownWalkIn = callerInstitutionId === null && rxRow.institution_id === null && rxRow.prescriber_id === pharmacistId;
+  if (!sameInstitution && !ownWalkIn) {
+    return Response.json(
+      { error: "forbidden", message: "This prescription is not visible to your account." },
+      { status: 403 }
+    );
+  }
+
   const prescription = mapPrescriptionRow(rxRow);
 
   const line = prescription.drugs.find((l) => l.id === lineId);

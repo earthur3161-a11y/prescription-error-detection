@@ -16,6 +16,7 @@ function mapRow(row: PatientRow): Patient {
     activeMedications: row.active_medications as ActiveMedication[] | null,
     isPregnant: row.is_pregnant,
     ownerId: row.owner_id ?? undefined,
+    institutionId: row.institution_id,
   };
 }
 
@@ -49,7 +50,17 @@ export async function searchPatients(query: string): Promise<Patient[]> {
   );
 }
 
-export async function createPatient(patient: Omit<Patient, "id" | "ownerId">, ownerId: string): Promise<Patient> {
+/**
+ * institutionId must be the creator's own JWT claim (null for an independent
+ * practitioner) — patients_insert_own's WITH CHECK (0012_institution_boundary.sql)
+ * rejects any other value, so there's no way to spoof a different institution
+ * here even if a caller tried.
+ */
+export async function createPatient(
+  patient: Omit<Patient, "id" | "ownerId" | "institutionId">,
+  ownerId: string,
+  institutionId: string | null
+): Promise<Patient> {
   const id = crypto.randomUUID();
   const { data, error } = await supabase
     .from("patients")
@@ -66,6 +77,7 @@ export async function createPatient(patient: Omit<Patient, "id" | "ownerId">, ow
       active_medications: patient.activeMedications,
       is_pregnant: patient.isPregnant ?? null,
       owner_id: ownerId,
+      institution_id: institutionId,
     })
     .select()
     .single();

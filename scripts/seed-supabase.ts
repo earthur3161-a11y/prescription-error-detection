@@ -86,6 +86,29 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
 ];
 
+// Same lookup-or-create-by-name resolution as
+// app/api/admin/access-requests/[id]/approve/route.ts — reused here so demo
+// accounts end up sharing the exact same institutions row a real approval
+// would resolve to, rather than a second, name-duplicate institution.
+async function resolveInstitutionId(name: string): Promise<string> {
+  const { data: existing, error: lookupError } = await supabase
+    .from("institutions")
+    .select("id")
+    .ilike("name", name)
+    .limit(1)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) return existing.id;
+
+  const { data: created, error: insertError } = await supabase
+    .from("institutions")
+    .insert({ name })
+    .select("id")
+    .single();
+  if (insertError || !created) throw insertError ?? new Error(`Failed to create institution "${name}"`);
+  return created.id;
+}
+
 async function findExistingUserId(email: string): Promise<string | null> {
   // admin.listUsers doesn't filter by email server-side, so page through and
   // match locally — fine at this account volume (four accounts).
@@ -101,6 +124,12 @@ async function findExistingUserId(email: string): Promise<string | null> {
 }
 
 async function seedAccount(account: DemoAccount): Promise<void> {
+  // Institution-affiliated demo accounts (ama.owusu, kwame.mensah,
+  // efua.boateng) get a real institution_id claim now, same as a genuine
+  // superadmin-approved account would — see 0012_institution_boundary.sql.
+  // superadmin has no institution field, so this resolves to null for it.
+  const institutionId = account.institution ? await resolveInstitutionId(account.institution) : null;
+
   const existingId = await findExistingUserId(account.email);
   let userId = existingId;
 
@@ -109,7 +138,7 @@ async function seedAccount(account: DemoAccount): Promise<void> {
       email: account.email,
       password: DEMO_PASSWORD,
       email_confirm: true,
-      app_metadata: { role: account.role },
+      app_metadata: { role: account.role, institution_id: institutionId },
       user_metadata: { name: account.name },
     });
     if (error || !data.user) {
@@ -120,9 +149,9 @@ async function seedAccount(account: DemoAccount): Promise<void> {
     console.log(`  created ${account.email} (${account.role})`);
   } else {
     await supabase.auth.admin.updateUserById(existingId, {
-      app_metadata: { role: account.role },
+      app_metadata: { role: account.role, institution_id: institutionId },
     });
-    console.log(`  already exists: ${account.email} (role re-synced)`);
+    console.log(`  already exists: ${account.email} (role + institution_id re-synced)`);
   }
 
   if (!userId) return;
@@ -134,9 +163,41 @@ async function seedAccount(account: DemoAccount): Promise<void> {
     title: account.title,
     status: "active",
     institution: account.institution ?? null,
+    institution_id: institutionId,
   });
   if (profileError) {
     console.error(`  FAILED to upsert profile for ${account.email}:`, profileError.message);
+  }
+}
+
+// Backfills institution_id on patients/prescriptions created by the demo
+// physician before migration 0012 added the column — a fresh run of
+// seedClinicalData() never re-executes once patients exist (see its own
+// count-based skip below), so this is the only path that reaches
+// already-seeded rows. Scoped to prescriberId/ownerId so it can never touch
+// a real user's data, and to `institution_id is null` so it's idempotent
+// and never overwrites a row that's already correctly scoped.
+async function backfillClinicalInstitutionIds(institutionId: string, prescriberId: string): Promise<void> {
+  const { error: patientsError, count: patientsCount } = await supabase
+    .from("patients")
+    .update({ institution_id: institutionId }, { count: "exact" })
+    .eq("owner_id", prescriberId)
+    .is("institution_id", null);
+  if (patientsError) {
+    console.error("  FAILED to backfill patients.institution_id:", patientsError.message);
+  } else {
+    console.log(`  backfilled institution_id on ${patientsCount ?? 0} patient(s)`);
+  }
+
+  const { error: rxError, count: rxCount } = await supabase
+    .from("prescriptions")
+    .update({ institution_id: institutionId }, { count: "exact" })
+    .eq("prescriber_id", prescriberId)
+    .is("institution_id", null);
+  if (rxError) {
+    console.error("  FAILED to backfill prescriptions.institution_id:", rxError.message);
+  } else {
+    console.log(`  backfilled institution_id on ${rxCount ?? 0} prescription(s)`);
   }
 }
 
@@ -187,6 +248,7 @@ async function seedClinicalData(): Promise<void> {
     console.error("  Skipping clinical data — prescriber account not found (run account seeding first).");
     return;
   }
+  const institutionId = await resolveInstitutionId("Korle Bu Teaching Hospital");
 
   const formulary = getFormularyBundle(DEFAULT_REGION);
 
@@ -208,6 +270,7 @@ async function seedClinicalData(): Promise<void> {
       active_medications: p.activeMedications,
       is_pregnant: p.isPregnant ?? null,
       owner_id: prescriberId,
+      institution_id: institutionId,
     });
     if (error) {
       console.error(`  FAILED to insert patient ${p.name}:`, error.message);
@@ -253,6 +316,7 @@ async function seedClinicalData(): Promise<void> {
       status: "dispensed",
       created_at: "2026-06-28T09:15:00.000Z",
       source: "physician",
+      institution_id: institutionId,
     },
     {
       id: rx2Id,
@@ -263,6 +327,7 @@ async function seedClinicalData(): Promise<void> {
       status: "verified",
       created_at: "2026-06-29T11:40:00.000Z",
       source: "physician",
+      institution_id: institutionId,
     },
     {
       id: rx3Id,
@@ -273,6 +338,7 @@ async function seedClinicalData(): Promise<void> {
       status: "submitted",
       created_at: "2026-07-01T14:05:00.000Z",
       source: "physician",
+      institution_id: institutionId,
     },
     {
       id: randomUUID(),
@@ -284,6 +350,7 @@ async function seedClinicalData(): Promise<void> {
       created_at: "2026-07-02T08:20:00.000Z",
       source: "walk_in",
       external_prescriber_name: "Dr. Nana Yeboah (Ridge Hospital, external)",
+      institution_id: institutionId,
     },
   ];
 
@@ -415,6 +482,15 @@ async function main() {
 
   await seedClinicalData();
   await seedBatches();
+
+  console.log("\nBackfilling institution_id on any pre-0012 clinical rows...");
+  const prescriberId = await findExistingUserId("ama.owusu@demo.mediguard.gh");
+  if (prescriberId) {
+    const institutionId = await resolveInstitutionId("Korle Bu Teaching Hospital");
+    await backfillClinicalInstitutionIds(institutionId, prescriberId);
+  } else {
+    console.log("  Skipping backfill — prescriber account not found.");
+  }
 }
 
 main().catch((err) => {

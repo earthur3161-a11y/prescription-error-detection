@@ -30,6 +30,7 @@ export type ProfileRow = {
   status: ProfileStatus;
   institution: string | null;
   created_at: string;
+  institution_id: string | null;
 };
 
 export type AccessRequestRow = {
@@ -69,6 +70,10 @@ export type PatientRow = {
   // Nullable at the DB level (existing rows predate this column) but always
   // set by the app on every insert — see patientRepository.createPatient().
   owner_id: string | null;
+  // null = independent practitioner (no institution); real value only ever
+  // matches the creating user's own JWT institution_id claim, enforced by
+  // patients_insert_own's WITH CHECK — see 0012_institution_boundary.sql.
+  institution_id: string | null;
 };
 
 export type PrescriptionStatusDb =
@@ -96,6 +101,8 @@ export type PrescriptionRow = {
   source: PrescriptionSourceDb;
   external_prescriber_name: string | null;
   patient_check_id: string | null;
+  // Same convention as patients.institution_id — see 0012_institution_boundary.sql.
+  institution_id: string | null;
 };
 
 export type OverrideLogRow = {

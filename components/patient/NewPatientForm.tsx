@@ -144,6 +144,7 @@ export function NewPatientForm() {
       {
         patient: { ...draft, name: draft.name.trim(), phone: draft.phone?.trim() || undefined },
         ownerId: user.id,
+        institutionId: user.institutionId,
       },
       { onSuccess: (patient) => router.push(`/patients/${patient.id}`) }
     );

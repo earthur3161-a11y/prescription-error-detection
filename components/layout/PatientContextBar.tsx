@@ -54,6 +54,7 @@ function QuickAddPatientForm({ onCreated, onCancel }: { onCreated: (id: string) 
           activeMedications: null,
         },
         ownerId: user.id,
+        institutionId: user.institutionId,
       },
       { onSuccess: (patient) => onCreated(patient.id) }
     );

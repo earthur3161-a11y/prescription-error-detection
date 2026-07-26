@@ -130,6 +130,8 @@ export interface Patient {
   reportedConditions?: string[];
   /** The account this patient record belongs to (RLS-enforced ownership) — undefined only on not-yet-persisted seed/template objects, never on a real DB row. */
   ownerId?: string;
+  /** Undefined/null = independent practitioner's patient (owner-scoped only). Real value = institutional, scoped to that institution's own staff too. Never client-chosen — always the creator's own JWT claim, enforced by RLS. */
+  institutionId?: string | null;
 }
 
 export type UserRole = "prescriber" | "pharmacist" | "admin";
@@ -157,6 +159,7 @@ export interface Profile {
   status: "active" | "disabled";
   institution?: string;
   createdAt: string;
+  institutionId?: string | null;
 }
 
 export type AccountStatus =
@@ -244,6 +247,8 @@ export interface Prescription {
   externalPrescriberName?: string;
   /** Links back to the originating Patient Self-Check, when source is "patient_submitted". */
   patientCheckId?: string;
+  /** Same convention as Patient.institutionId — set once at creation from the prescriber's own JWT claim, never client-chosen. */
+  institutionId?: string | null;
 }
 
 export type OverrideReasonCode =

@@ -68,7 +68,7 @@ export function PortalSignupForm({ config }: { config: PortalSignupConfig }) {
         router.push(config.loginHref);
         return;
       }
-      login({ id: account.id, name: account.name, role: account.role, title: account.title, email: account.email });
+      login({ id: account.id, name: account.name, role: account.role, title: account.title, email: account.email, institutionId: account.institutionId });
       router.replace("/billing");
     } finally {
       setPending(false);
@@ -142,6 +142,13 @@ export function PortalSignupForm({ config }: { config: PortalSignupConfig }) {
             <Link href={config.loginHref} className="font-medium text-brand hover:underline">
               Sign in
             </Link>
+          </p>
+          <p className="text-center text-xs text-subtle">
+            Joining a hospital or clinic&rsquo;s existing MediGuard account instead?{" "}
+            <Link href="/request-access" className="font-medium text-brand hover:underline">
+              Request institutional access
+            </Link>
+            .
           </p>
         </CardBody>
       </Card>

@@ -25,6 +25,7 @@ function NewPrescriptionWorkspace() {
       title="New Prescription"
       subtitle="Add drugs below — each line is screened instantly against allergies, interactions, duplicate therapy, and dosing guidelines."
       prescriberId={user.id}
+      institutionId={user.institutionId}
       source="physician"
       allowPatientCreate
       initialPatientId={searchParams.get("patientId")}

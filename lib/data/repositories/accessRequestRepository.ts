@@ -48,7 +48,19 @@ export async function createAccessRequest(
     status: "pending",
     created_at: createdAt,
   });
-  if (error) throw error;
+  if (error) {
+    // The actual enforcement is the partial unique index
+    // (access_requests_pending_email_idx, 0013) — race-proof against two
+    // concurrent submissions in a way a pre-check SELECT here couldn't be.
+    // This just turns that constraint violation into a message a submitter
+    // can act on, rather than a raw Postgres error.
+    if (error.code === "23505" && error.message.includes("access_requests_pending_email_idx")) {
+      throw new Error(
+        "You already have a request pending review for this email. Check its status above, or wait for a response."
+      );
+    }
+    throw error;
+  }
 
   return {
     id,
@@ -104,7 +116,10 @@ export async function getLatestAccessRequestByEmail(
  * to Supabase directly. Throws with a user-facing message on failure —
  * notably when the email already has an account (409).
  */
-export async function approveAccessRequest(requestId: string): Promise<void> {
+export async function approveAccessRequest(
+  requestId: string,
+  confirmedInstitutionName?: string
+): Promise<void> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -112,7 +127,13 @@ export async function approveAccessRequest(requestId: string): Promise<void> {
 
   const res = await fetch(`/api/admin/access-requests/${requestId}/approve`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(
+      confirmedInstitutionName ? { confirmedInstitutionName } : {}
+    ),
   });
   if (res.ok) return;
 

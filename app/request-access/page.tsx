@@ -6,16 +6,23 @@ import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import {
   useAccessRequestStatus,
   useCreateAccessRequest,
 } from "@/lib/query/hooks/useAccessRequests";
+import type { UserRole } from "@/lib/types";
 
-const REQUEST_ROLE = "admin" as const;
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+  { value: "prescriber", label: "Physician" },
+  { value: "pharmacist", label: "Pharmacist" },
+  { value: "admin", label: "Facility Admin" },
+];
 
 function RequestAccessForm() {
   const createRequest = useCreateAccessRequest();
 
+  const [requestedRole, setRequestedRole] = useState<UserRole>("prescriber");
   const [fullName, setFullName] = useState("");
   const [institution, setInstitution] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
@@ -28,7 +35,7 @@ function RequestAccessForm() {
     createRequest.mutate(
       {
         fullName: fullName.trim(),
-        requestedRole: REQUEST_ROLE,
+        requestedRole,
         institution: institution.trim(),
         licenseNumber: licenseNumber.trim() || undefined,
         email: email.trim(),
@@ -55,8 +62,23 @@ function RequestAccessForm() {
     );
   }
 
+  const licenseLabel =
+    requestedRole === "admin"
+      ? "Proof of authority (official title / staff ID)"
+      : "License / professional registration number";
+
   return (
     <form className="space-y-3" onSubmit={handleSubmit}>
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-secondary">Role</label>
+        <Select value={requestedRole} onChange={(e) => setRequestedRole(e.target.value as UserRole)}>
+          {ROLE_OPTIONS.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </Select>
+      </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium text-secondary">Full name</label>
         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
@@ -66,9 +88,7 @@ function RequestAccessForm() {
         <Input value={institution} onChange={(e) => setInstitution(e.target.value)} required />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-secondary">
-          Proof of authority (official title / staff ID)
-        </label>
+        <label className="mb-1.5 block text-sm font-medium text-secondary">{licenseLabel}</label>
         <Input value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -173,11 +193,15 @@ export default function RequestAccessPage() {
           {tab === "request" ? (
             <>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Request Facility Admin access</h1>
+                <h1 className="text-lg font-semibold text-foreground">Join an institution</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  For clinical institutions integrating MediGuard into their own systems — reviewed by a
-                  MediGuard operator before an invite is sent. Physicians and pharmacies don&rsquo;t need
-                  this: sign up directly at{" "}
+                  For physicians, pharmacists, and facility admins joining a hospital or clinic already
+                  using (or adopting) MediGuard. A MediGuard operator reviews and approves your request,
+                  then your account is scoped to that institution&rsquo;s patients and staff.
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Practicing independently, outside an institution? Register as an independent
+                  practitioner instead — no approval wait, instant access, individual subscription:{" "}
                   <Link href="/physician/signup" className="font-medium text-brand hover:underline">
                     /physician/signup
                   </Link>{" "}
