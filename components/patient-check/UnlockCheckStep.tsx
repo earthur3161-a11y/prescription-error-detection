@@ -256,6 +256,29 @@ export function UnlockCheckStep({ onUnlocked, unlocking }: UnlockCheckStepProps)
   }
 
   // subStep === "paying"
+
+  // A declined/abandoned/reversed Mobile Money charge resolves to "failed"
+  // as soon as the webhook processes it — often within seconds, well before
+  // PAYMENT_TIMEOUT_MS. Must be surfaced immediately: the timeout-driven
+  // "Try again" below only ever arms while status is "pending", so without
+  // this branch a fast decline left the patient stuck on the spinner with
+  // no visible retry at all.
+  if (paymentStatus.data?.status === "failed") {
+    return (
+      <div className="space-y-4 text-center">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Payment failed</h2>
+          <p className="mt-1 text-sm text-secondary">
+            The payment wasn&rsquo;t approved. Nothing was charged — you can try again.
+          </p>
+        </div>
+        <Button variant="secondary" className="w-full" onClick={() => setSubStep("unlock")}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 text-center">
       <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -34,6 +34,19 @@ const EMPTY_PROFILE: PatientCheckProfile = {
   complaintNote: null,
 };
 
+// sessionStorage, deliberately not localStorage — this is a same-tab-session
+// convenience for surviving an accidental refresh/close-reopen, not a
+// permanent record. It must not follow the patient to another device or
+// linger indefinitely. Drug objects aren't stored directly (avoids a stale
+// duplicate of formulary data); only ids, re-resolved against the loaded
+// formulary on rehydrate.
+const DRAFT_STORAGE_KEY = "mediguard:self-check-draft:v1";
+
+interface PersistedCheckDraft {
+  drugIds: string[];
+  profile: PatientCheckProfile;
+}
+
 export default function NewCheckPage() {
   const router = useRouter();
   const { data: formulary } = useFormulary();
@@ -47,26 +60,83 @@ export default function NewCheckPage() {
   const [profile, setProfile] = useState<PatientCheckProfile>(EMPTY_PROFILE);
   const [rememberProfile, setRememberProfile] = useState(true);
   const [profileInitialized, setProfileInitialized] = useState(false);
+  // Drug ids from a rehydrated draft, awaiting resolution against the
+  // formulary (which loads asynchronously) — see the effect below.
+  const [pendingDraftDrugIds, setPendingDraftDrugIds] = useState<string[] | null>(null);
+  // Guards the persist-to-sessionStorage effect: it must never fire before
+  // rehydration has had its one chance to run, or it would immediately
+  // overwrite a real in-progress draft with the initial empty state.
+  const [draftHydrated, setDraftHydrated] = useState(false);
   // Stable per attempt so a payment-poll retry replays the same
   // create_patient_check_with_quota call instead of spending a second
   // credit; regenerated whenever the patient goes back and could change
   // what's being screened.
   const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
 
-  if (!profileInitialized && savedProfile) {
-    setProfile({
-      ageYears: savedProfile.ageYears,
-      weightKg: savedProfile.weightKg,
-      allergies: savedProfile.allergies,
-      activeMedications: savedProfile.activeMedications,
-      isPregnant: savedProfile.isPregnant,
-      renalStatus: savedProfile.renalStatus,
-      hepaticStatus: savedProfile.hepaticStatus,
-      reportedConditions: savedProfile.reportedConditions,
-      complaintNote: savedProfile.complaintNote,
-    });
-    setProfileInitialized(true);
+  // Priority order: an in-progress draft from THIS abandoned attempt (more
+  // recent, sessionStorage) beats a profile saved from an earlier
+  // *successful* check (older, Dexie via savedProfile). Runs synchronously
+  // during render, same pattern the savedProfile fallback already used, so
+  // it resolves before the savedProfile branch below gets a chance to win
+  // the race on a render where both are available. `typeof window` guards
+  // the SSR pass, where sessionStorage doesn't exist — this block simply
+  // no-ops there and re-runs on the first client render instead.
+  if (!profileInitialized && typeof window !== "undefined") {
+    const raw = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    if (raw) {
+      try {
+        const draft = JSON.parse(raw) as PersistedCheckDraft;
+        setProfile(draft.profile);
+        setPendingDraftDrugIds(draft.drugIds);
+      } catch {
+        sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+      setProfileInitialized(true);
+    } else if (savedProfile) {
+      setProfile({
+        ageYears: savedProfile.ageYears,
+        weightKg: savedProfile.weightKg,
+        allergies: savedProfile.allergies,
+        activeMedications: savedProfile.activeMedications,
+        isPregnant: savedProfile.isPregnant,
+        renalStatus: savedProfile.renalStatus,
+        hepaticStatus: savedProfile.hepaticStatus,
+        reportedConditions: savedProfile.reportedConditions,
+        complaintNote: savedProfile.complaintNote,
+      });
+      setProfileInitialized(true);
+    }
   }
+
+  // Resolves the draft's drug ids against the formulary once it's loaded,
+  // then flips draftHydrated — the signal the persist effect below waits
+  // on. Runs even when there's no pending draft, so a patient with nothing
+  // to rehydrate doesn't block persistence forever.
+  useEffect(() => {
+    if (draftHydrated || !formulary) return;
+    if (pendingDraftDrugIds) {
+      const drugs = pendingDraftDrugIds
+        .map((id) => formulary.drugs.find((d) => d.id === id))
+        .filter((d): d is Drug => !!d);
+      setAddedDrugs(drugs);
+      setPendingDraftDrugIds(null);
+    }
+    setDraftHydrated(true);
+  }, [draftHydrated, formulary, pendingDraftDrugIds]);
+
+  // Persists on every change, but only once initial hydration has settled
+  // (see above) and only once there's actually a drug added — matches the
+  // step-"add" Continue button's own gate, so an empty draft (nothing past
+  // the first screen) never lingers in sessionStorage.
+  useEffect(() => {
+    if (!draftHydrated || typeof window === "undefined") return;
+    if (addedDrugs.length === 0) {
+      sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+      return;
+    }
+    const draft: PersistedCheckDraft = { drugIds: addedDrugs.map((d) => d.id), profile };
+    sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  }, [draftHydrated, addedDrugs, profile]);
 
   function goBack() {
     if (step === "unlock") {
@@ -97,6 +167,10 @@ export default function NewCheckPage() {
       {
         onSuccess: (result) => {
           if (result.allowed) {
+            // The check row now exists — this draft's job is done. If it
+            // stayed, the sessionStorage entry would rehydrate the NEXT,
+            // unrelated check the patient starts in this same tab.
+            if (typeof window !== "undefined") sessionStorage.removeItem(DRAFT_STORAGE_KEY);
             router.push(`/check/result/${result.check.id}`);
             return;
           }
