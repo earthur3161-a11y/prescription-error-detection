@@ -9,10 +9,10 @@ import {
   setBatchRecalled,
 } from "../../data/repositories/batchRepository";
 import {
-  createDispenseRecord,
   listDispenseRecords,
   listDispenseRecordsByPatient,
 } from "../../data/repositories/dispenseRecordRepository";
+import { dispenseDrug } from "../../pharmacy/dispenseClient";
 import {
   appendPharmacistAction,
   listActionsByPrescription,
@@ -106,7 +106,7 @@ export function useDispenseRecordsByPatient(patientId: string | null) {
 export function useCreateDispenseRecord() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: createDispenseRecord,
+    mutationFn: dispenseDrug,
     onSuccess: () => invalidate([["dispenseRecords"], ["batches"], ["stockAdjustments"]]),
   });
 }

@@ -15,7 +15,7 @@ import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations
 import { generateId } from "@/lib/utils/id";
 import type { Drug, Route } from "@/lib/types";
 
-const ALL_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual"];
+const ALL_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual", "subcutaneous"];
 
 function emptyDraft(): {
   generic_name: string;

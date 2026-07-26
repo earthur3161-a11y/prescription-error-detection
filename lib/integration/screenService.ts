@@ -21,7 +21,7 @@ import type {
   Route,
 } from "../types";
 
-const VALID_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual"];
+const VALID_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual", "subcutaneous"];
 
 const allergySchema = z.object({
   allergen: z.string().min(1),

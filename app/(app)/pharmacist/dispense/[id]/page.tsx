@@ -2,12 +2,13 @@
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Home, Printer } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Home, Printer, ShieldAlert } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CounselingSheet } from "@/components/pharmacy/CounselingSheet";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
@@ -20,13 +21,18 @@ import { useToastStore } from "@/lib/store/toast-store";
 import { effectiveBatchStatus, isDispensable, suggestFefoBatch, totalDispensableStock } from "@/lib/pharmacy/inventory";
 import { suggestSubstitutes } from "@/lib/pharmacy/substitution";
 import { printDispenseHandout, type LabelItem } from "@/lib/pharmacy/printLabel";
+import { printVerificationProof, type VerificationItem } from "@/lib/pharmacy/printVerification";
+import { isGenuineOverrideNote } from "@/lib/pharmacy/overrideValidation";
+import { DispenseError } from "@/lib/pharmacy/dispenseClient";
 import { pharmacyStateOf } from "@/lib/pharmacy/status";
+import { screenDrugLine } from "@/lib/screening-engine";
 import type { Batch } from "@/lib/types";
 
 interface LineState {
   batchId: string;
   quantity: number;
   partialReason: string;
+  overrideNote: string;
 }
 
 export default function DispensePage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,6 +53,8 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
   const [lineState, setLineState] = useState<Record<string, LineState>>({});
   const [finalized, setFinalized] = useState(false);
   const [dispensedItems, setDispensedItems] = useState<LabelItem[]>([]);
+  const [verificationItems, setVerificationItems] = useState<VerificationItem[]>([]);
+  const [dispenseErrors, setDispenseErrors] = useState<Record<string, string>>({});
   const initedRef = useRef(false);
 
   const nearExpiryDays = settings?.nearExpiryDays ?? 60;
@@ -60,6 +68,19 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
     }
     return map;
   }, [batches]);
+
+  // Screened fresh here too, for the pharmacist to see before committing —
+  // this is informational only. The actual gate is server-side in POST
+  // /api/pharmacy/dispense, which re-screens again against the same live
+  // patient/prescription data and does not trust anything computed here.
+  const verdictsByLineId = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof screenDrugLine>>();
+    if (!prescription || !formulary) return map;
+    for (const line of prescription.drugs) {
+      map.set(line.id, screenDrugLine({ patient: patient ?? null, drugLine: line, otherLines: prescription.drugs, formulary }));
+    }
+    return map;
+  }, [prescription, patient, formulary]);
 
   // Initialise each line with the FEFO batch + suggested quantity, once data is in.
   useEffect(() => {
@@ -75,6 +96,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
         batchId: fefo?.id ?? "",
         quantity: Math.min(suggestedQty, available || suggestedQty),
         partialReason: "",
+        overrideNote: "",
       };
     }
     setLineState(init);
@@ -124,43 +146,51 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
     const dispensable = drugBatches.filter((b) => isDispensable(b, nearExpiryDays));
     const totalStock = totalDispensableStock(drugBatches, nearExpiryDays);
     const suggestedQty = Math.max(1, line.frequencyPerDay * line.durationDays);
-    const ls = lineState[line.id] ?? { batchId: "", quantity: 0, partialReason: "" };
+    const ls = lineState[line.id] ?? { batchId: "", quantity: 0, partialReason: "", overrideNote: "" };
     const batch = drugBatches.find((b) => b.id === ls.batchId) ?? null;
     const batchOk = !!batch && isDispensable(batch, nearExpiryDays);
     const qtyOk = ls.quantity > 0 && !!batch && ls.quantity <= batch.quantityRemaining;
     const isPartial = ls.quantity < suggestedQty;
     const partialReasonOk = !isPartial || ls.partialReason.trim().length > 0;
-    return { line, drug, drugBatches, dispensable, totalStock, suggestedQty, ls, batch, batchOk, qtyOk, isPartial, partialReasonOk };
+    const verdictResult = verdictsByLineId.get(line.id);
+    const flagged = !!verdictResult && verdictResult.verdict !== "safe";
+    const overrideOk = !flagged || isGenuineOverrideNote(ls.overrideNote);
+    return { line, drug, drugBatches, dispensable, totalStock, suggestedQty, ls, batch, batchOk, qtyOk, isPartial, partialReasonOk, verdictResult, flagged, overrideOk };
   });
 
-  const canDispense = lineChecks.every((c) => c.drug && c.batchOk && c.qtyOk && c.partialReasonOk);
+  const canDispense = lineChecks.every((c) => c.drug && c.batchOk && c.qtyOk && c.partialReasonOk && c.overrideOk);
 
   async function handleFinalize() {
     if (!prescription || !user) return;
+    setDispenseErrors({});
     const items: LabelItem[] = [];
+    const verifications: VerificationItem[] = [];
     for (const c of lineChecks) {
       if (!c.drug || !c.batch) continue;
-      const rec = await createDispense.mutateAsync({
-        prescriptionId: id,
-        patientId: prescription.patientId,
-        pharmacistId: user.id,
-        batchId: c.batch.id,
-        drugId: c.drug.id,
-        drugName: c.drug.generic_name,
-        quantityDispensed: c.ls.quantity,
-        ...(c.isPartial ? { partialDispenseReason: c.ls.partialReason.trim() } : {}),
-      });
-      if (!rec) {
-        showToast({ title: "Dispense failed", description: `Insufficient stock for ${c.drug.generic_name}.`, variant: "error" });
+      try {
+        const rec = await createDispense.mutateAsync({
+          prescriptionId: id,
+          lineId: c.line.id,
+          batchId: c.batch.id,
+          quantity: c.ls.quantity,
+          ...(c.isPartial ? { partialDispenseReason: c.ls.partialReason.trim() } : {}),
+          ...(c.flagged ? { overrideNote: c.ls.overrideNote.trim() } : {}),
+        });
+        items.push({ drug: c.drug, line: c.line, batch: c.batch, quantity: c.ls.quantity });
+        verifications.push({ drug: c.drug, line: c.line, record: rec });
+      } catch (e) {
+        const message = e instanceof DispenseError ? e.body.message : "Dispense failed.";
+        setDispenseErrors((prev) => ({ ...prev, [c.line.id]: message }));
+        showToast({ title: "Dispense failed", description: `${c.drug.generic_name}: ${message}`, variant: "error" });
         return;
       }
-      items.push({ drug: c.drug, line: c.line, batch: c.batch, quantity: c.ls.quantity });
     }
     await appendAction.mutateAsync({ prescriptionId: id, pharmacistId: user.id, action: "dispense" });
     await updateStatus.mutateAsync({ id, status: "dispensed" });
     setDispensedItems(items);
+    setVerificationItems(verifications);
     setFinalized(true);
-    showToast({ title: "Dispensed", description: "Inventory updated and transaction logged.", variant: "success" });
+    showToast({ title: "Dispensed", description: "Inventory updated and verification recorded.", variant: "success" });
   }
 
   if (finalized) {
@@ -170,11 +200,18 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
           <CardBody className="space-y-2 text-center">
             <CheckCircle2 className="mx-auto size-10 text-safe-fg" aria-hidden="true" />
             <h1 className="text-xl font-semibold text-foreground">Dispensed to {patient?.name ?? "patient"}</h1>
-            <p className="text-sm text-muted-foreground">Inventory decremented and the transaction logged. Print the label &amp; counseling handout for the patient.</p>
+            <p className="text-sm text-muted-foreground">Inventory decremented and the transaction logged. Print the label &amp; counseling handout for the patient, and the verification record for the pharmacy file.</p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               <Button onClick={() => printDispenseHandout(patient ?? null, dispensedItems)}>
                 <Printer className="size-5" aria-hidden="true" />
                 Print label &amp; handout
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => printVerificationProof(patient ?? null, verificationItems, { name: user?.name ?? "Unknown", id: user?.id ?? "" })}
+              >
+                <ShieldAlert className="size-5" aria-hidden="true" />
+                Print verification record
               </Button>
               <Link href="/prescriptions">
                 <Button variant="secondary">
@@ -208,7 +245,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
       </Link>
       <div>
         <h1 className="text-xl font-semibold text-foreground">Dispense — {patient?.name ?? "patient"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Batch defaults to First-Expiry-First-Out. Expired stock is excluded and cannot be dispensed.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Batch defaults to First-Expiry-First-Out. Expired stock is excluded and cannot be dispensed. Every line is re-screened at the moment of dispense.</p>
       </div>
 
       <div className="space-y-3">
@@ -225,10 +262,47 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
                       Prescribed: {c.line.doseMg}mg · {c.line.frequencyPerDay}×/day · {c.line.durationDays} days → suggest {c.suggestedQty} units
                     </p>
                   </div>
-                  <Badge tone={c.totalStock === 0 ? "blocked" : c.totalStock < 20 ? "caution" : "safe"}>
-                    {c.totalStock} dispensable in stock
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {c.verdictResult && (
+                      <Badge tone={c.verdictResult.verdict === "safe" ? "safe" : c.verdictResult.verdict === "caution" ? "caution" : "blocked"}>
+                        Screening: {c.verdictResult.verdict}
+                      </Badge>
+                    )}
+                    <Badge tone={c.totalStock === 0 ? "blocked" : c.totalStock < 20 ? "caution" : "safe"}>
+                      {c.totalStock} dispensable in stock
+                    </Badge>
+                  </div>
                 </div>
+
+                {c.flagged && c.verdictResult && (
+                  <div className="space-y-2 rounded-lg bg-caution-bg px-4 py-3 text-sm text-caution-fg">
+                    <p className="flex items-center gap-1.5 font-medium">
+                      <ShieldAlert className="size-4 shrink-0" aria-hidden="true" />
+                      Screening flagged this drug — dispensing is blocked without a genuine override note.
+                    </p>
+                    <ul className="space-y-1 pl-1">
+                      {c.verdictResult.flags.map((f, i) => (
+                        <li key={i} className="text-secondary">
+                          [{f.severity}] {f.audience_variant.clinical}
+                        </li>
+                      ))}
+                    </ul>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-secondary">
+                        Override note <span className="text-blocked-fg">*</span>
+                      </label>
+                      <Textarea
+                        value={c.ls.overrideNote}
+                        onChange={(e) => setLine(c.line.id, { overrideNote: e.target.value })}
+                        rows={3}
+                        placeholder="Explain why you're proceeding despite this flag — this will be printed verbatim on the verification record."
+                      />
+                      {c.ls.overrideNote.trim().length > 0 && !isGenuineOverrideNote(c.ls.overrideNote) && (
+                        <p className="mt-1 text-xs text-blocked-fg">Too short or too generic — give a real, specific reason.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {noStock ? (
                   <div className="space-y-2 rounded-lg bg-blocked-bg px-4 py-3 text-sm text-blocked-fg">
@@ -297,6 +371,10 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
                       placeholder="e.g. Only 10 units in stock; patient to collect balance."
                     />
                   </div>
+                )}
+
+                {dispenseErrors[c.line.id] && (
+                  <p className="text-sm text-blocked-fg">{dispenseErrors[c.line.id]}</p>
                 )}
               </CardBody>
             </Card>

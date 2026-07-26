@@ -4,8 +4,6 @@ import type {
   AccessRequest,
   Account,
   AllergyRule,
-  Batch,
-  DispenseRecord,
   Drug,
   InteractionRule,
   OutboxItem,
@@ -25,7 +23,7 @@ import { buildSeedPatientChecks } from "./seed/patientChecks";
 import { buildSeedData } from "./seed/prescriptions";
 import { seedUsers } from "./seed/users";
 import { buildDevAccounts, DEV_ACCOUNT_PASSWORD, DEV_ACCOUNTS_ENABLED } from "./seed/accounts";
-import { buildSeedBatches, DEFAULT_PHARMACY_SETTINGS } from "./seed/pharmacyInventory";
+import { DEFAULT_PHARMACY_SETTINGS } from "./seed/pharmacyInventory";
 import { buildSeedPharmacistActions } from "./seed/auditTrail";
 
 export class MediGuardDB extends Dexie {
@@ -43,8 +41,6 @@ export class MediGuardDB extends Dexie {
   accounts!: Table<Account, string>;
   accessRequests!: Table<AccessRequest, string>;
   meta!: Table<{ id: string; version: string }, string>;
-  batches!: Table<Batch, string>;
-  dispenseRecords!: Table<DispenseRecord, string>;
   pharmacistActions!: Table<PharmacistAction, string>;
   stockAdjustments!: Table<StockAdjustment, string>;
   pharmacySettings!: Table<PharmacySettings, string>;
@@ -105,6 +101,12 @@ export class MediGuardDB extends Dexie {
     // real per-institution API keys) — the old browser-local, insecure config
     // this table held is gone with it.
     this.version(8).stores({ ...v7Stores, integrationConfig: null });
+    // batches and dispenseRecords moved to Supabase (supabase/migrations/
+    // 0010_pharmacy_dispense_gate.sql) — the hard dispense gate needs a real
+    // server boundary to enforce anything against, which plain IndexedDB
+    // can never provide. stockAdjustments/pharmacistActions/pharmacySettings
+    // stay local; they aren't part of the dispense-safety path.
+    this.version(9).stores({ ...v7Stores, integrationConfig: null, batches: null, dispenseRecords: null });
   }
 }
 
@@ -168,14 +170,11 @@ async function runBootstrap(): Promise<void> {
         await db.pharmacistActions.bulkPut(buildSeedPharmacistActions());
       }
 
-      // Independent pharmacy inventory + alerting config (one-time seed).
+      // Independent pharmacy alerting config (one-time seed). Batches
+      // themselves now live in Supabase (see scripts/seed-supabase.ts).
       const settingsCount = await db.pharmacySettings.count();
       if (settingsCount === 0) {
         await db.pharmacySettings.put(DEFAULT_PHARMACY_SETTINGS);
-      }
-      const batchCount = await db.batches.count();
-      if (batchCount === 0) {
-        await db.batches.bulkPut(buildSeedBatches(formulary));
       }
 
       // Dev/staging accounts are gated so they never ship in a production build.

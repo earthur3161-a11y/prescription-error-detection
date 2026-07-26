@@ -1,54 +1,45 @@
-import { db, ensureSeeded } from "../db";
-import { generateId } from "../../utils/id";
-import type { Batch, DispenseRecord } from "../../types";
+import { supabase } from "../../supabase/client";
+import type { DispenseRecordRow } from "../../supabase/types";
+import type { DispenseRecord, Flag } from "../../types";
 
-/**
- * Finalises a dispense: writes the immutable DispenseRecord and decrements the
- * batch's on-hand quantity in one transaction, so inventory can never drift
- * from what was actually handed to the patient. Returns null if the batch is
- * missing or lacks sufficient stock (defensive — the UI checks first).
- */
-export async function createDispenseRecord(
-  entry: Omit<DispenseRecord, "id" | "dispensedAt">
-): Promise<DispenseRecord | null> {
-  await ensureSeeded();
-  return db.transaction("rw", [db.dispenseRecords, db.batches, db.stockAdjustments], async () => {
-    const batch = await db.batches.get(entry.batchId);
-    if (!batch || batch.quantityRemaining < entry.quantityDispensed) return null;
+// Reads only — there is deliberately no create export here anymore. Writing
+// a dispense_records row happens exclusively through POST
+// /api/pharmacy/dispense, which re-screens server-side and calls the
+// dispense_drug() RPC (service_role only, see supabase/migrations/0010).
+// A repository-level "create" function that just inserted a row would
+// reintroduce exactly the bypass this migration closed, so it's not offered.
 
-    const record: DispenseRecord = {
-      ...entry,
-      id: generateId("disp"),
-      dispensedAt: new Date().toISOString(),
-    };
-    const updatedBatch: Batch = {
-      ...batch,
-      quantityRemaining: batch.quantityRemaining - entry.quantityDispensed,
-    };
-    await db.dispenseRecords.put(record);
-    await db.batches.put(updatedBatch);
-    await db.stockAdjustments.put({
-      id: generateId("adj"),
-      batchId: batch.id,
-      drugId: batch.drugId,
-      pharmacistId: entry.pharmacistId,
-      adjustmentType: "removal",
-      quantity: -entry.quantityDispensed,
-      reason: `Dispensed against prescription ${entry.prescriptionId.replace("rx_", "")}`,
-      timestamp: new Date().toISOString(),
-    });
-    return record;
-  });
+function mapRow(row: DispenseRecordRow): DispenseRecord {
+  return {
+    id: row.id,
+    prescriptionId: row.prescription_id,
+    patientId: row.patient_id,
+    pharmacistId: row.pharmacist_id,
+    batchId: row.batch_id,
+    drugId: row.drug_id,
+    drugName: row.drug_name,
+    quantityDispensed: row.quantity_dispensed,
+    dispensedAt: row.dispensed_at,
+    partialDispenseReason: row.partial_dispense_reason ?? undefined,
+    screeningVerdict: row.screening_verdict,
+    screeningFlags: row.screening_flags as Flag[],
+    screenedAt: row.screened_at,
+    overrideNote: row.override_note ?? undefined,
+  };
 }
 
 export async function listDispenseRecords(): Promise<DispenseRecord[]> {
-  await ensureSeeded();
-  const all = await db.dispenseRecords.toArray();
-  return all.sort((a, b) => b.dispensedAt.localeCompare(a.dispensedAt));
+  const { data, error } = await supabase.from("dispense_records").select("*").order("dispensed_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
 }
 
 export async function listDispenseRecordsByPatient(patientId: string): Promise<DispenseRecord[]> {
-  await ensureSeeded();
-  const all = await db.dispenseRecords.where("patientId").equals(patientId).toArray();
-  return all.sort((a, b) => b.dispensedAt.localeCompare(a.dispensedAt));
+  const { data, error } = await supabase
+    .from("dispense_records")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("dispensed_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
 }

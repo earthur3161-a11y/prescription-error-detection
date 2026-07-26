@@ -1,6 +1,6 @@
 import type { Drug, Route } from "../types";
 
-const VALID_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual"];
+const VALID_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual", "subcutaneous"];
 
 export const CSV_TEMPLATE_HEADERS = [
   "generic_name",

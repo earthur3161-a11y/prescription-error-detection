@@ -1,8 +1,8 @@
 // Core domain model shared across the app, data layer, and screening engine.
 
-import type { DrugLineVerdict, Verdict } from "./screening-engine/types";
+import type { DrugLineVerdict, Flag, Verdict } from "./screening-engine/types";
 
-export type Route = "oral" | "IV" | "IM" | "topical" | "inhaled" | "rectal" | "sublingual";
+export type Route = "oral" | "IV" | "IM" | "topical" | "inhaled" | "rectal" | "sublingual" | "subcutaneous";
 
 export interface PediatricDosing {
   mgPerKgPerDose: number;
@@ -386,6 +386,16 @@ export interface DispenseRecord {
   dispensedAt: string;
   /** Required when the dispensed quantity differs from what was prescribed. */
   partialDispenseReason?: string;
+  /**
+   * The screening result as re-checked, fresh, at the moment of dispense —
+   * never a possibly-stale earlier pass. Written exclusively by the
+   * dispense_drug() RPC (see supabase/migrations/0010), never client-supplied.
+   */
+  screeningVerdict: Verdict;
+  screeningFlags: Flag[];
+  screenedAt: string;
+  /** Required (server-enforced, not just UI) whenever screeningVerdict is not "safe". */
+  overrideNote?: string;
 }
 
 export type PharmacistActionType =

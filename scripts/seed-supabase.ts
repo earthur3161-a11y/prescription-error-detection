@@ -19,10 +19,12 @@ import type { Database, ProfileRole } from "../lib/supabase/types";
 import { DEFAULT_REGION, getFormularyBundle } from "../lib/formulary";
 import { screenDrugLine } from "../lib/screening-engine";
 import { seedPatients } from "../lib/data/seed/patients";
+import { buildSeedBatches } from "../lib/data/seed/pharmacyInventory";
 import type { Patient, PrescriptionDrugLine } from "../lib/types";
 
 type PrescriptionInsert = Database["public"]["Tables"]["prescriptions"]["Insert"];
 type OverrideLogInsert = Database["public"]["Tables"]["override_logs"]["Insert"];
+type BatchInsert = Database["public"]["Tables"]["batches"]["Insert"];
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -359,6 +361,51 @@ async function seedClinicalData(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Phase F: pharmacy inventory (batches) — moved off Dexie in
+// supabase/migrations/0010_pharmacy_dispense_gate.sql, so the dispense_drug()
+// RPC has a real, shared, lockable table to decrement. Reuses the exact same
+// demo stock scenarios as the old Dexie seed (buildSeedBatches) — healthy,
+// near-expiry, expired, and low-stock batches — just without the fixed local
+// ids, since batches.id is now a real Postgres uuid with a DB-generated
+// default. dispense_records is NOT seeded here: it's the audit trail of
+// actual gated dispenses, not backdated fixture data.
+// ---------------------------------------------------------------------------
+
+async function seedBatches(): Promise<void> {
+  console.log("\nSeeding pharmacy batches...");
+
+  const { count, error: countError } = await supabase
+    .from("batches")
+    .select("id", { count: "exact", head: true });
+  if (countError) {
+    console.error("  FAILED to check for existing batches:", countError.message);
+    return;
+  }
+  if (count && count > 0) {
+    console.log("  Batches already seeded — skipping.");
+    return;
+  }
+
+  const formulary = getFormularyBundle(DEFAULT_REGION);
+  const rows: BatchInsert[] = buildSeedBatches(formulary).map((b) => ({
+    drug_id: b.drugId,
+    batch_number: b.batchNumber,
+    supplier: b.supplier,
+    received_date: b.receivedDate,
+    expiry_date: b.expiryDate,
+    quantity_remaining: b.quantityRemaining,
+    status: b.status === "recalled" ? "recalled" : "active",
+  }));
+
+  const { error } = await supabase.from("batches").insert(rows);
+  if (error) {
+    console.error("  FAILED to insert batches:", error.message);
+  } else {
+    console.log(`  ${rows.length} batches seeded`);
+  }
+}
+
 async function main() {
   console.log(`Seeding ${DEMO_ACCOUNTS.length} demo accounts into ${SUPABASE_URL}...`);
   for (const account of DEMO_ACCOUNTS) {
@@ -367,6 +414,7 @@ async function main() {
   console.log(`\nDone. Password for all demo accounts: "${DEMO_PASSWORD}" (MFA: any 6 digits, simulated).`);
 
   await seedClinicalData();
+  await seedBatches();
 }
 
 main().catch((err) => {

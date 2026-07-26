@@ -1,5 +1,6 @@
 import type { Drug } from "../../types";
 import { ghanaDrugsExtended } from "./drugsExtended";
+import { emlExpansionDrugs } from "./emlExpansion";
 
 // NOTE ON CLINICAL FIELDS (pregnancyCategory / renal- & hepaticDoseGuidance):
 // These are illustrative demo values for well-established, textbook cases only
@@ -582,7 +583,43 @@ function dedupeByGenericName<T extends { generic_name: string }>(drugs: T[]): T[
   });
 }
 
-export const ghanaDrugs: Drug[] = dedupeByGenericName([...baseDrugs, ...ghanaDrugsExtended]).map(
+/**
+ * Hard completeness gate for the EML expansion batch (lib/formulary/ghana/
+ * emlExpansion.ts). Every candidate drug considered for that batch was either
+ * fully sourced against real Ghana STG/EML text or logged in that file's
+ * `emlExpansionExcluded` array with a specific reason — nothing was imported
+ * with a silent gap. This function makes that guarantee mechanical rather
+ * than just a claim about the research process: it re-validates every
+ * required field at merge time and throws (rather than silently dropping or
+ * importing a partial record) if any expansion entry is incomplete.
+ */
+function assertComplete(drug: Omit<Drug, "onEssentialMedicinesList" | "emlAlternativeDrugId">): void {
+  const missing: string[] = [];
+  if (!drug.generic_name?.trim()) missing.push("generic_name");
+  if (!drug.class?.trim()) missing.push("class");
+  if (!drug.route || drug.route.length === 0) missing.push("route");
+  if (!drug.region_availability || drug.region_availability.length === 0) missing.push("region_availability");
+  const dose = drug.standard_dose_range;
+  if (!dose) {
+    missing.push("standard_dose_range");
+  } else {
+    if (typeof dose.minMgPerDose !== "number") missing.push("standard_dose_range.minMgPerDose");
+    if (typeof dose.maxMgPerDose !== "number") missing.push("standard_dose_range.maxMgPerDose");
+    if (typeof dose.maxMgPerDay !== "number") missing.push("standard_dose_range.maxMgPerDay");
+    if (!dose.frequency?.trim()) missing.push("standard_dose_range.frequency");
+    if (typeof dose.weightBased !== "boolean") missing.push("standard_dose_range.weightBased");
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `Formulary completeness gate rejected "${drug.generic_name ?? drug.id}": missing required field(s) ${missing.join(", ")}. ` +
+        `Fix the source data in emlExpansion.ts or move it to emlExpansionExcluded with a reason — do not import a partial entry.`
+    );
+  }
+}
+
+emlExpansionDrugs.forEach(assertComplete);
+
+export const ghanaDrugs: Drug[] = dedupeByGenericName([...baseDrugs, ...ghanaDrugsExtended, ...emlExpansionDrugs]).map(
   (drug) => {
     const alternative = NOT_ON_EML[drug.id];
     const onEML = !(drug.id in NOT_ON_EML);

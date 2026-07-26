@@ -256,6 +256,39 @@ export type SuperadminPatientCheckActivityRow = {
   pulled_into_prescription_id: string | null;
 };
 
+export type BatchStatusDb = "active" | "recalled";
+
+export type BatchRow = {
+  id: string;
+  drug_id: string;
+  batch_number: string;
+  supplier: string;
+  received_date: string;
+  expiry_date: string;
+  quantity_remaining: number;
+  status: BatchStatusDb;
+  created_at: string;
+};
+
+export type ScreeningVerdictDb = "safe" | "caution" | "blocked";
+
+export type DispenseRecordRow = {
+  id: string;
+  prescription_id: string;
+  patient_id: string;
+  pharmacist_id: string;
+  batch_id: string;
+  drug_id: string;
+  drug_name: string;
+  quantity_dispensed: number;
+  partial_dispense_reason: string | null;
+  screening_verdict: ScreeningVerdictDb;
+  screening_flags: unknown;
+  screened_at: string;
+  override_note: string | null;
+  dispensed_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -350,6 +383,22 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      batches: {
+        Row: BatchRow;
+        Insert: Partial<BatchRow> &
+          Pick<BatchRow, "drug_id" | "batch_number" | "supplier" | "received_date" | "expiry_date" | "quantity_remaining">;
+        Update: Partial<BatchRow>;
+        Relationships: [];
+      };
+      dispense_records: {
+        // Insert/Update are `never` at the type level too: the only writer is
+        // the dispense_drug() RPC (service_role only), not a direct table
+        // insert — see the migration's header comment for why.
+        Row: DispenseRecordRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -419,6 +468,25 @@ export type Database = {
       get_superadmin_patient_check_activity: {
         Args: Record<string, never>;
         Returns: SuperadminPatientCheckActivityRow[];
+      };
+      // service_role only — see 0010's header comment. Not callable from the
+      // browser client, included here only for typing supabaseService calls.
+      dispense_drug: {
+        Args: {
+          p_prescription_id: string;
+          p_patient_id: string;
+          p_pharmacist_id: string;
+          p_batch_id: string;
+          p_drug_id: string;
+          p_drug_name: string;
+          p_quantity: number;
+          p_partial_dispense_reason: string | null;
+          p_screening_verdict: ScreeningVerdictDb;
+          p_screening_flags: unknown;
+          p_screened_at: string;
+          p_override_note: string | null;
+        };
+        Returns: DispenseRecordRow;
       };
     };
   };
