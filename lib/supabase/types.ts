@@ -85,7 +85,8 @@ export type PrescriptionStatusDb =
   | "rejected"
   | "verified"
   | "dispensed"
-  | "flagged";
+  | "flagged"
+  | "cancelled";
 export type PrescriptionSourceDb = "physician" | "patient_submitted" | "walk_in";
 
 export type PrescriptionRow = {
@@ -103,6 +104,14 @@ export type PrescriptionRow = {
   patient_check_id: string | null;
   // Same convention as patients.institution_id — see 0012_institution_boundary.sql.
   institution_id: string | null;
+  // Versioning (0016_prescription_versioning.sql): null on the root version,
+  // otherwise points at the ROOT of the chain (not the immediate
+  // predecessor) — every version, one query, no recursion.
+  original_prescription_id: string | null;
+  version_number: number;
+  // null = this is the current version. Set on the OLD row the instant a
+  // new version is created via create_prescription_version().
+  superseded_by: string | null;
 };
 
 export type OverrideLogRow = {
@@ -494,6 +503,18 @@ export type Database = {
           p_override_note: string | null;
         };
         Returns: DispenseRecordRow;
+      };
+      // authenticated-callable, security invoker — see 0016's header comment
+      // for why this differs from dispense_drug's service_role-only grant.
+      create_prescription_version: {
+        Args: {
+          p_editing_id: string;
+          p_new_id: string;
+          p_drugs: unknown;
+          p_verdicts: unknown;
+          p_status: PrescriptionStatusDb;
+        };
+        Returns: PrescriptionRow;
       };
     };
   };

@@ -11,6 +11,7 @@ const STATUS_CONFIG: Record<PrescriptionStatus, { label: string; tone: "neutral"
   verified: { label: "Verified", tone: "safe" },
   dispensed: { label: "Dispensed", tone: "safe" },
   flagged: { label: "Flagged to Prescriber", tone: "blocked" },
+  cancelled: { label: "Cancelled", tone: "neutral" },
 };
 
 export function PrescriptionStatusBadge({ status }: { status: PrescriptionStatus }) {

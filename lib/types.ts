@@ -226,7 +226,22 @@ export type PrescriptionStatus =
   | "rejected" // stopped entirely by pharmacist
   | "verified"
   | "dispensed"
-  | "flagged";
+  | "flagged"
+  | "cancelled"; // cancel is always a status flag, never a hard delete/overwrite
+
+/** Statuses a prescription can be edited from — matches create_prescription_version()'s
+ *  own check (0016_prescription_versioning.sql) exactly; keep both in sync.
+ *  Deliberately excludes cleared/verified/dispensed: those represent a
+ *  completed clinical decision, so a correction after that point is a new
+ *  prescription, not an edit to this one. */
+export const EDITABLE_PRESCRIPTION_STATUSES: readonly PrescriptionStatus[] = [
+  "draft",
+  "submitted",
+  "under_review",
+  "held",
+  "flagged",
+  "rejected",
+];
 
 /** How this prescription's drug-check request arrived. */
 export type PrescriptionSource = "physician" | "patient_submitted" | "walk_in";
@@ -249,6 +264,26 @@ export interface Prescription {
   patientCheckId?: string;
   /** Same convention as Patient.institutionId — set once at creation from the prescriber's own JWT claim, never client-chosen. */
   institutionId?: string | null;
+  /** Null on the root version, otherwise the ROOT of this prescription's edit chain (see 0016_prescription_versioning.sql) — never the immediate predecessor. */
+  originalPrescriptionId?: string | null;
+  /** 1 on the root version, incrementing per edit. */
+  versionNumber: number;
+  /** Null = this is the current version. Set the instant a newer edit is created. */
+  supersededBy?: string | null;
+}
+
+/**
+ * Client-side mirror of create_prescription_version()'s own guard
+ * (0016_prescription_versioning.sql) — NOT the real enforcement (RLS/the
+ * RPC is), just a fast, friendly pre-check so a future edit affordance can
+ * decide whether to even offer editing without a round trip. Keep in sync
+ * with the RPC's checks by construction: both read EDITABLE_PRESCRIPTION_STATUSES.
+ */
+export function isPrescriptionEditable(prescription: Pick<Prescription, "status" | "supersededBy">): boolean {
+  return (
+    (prescription.supersededBy ?? null) === null &&
+    EDITABLE_PRESCRIPTION_STATUSES.includes(prescription.status)
+  );
 }
 
 export type OverrideReasonCode =

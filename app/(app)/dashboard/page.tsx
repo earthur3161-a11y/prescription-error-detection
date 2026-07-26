@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const { data: patients, isLoading: patientsLoading } = usePatients();
   const { data: prescriptions, isLoading: rxLoading } = usePrescriptions({
     prescriberId: user?.id,
+    currentOnly: true,
   });
 
   return (

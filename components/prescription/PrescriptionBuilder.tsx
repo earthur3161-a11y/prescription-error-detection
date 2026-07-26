@@ -169,6 +169,7 @@ export function PrescriptionBuilder({
       createdAt: new Date().toISOString(),
       source,
       institutionId,
+      versionNumber: 1, // always the root of a fresh edit chain
       ...(externalPrescriberName ? { externalPrescriberName } : {}),
       ...(patientCheckId ? { patientCheckId } : {}),
     };

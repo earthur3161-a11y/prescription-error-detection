@@ -21,7 +21,15 @@ const REASON_LABELS: Record<string, string> = {
 
 export default function PharmacistErrorLogPage() {
   const { user } = useAuth();
-  const { data: allPrescriptions, isLoading: rxLoading } = usePrescriptions({});
+  // Unfiltered — must resolve overrideLogs against the EXACT prescription
+  // version they were logged against, even if that version has since been
+  // edited/superseded. Filtering this would make old overrides resolve to
+  // "Unknown patient" instead of their real historical context.
+  const { data: allPrescriptions } = usePrescriptions({});
+  // Current-only — this is a live "still needs attention" work queue; a
+  // flagged version that's since been corrected by an edit shouldn't still
+  // show up here as outstanding.
+  const { data: currentPrescriptions, isLoading: rxLoading } = usePrescriptions({ currentOnly: true });
   const { data: overrideLogs, isLoading: logsLoading } = useOverrideLogs({ userId: user?.id });
   const { data: patients } = usePatients();
   const { data: formulary } = useFormulary();
@@ -39,7 +47,7 @@ export default function PharmacistErrorLogPage() {
     [allPrescriptions]
   );
 
-  const flagBacks = (allPrescriptions ?? []).filter(
+  const flagBacks = (currentPrescriptions ?? []).filter(
     (rx) => rx.status === "flagged" && rx.pharmacistNote
   );
 

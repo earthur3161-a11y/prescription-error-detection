@@ -26,7 +26,7 @@ export default function PrescriptionHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "all">("all");
 
   const { data: prescriptions, isLoading } = usePrescriptions(
-    statusFilter === "all" ? {} : { status: statusFilter }
+    statusFilter === "all" ? { currentOnly: true } : { status: statusFilter, currentOnly: true }
   );
   const { data: patients } = usePatients();
   const patientNameById = useMemo(

@@ -18,6 +18,9 @@ function mapRow(row: PrescriptionRow): Prescription {
     externalPrescriberName: row.external_prescriber_name ?? undefined,
     patientCheckId: row.patient_check_id ?? undefined,
     institutionId: row.institution_id,
+    originalPrescriptionId: row.original_prescription_id,
+    versionNumber: row.version_number,
+    supersededBy: row.superseded_by,
   };
 }
 
@@ -26,6 +29,17 @@ export interface PrescriptionFilters {
   prescriberId?: string;
   status?: PrescriptionStatus;
   source?: PrescriptionSource;
+  /**
+   * Excludes superseded (edited-away) versions — for "live" views: work
+   * queues, browse/search lists, patient charts, dashboards. Deliberately
+   * NOT the default: audit/compliance streams and reporting metrics
+   * (useAuditEvents, useFacilityMetrics, the superadmin activity feed) need
+   * every version, since each edit is a real screening event that happened
+   * and override_logs/dispense_records must still resolve against exact
+   * old versions by id. Filtering those would hide real history, not just
+   * declutter a list — see 0016_prescription_versioning.sql's header.
+   */
+  currentOnly?: boolean;
 }
 
 export async function listPrescriptions(filters: PrescriptionFilters = {}): Promise<Prescription[]> {
@@ -34,6 +48,7 @@ export async function listPrescriptions(filters: PrescriptionFilters = {}): Prom
   if (filters.prescriberId) query = query.eq("prescriber_id", filters.prescriberId);
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.source) query = query.eq("source", filters.source);
+  if (filters.currentOnly) query = query.is("superseded_by", null);
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapRow);
@@ -68,10 +83,39 @@ export async function createPrescription(prescription: Prescription): Promise<Pr
       external_prescriber_name: prescription.externalPrescriberName ?? null,
       patient_check_id: prescription.patientCheckId ?? null,
       institution_id: prescription.institutionId ?? null,
+      version_number: prescription.versionNumber,
     })
     .select()
     .single();
   if (error || !data) throw error ?? new Error("Failed to save prescription.");
+  return mapRow(data);
+}
+
+/**
+ * Creates a new version of an existing prescription — an edit, never an
+ * in-place overwrite. `drugs`/`verdicts` must be freshly computed by the
+ * caller (screenDrugLine against the new drug list), the same way
+ * createPrescription already trusts client-computed verdicts at creation
+ * time; this function doesn't recompute them itself. Delegates the actual
+ * two-row write (insert the new version, mark the old one superseded) to
+ * create_prescription_version() so it's atomic — see 0016's header for why
+ * this couldn't be two separate calls from here.
+ */
+export async function createPrescriptionVersion(
+  editingId: string,
+  newId: string,
+  drugs: PrescriptionDrugLine[],
+  verdicts: DrugLineVerdict[],
+  status: PrescriptionStatus = "submitted"
+): Promise<Prescription> {
+  const { data, error } = await supabase.rpc("create_prescription_version", {
+    p_editing_id: editingId,
+    p_new_id: newId,
+    p_drugs: drugs,
+    p_verdicts: verdicts,
+    p_status: status,
+  });
+  if (error || !data) throw error ?? new Error("Failed to create a new prescription version.");
   return mapRow(data);
 }
 

@@ -54,6 +54,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_kwabena_owusu", rx1Lines, formulary),
     status: "dispensed",
     createdAt: "2026-06-28T09:15:00.000Z",
+    versionNumber: 1,
     source: "physician",
   });
 
@@ -78,6 +79,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_kojo_asante", rx2Lines, formulary),
     status: "verified",
     createdAt: "2026-06-29T11:40:00.000Z",
+    versionNumber: 1,
     source: "physician",
   });
   overrideLogs.push({
@@ -112,6 +114,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_abena_sarpong", rx3Lines, formulary),
     status: "submitted",
     createdAt: "2026-07-01T14:05:00.000Z",
+    versionNumber: 1,
     source: "physician",
   });
   overrideLogs.push({
@@ -147,6 +150,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_yaw_boadi", rx4Lines, formulary),
     status: "submitted",
     createdAt: "2026-07-02T08:20:00.000Z",
+    versionNumber: 1,
     source: "walk_in",
     externalPrescriberName: "Dr. Nana Yeboah (Ridge Hospital, external)",
   });
@@ -172,6 +176,7 @@ export function buildSeedData(formulary: FormularyBundle): {
     verdicts: screenAll("patient_kojo_asante", rx5Lines, formulary),
     status: "submitted",
     createdAt: "2026-07-02T10:05:00.000Z",
+    versionNumber: 1,
     source: "patient_submitted",
     patientCheckId: "check_demo_1",
   });

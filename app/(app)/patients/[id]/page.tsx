@@ -24,7 +24,7 @@ export default function PatientProfilePage({
   const { id } = use(params);
   const { data: patient, isLoading } = usePatient(id);
   const { data: formulary } = useFormulary();
-  const { data: prescriptions } = usePrescriptions({ patientId: id });
+  const { data: prescriptions } = usePrescriptions({ patientId: id, currentOnly: true });
   const { data: dispenses } = useDispenseRecordsByPatient(id);
 
   if (isLoading || !formulary) {
