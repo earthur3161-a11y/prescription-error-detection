@@ -80,11 +80,45 @@ export interface AllergyRule {
   referenceSource?: string;
 }
 
+/**
+ * Unlike InteractionRule/AllergyRule, absence of a matching rule for a given
+ * drug is NOT an unknown-data case — there's no patient attribute that could
+ * be missing here. It genuinely means "no sourced food interaction for this
+ * drug," the same way a drug having no `pregnancyCategory` doesn't imply one
+ * exists but wasn't recorded. referenceSource is required (not optional,
+ * unlike the two rule types above) — every entry must cite a real,
+ * checkable source; see lib/formulary/ghana/foodInteractionRules.ts's own
+ * header for the sourcing methodology.
+ */
+export interface FoodInteractionRule {
+  id: string;
+  drug_id: string;
+  severity: InteractionSeverity;
+  /** What to avoid/separate, in plain terms — e.g. "Dairy products and calcium-fortified foods". */
+  food: string;
+  description: string;
+  /** Concrete, actionable guidance — e.g. "Separate by at least 2 hours" vs. "Avoid entirely". */
+  guidance: string;
+  referenceSource: string;
+}
+
+/** Same absence-is-not-unknown convention as FoodInteractionRule — see its own comment. */
+export interface AlcoholInteractionRule {
+  id: string;
+  drug_id: string;
+  severity: InteractionSeverity;
+  description: string;
+  guidance: string;
+  referenceSource: string;
+}
+
 export interface FormularyBundle {
   region: string;
   drugs: Drug[];
   interactionRules: InteractionRule[];
   allergyRules: AllergyRule[];
+  foodInteractionRules: FoodInteractionRule[];
+  alcoholInteractionRules: AlcoholInteractionRule[];
 }
 
 export type AllergySeverity = "mild" | "moderate" | "severe";

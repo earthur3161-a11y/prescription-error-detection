@@ -24,6 +24,8 @@ const stubFormulary: FormularyBundle = {
   ],
   interactionRules: [],
   allergyRules: [],
+  foodInteractionRules: [],
+  alcoholInteractionRules: [],
 };
 
 vi.mock("@/lib/query/hooks/useFormulary", () => ({

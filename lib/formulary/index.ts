@@ -1,6 +1,8 @@
 import type { FormularyBundle } from "../types";
 import { ghanaAllergyRules } from "./ghana/allergyRules";
+import { ghanaAlcoholInteractionRules } from "./ghana/alcoholInteractionRules";
 import { ghanaDrugs } from "./ghana/drugs";
+import { ghanaFoodInteractionRules } from "./ghana/foodInteractionRules";
 import { ghanaInteractionRules } from "./ghana/interactionRules";
 
 const formularyRegistry: Record<string, () => FormularyBundle> = {
@@ -9,6 +11,8 @@ const formularyRegistry: Record<string, () => FormularyBundle> = {
     drugs: ghanaDrugs,
     interactionRules: ghanaInteractionRules,
     allergyRules: ghanaAllergyRules,
+    foodInteractionRules: ghanaFoodInteractionRules,
+    alcoholInteractionRules: ghanaAlcoholInteractionRules,
   }),
 };
 

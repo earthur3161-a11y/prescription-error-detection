@@ -102,9 +102,11 @@ describe("editing a prescription re-screens fresh against the new drug list", ()
   }
 
   it("produces a different, worse verdict when the edit introduces a real interaction the original didn't have", () => {
-    // Original version: paracetamol, no interaction with the patient's
-    // warfarin — screens safe.
-    const originalLine = makeLine({ drugId: "drug_paracetamol" });
+    // Original version: amoxicillin — no interaction with the patient's
+    // warfarin, and (unlike paracetamol, since this session's food/alcohol
+    // interaction work) no unconditional food/alcohol flag of its own —
+    // screens safe.
+    const originalLine = makeLine({ drugId: "drug_amoxicillin" });
     const originalVerdict = screenDrugLine({ patient, drugLine: originalLine, otherLines: [originalLine], formulary });
     expect(originalVerdict.verdict).toBe("safe");
 
@@ -128,7 +130,7 @@ describe("editing a prescription re-screens fresh against the new drug list", ()
     const originalVerdict = screenDrugLine({ patient, drugLine: originalLine, otherLines: [originalLine], formulary });
     expect(originalVerdict.verdict).toBe("blocked");
 
-    const editedLine = makeLine({ drugId: "drug_paracetamol" });
+    const editedLine = makeLine({ drugId: "drug_amoxicillin" });
     const editedVerdict = screenDrugLine({ patient, drugLine: editedLine, otherLines: [editedLine], formulary });
     expect(editedVerdict.verdict).toBe("safe");
     expect(editedVerdict.verdict).not.toBe(originalVerdict.verdict);

@@ -53,7 +53,12 @@ function screen(input: Partial<ScreeningInput> & { drugLine: PrescriptionDrugLin
 
 describe("screenDrugLine", () => {
   it("returns safe with no flags for a clean patient and standard dose", () => {
-    const result = screen({ patient: makePatient(), drugLine: makeLine() });
+    // drug_amoxicillin, not makeLine()'s own paracetamol default — paracetamol
+    // now carries a real, sourced, unconditional alcohol-interaction flag
+    // (alcoholInteractionRules.ts) that correctly floors it below "safe"
+    // regardless of patient data, so it's no longer a valid "nothing at all
+    // is wrong" baseline.
+    const result = screen({ patient: makePatient(), drugLine: makeLine({ drugId: "drug_amoxicillin" }) });
     expect(result.verdict).toBe("safe");
     expect(result.flags).toHaveLength(0);
   });
@@ -177,7 +182,11 @@ describe("screenDrugLine", () => {
 
   it("treats an empty allergy/medication array as confirmed-none, not unknown", () => {
     const patient = makePatient({ allergies: [], activeMedications: [] });
-    const result = screen({ patient, drugLine: makeLine() });
+    // drug_amoxicillin specifically: paracetamol (makeLine()'s own default)
+    // now carries a real, sourced, unconditional alcohol-interaction flag
+    // (see alcoholInteractionRules.ts) that would floor this below "safe"
+    // for a reason unrelated to what this test actually checks.
+    const result = screen({ patient, drugLine: makeLine({ drugId: "drug_amoxicillin" }) });
     expect(result.flags.some((f) => f.severity === "unknown")).toBe(false);
     expect(result.verdict).toBe("safe");
   });
@@ -465,18 +474,28 @@ describe("screenDrugLine", () => {
   // ---------------------------------------------------------------------
 
   it("flags unknown renal status differently from confirmed-normal on a renally-avoided drug", () => {
+    // Metformin is the only renally-avoided drug in the formulary, so it
+    // can't be swapped for a drug without an unrelated flag — it also now
+    // carries a real, sourced, unconditional alcohol-interaction flag
+    // (severity "severe", per the FDA black-box warning) that permanently
+    // floors its overall verdict at "blocked" regardless of renal status.
+    // Asserting on the specific renal-related flag codes directly (rather
+    // than the emergent verdict, which the alcohol flag now dominates) is
+    // more precise anyway — it's what this test actually cares about.
     const line = makeLine({ drugId: "drug_metformin", doseMg: 500, frequencyPerDay: 2 });
 
     const normal = screen({ patient: makePatient({ renalStatus: "normal" }), drugLine: line });
     expect(normal.flags.some((f) => f.code === "RENAL_STATUS_UNKNOWN")).toBe(false);
-    expect(normal.verdict).toBe("safe");
+    expect(normal.flags.some((f) => f.code === "RENAL_AVOID")).toBe(false);
 
     const unknown = screen({ patient: makePatient({ renalStatus: "unknown" }), drugLine: line });
     expect(unknown.flags.some((f) => f.code === "RENAL_STATUS_UNKNOWN")).toBe(true);
-    expect(unknown.verdict).not.toBe("safe");
-    // Distinct from the confirmed-impaired outcome too (RENAL_AVOID blocks) —
-    // "unknown" floors at caution, it doesn't assume the worst case either.
-    expect(unknown.verdict).not.toBe("blocked");
+    // Distinct from the confirmed-impaired outcome too — "unknown" must not
+    // be conflated with "confirmed impaired" (which raises RENAL_AVOID).
+    expect(unknown.flags.some((f) => f.code === "RENAL_AVOID")).toBe(false);
+
+    const impaired = screen({ patient: makePatient({ renalStatus: "impaired" }), drugLine: line });
+    expect(impaired.flags.some((f) => f.code === "RENAL_AVOID")).toBe(true);
   });
 
   it("flags unknown hepatic status differently from confirmed-normal on a hepatically-adjusted drug", () => {
@@ -491,11 +510,18 @@ describe("screenDrugLine", () => {
   });
 
   it("flags unknown pregnancy status differently from confirmed-not-pregnant on a category X drug", () => {
+    // Warfarin now also carries a real, sourced food-interaction flag
+    // (vitamin K-rich foods, moderate severity — see foodInteractionRules.ts)
+    // that's unconditional and unrelated to pregnancy status, so
+    // confirmedNegative can no longer reach "safe" for a reason that has
+    // nothing to do with what this test checks. Asserting on
+    // PREGNANCY_STATUS_UNKNOWN specifically (rather than overall verdict)
+    // isolates the actual thing under test.
     const line = makeLine({ drugId: "drug_warfarin", doseMg: 5, frequencyPerDay: 1 });
 
     const confirmedNegative = screen({ patient: makePatient({ isPregnant: false }), drugLine: line });
     expect(confirmedNegative.flags.some((f) => f.code === "PREGNANCY_STATUS_UNKNOWN")).toBe(false);
-    expect(confirmedNegative.verdict).toBe("safe");
+    expect(confirmedNegative.flags.some((f) => f.code === "PREGNANCY_CATEGORY_X")).toBe(false);
 
     const unknown = screen({ patient: makePatient({ isPregnant: null }), drugLine: line });
     expect(unknown.flags.some((f) => f.code === "PREGNANCY_STATUS_UNKNOWN")).toBe(true);
@@ -601,5 +627,66 @@ describe("screenDrugLine", () => {
     const nonBannerFlags = result.flags.filter((f) => f.type !== "data_incomplete");
     expect(nonBannerFlags).toHaveLength(1);
     expect(nonBannerFlags[0].code).toBe("UNRECOGNIZED_DRUG");
+  });
+
+  // ---------------------------------------------------------------------
+  // Drug-food / drug-alcohol interactions: a different kind of check from
+  // everything above. Every other "unknown" case in this file is about a
+  // PATIENT attribute that could genuinely be missing (renal status,
+  // pregnancy, age...) and must never silently resolve as if it were
+  // confirmed-normal. These two checks have no patient-attribute input at
+  // all — they're a pure drugId lookup against sourced reference data
+  // (lib/formulary/ghana/{food,alcohol}InteractionRules.ts). A drug with no
+  // matching rule genuinely has no known interaction of this type; that's
+  // not missing data to flag as unknown, the same way emlCheck.ts doesn't
+  // raise an unknown flag for a drug it simply has no EML data gap for.
+  // ---------------------------------------------------------------------
+
+  it("flags a sourced drug-food interaction with a real citation", () => {
+    const result = screen({
+      patient: makePatient(),
+      drugLine: makeLine({ drugId: "drug_warfarin", doseMg: 5, frequencyPerDay: 1 }),
+    });
+    const flag = result.flags.find((f) => f.code === "DRUG_FOOD_INTERACTION");
+    expect(flag?.type).toBe("drug_food_interaction");
+    expect(flag?.referenceSource).toBeTruthy();
+    expect(result.verdict).not.toBe("safe");
+  });
+
+  it("flags a sourced drug-alcohol interaction with a real citation", () => {
+    const result = screen({
+      patient: makePatient(),
+      drugLine: makeLine({ drugId: "drug_metronidazole", doseMg: 400, frequencyPerDay: 3 }),
+    });
+    const flag = result.flags.find((f) => f.code === "DRUG_ALCOHOL_INTERACTION");
+    expect(flag?.type).toBe("drug_alcohol_interaction");
+    expect(flag?.referenceSource).toBeTruthy();
+    expect(result.verdict).not.toBe("safe");
+  });
+
+  it("raises no food/alcohol flag — and no unknown-severity flag of any kind from these two checks — for a drug with no sourced rule", () => {
+    // Amoxicillin has no entry in either reference file. Absence must
+    // resolve as "no known interaction of this type," not "unknown, verify
+    // manually" — the opposite of how a missing patient attribute behaves
+    // elsewhere in this engine. A clean patient on a clean drug must still
+    // reach "safe".
+    const result = screen({
+      patient: makePatient(),
+      drugLine: makeLine({ drugId: "drug_amoxicillin", doseMg: 500, frequencyPerDay: 3 }),
+    });
+    expect(result.flags.some((f) => f.type === "drug_food_interaction")).toBe(false);
+    expect(result.flags.some((f) => f.type === "drug_alcohol_interaction")).toBe(false);
+    expect(result.verdict).toBe("safe");
+  });
+
+  it("every drug-food and drug-alcohol rule cites a real, non-empty reference source", () => {
+    // A softer, dataset-wide version of the "don't fabricate" requirement:
+    // every entry must carry a citation, not just the two spot-checked above.
+    for (const rule of formulary.foodInteractionRules) {
+      expect(rule.referenceSource.trim().length).toBeGreaterThan(0);
+    }
+    for (const rule of formulary.alcoholInteractionRules) {
+      expect(rule.referenceSource.trim().length).toBeGreaterThan(0);
+    }
   });
 });

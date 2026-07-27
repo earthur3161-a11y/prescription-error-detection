@@ -19,6 +19,8 @@ const stubFormulary: FormularyBundle = {
   drugs: [stubDrug],
   interactionRules: [],
   allergyRules: [],
+  foodInteractionRules: [],
+  alcoholInteractionRules: [],
 };
 
 const pushMock = vi.fn();

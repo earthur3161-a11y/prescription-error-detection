@@ -20,6 +20,8 @@ export type FlagType =
   | "data_incomplete"
   | "eml_compliance"
   | "indication_mismatch"
+  | "drug_food_interaction"
+  | "drug_alcohol_interaction"
   /**
    * The drugId on this line isn't in the formulary at all — none of the
    * other 9 checks can meaningfully run (most require looking the drug up),

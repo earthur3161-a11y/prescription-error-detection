@@ -12,12 +12,14 @@ export async function getCachedFormularyBundle(
   region: string = DEFAULT_REGION
 ): Promise<FormularyBundle> {
   await ensureSeeded();
-  const [drugs, interactionRules, allergyRules] = await Promise.all([
+  const [drugs, interactionRules, allergyRules, foodInteractionRules, alcoholInteractionRules] = await Promise.all([
     db.drugs.toArray(),
     db.interactionRules.toArray(),
     db.allergyRules.toArray(),
+    db.foodInteractionRules.toArray(),
+    db.alcoholInteractionRules.toArray(),
   ]);
-  return { region, drugs, interactionRules, allergyRules };
+  return { region, drugs, interactionRules, allergyRules, foodInteractionRules, alcoholInteractionRules };
 }
 
 export async function searchDrugs(query: string): Promise<Drug[]> {

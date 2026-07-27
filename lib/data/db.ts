@@ -4,7 +4,9 @@ import type {
   AccessRequest,
   Account,
   AllergyRule,
+  AlcoholInteractionRule,
   Drug,
+  FoodInteractionRule,
   InteractionRule,
   OutboxItem,
   OverrideLog,
@@ -32,6 +34,8 @@ export class MediGuardDB extends Dexie {
   drugs!: Table<Drug, string>;
   interactionRules!: Table<InteractionRule, string>;
   allergyRules!: Table<AllergyRule, string>;
+  foodInteractionRules!: Table<FoodInteractionRule, string>;
+  alcoholInteractionRules!: Table<AlcoholInteractionRule, string>;
   prescriptions!: Table<Prescription, string>;
   overrideLogs!: Table<OverrideLog, string>;
   outbox!: Table<OutboxItem, number>;
@@ -107,6 +111,16 @@ export class MediGuardDB extends Dexie {
     // can never provide. stockAdjustments/pharmacistActions/pharmacySettings
     // stay local; they aren't part of the dispense-safety path.
     this.version(9).stores({ ...v7Stores, integrationConfig: null, batches: null, dispenseRecords: null });
+    // Drug-food/drug-alcohol interaction reference data (new checks — see
+    // lib/screening-engine/checks/{food,alcohol}InteractionCheck.ts).
+    this.version(10).stores({
+      ...v7Stores,
+      integrationConfig: null,
+      batches: null,
+      dispenseRecords: null,
+      foodInteractionRules: "id, drug_id",
+      alcoholInteractionRules: "id, drug_id",
+    });
   }
 }
 
@@ -116,7 +130,7 @@ export class MediGuardDB extends Dexie {
  * browsers are refreshed from source when this differs from what's stored, so
  * data changes propagate without a manual cache clear.
  */
-const FORMULARY_VERSION = "2026-07-13-allergy-reaction-text-v1";
+const FORMULARY_VERSION = "2026-07-26-food-alcohol-interactions-v1";
 
 export const db = new MediGuardDB();
 
@@ -137,12 +151,18 @@ async function runBootstrap(): Promise<void> {
       // manual IndexedDB clear — the fix for stale on/off-EML labels.
       const storedVersion = (await db.meta.get("formulary"))?.version;
       if (storedVersion !== FORMULARY_VERSION) {
-        await db.transaction("rw", [db.drugs, db.interactionRules, db.allergyRules, db.meta], async () => {
-          await db.drugs.bulkPut(formulary.drugs);
-          await db.interactionRules.bulkPut(formulary.interactionRules);
-          await db.allergyRules.bulkPut(formulary.allergyRules);
-          await db.meta.put({ id: "formulary", version: FORMULARY_VERSION });
-        });
+        await db.transaction(
+          "rw",
+          [db.drugs, db.interactionRules, db.allergyRules, db.foodInteractionRules, db.alcoholInteractionRules, db.meta],
+          async () => {
+            await db.drugs.bulkPut(formulary.drugs);
+            await db.interactionRules.bulkPut(formulary.interactionRules);
+            await db.allergyRules.bulkPut(formulary.allergyRules);
+            await db.foodInteractionRules.bulkPut(formulary.foodInteractionRules);
+            await db.alcoholInteractionRules.bulkPut(formulary.alcoholInteractionRules);
+            await db.meta.put({ id: "formulary", version: FORMULARY_VERSION });
+          }
+        );
       }
 
       // One-time demo/user data seed (keyed off patients, so it never re-runs

@@ -1,3 +1,4 @@
+import { checkAlcoholInteraction } from "./checks/alcoholInteractionCheck";
 import { checkAllergy } from "./checks/allergyCheck";
 import { checkContraindication } from "./checks/contraindicationCheck";
 import { checkCumulativeDose } from "./checks/cumulativeDoseCheck";
@@ -5,6 +6,7 @@ import { checkDataCompleteness } from "./checks/dataCompletenessCheck";
 import { checkDoseRange } from "./checks/doseRangeCheck";
 import { checkDuplicateTherapy } from "./checks/duplicateTherapyCheck";
 import { checkEML } from "./checks/emlCheck";
+import { checkFoodInteraction } from "./checks/foodInteractionCheck";
 import { checkIndication } from "./checks/indicationCheck";
 import { checkInteraction } from "./checks/interactionCheck";
 import { checkPrescriptionCompleteness } from "./checks/prescriptionCompletenessCheck";
@@ -38,6 +40,8 @@ export function screenDrugLine(input: ScreeningInput): DrugLineVerdict {
         ...checkContraindication(input),
         ...checkEML(input),
         ...checkIndication(input),
+        ...checkFoodInteraction(input),
+        ...checkAlcoholInteraction(input),
       ]
     : [
         ...checkDataCompleteness(input),

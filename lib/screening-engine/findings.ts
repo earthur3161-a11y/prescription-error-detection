@@ -17,6 +17,8 @@ export const FLAG_TYPE_LABEL: Record<FlagType, string> = {
   data_incomplete: "Incomplete patient data",
   eml_compliance: "Formulary (EML)",
   indication_mismatch: "Possible indication mismatch",
+  drug_food_interaction: "Food interaction",
+  drug_alcohol_interaction: "Alcohol interaction",
   unrecognized_drug: "Unrecognized drug",
 };
 
@@ -37,6 +39,8 @@ const CATEGORY: Record<FlagType, string> = {
   data_incomplete: "missing field",
   eml_compliance: "formulary",
   indication_mismatch: "indication note",
+  drug_food_interaction: "food interaction",
+  drug_alcohol_interaction: "alcohol interaction",
   unrecognized_drug: "unrecognized drug",
 };
 
