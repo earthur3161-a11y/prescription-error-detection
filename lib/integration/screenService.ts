@@ -167,7 +167,21 @@ export interface AuthResult {
   institutionName?: string;
   mode?: "live" | "sandbox";
   enforcementLevel?: EnforcementLevel;
+  /** Set (with ok: false) specifically when the key is valid but over its rate limit — distinguishes a 429 from a plain 401. */
+  rateLimited?: boolean;
+  retryAfterSeconds?: number;
+  windowResetAt?: string;
 }
+
+// Per API key, not per institution — matches how this function already
+// resolves identity (one row per key), and keeps sandbox/live and multiple
+// keys on the same institution independently throttled. Confirmed with the
+// user: institution API rate limiting was entirely absent before this
+// (0018_institution_api_rate_limiting.sql).
+const RATE_LIMIT_PER_MINUTE: Record<"live" | "sandbox", number> = {
+  live: 120,
+  sandbox: 30,
+};
 
 export async function authorizeApiKey(request: Request): Promise<AuthResult> {
   const header = request.headers.get("authorization") ?? "";
@@ -189,6 +203,30 @@ export async function authorizeApiKey(request: Request): Promise<AuthResult> {
     .eq("id", keyRow.institution_id)
     .maybeSingle();
   if (!institution || institution.status !== "active") return { ok: false };
+
+  // Atomic check-and-increment (row-locked inside the RPC) — a plain
+  // read-then-write here would let two concurrent requests both read the
+  // same pre-increment count and both proceed, silently admitting one
+  // request over the limit per race. Same reasoning as dispense_drug()
+  // (0010) and create_prescription_version() (0016).
+  const { data: rateLimitRows, error: rateLimitError } = await supabaseService.rpc(
+    "check_and_increment_api_rate_limit",
+    { p_key_id: keyRow.id, p_limit: RATE_LIMIT_PER_MINUTE[keyRow.mode], p_window_seconds: 60 }
+  );
+  const rateLimitResult = rateLimitRows?.[0];
+  if (rateLimitError || !rateLimitResult) {
+    // Fail closed on an unexpected RPC error — a broken rate limiter must
+    // never silently become "no rate limiting."
+    return { ok: false };
+  }
+  if (!rateLimitResult.allowed) {
+    return {
+      ok: false,
+      rateLimited: true,
+      retryAfterSeconds: rateLimitResult.retry_after_seconds,
+      windowResetAt: rateLimitResult.window_reset_at,
+    };
+  }
 
   // Fire-and-forget — a slow/failed write here shouldn't hold up the actual
   // screening response.

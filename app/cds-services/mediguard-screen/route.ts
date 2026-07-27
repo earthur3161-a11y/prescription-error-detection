@@ -8,6 +8,17 @@ import { buildCards, parseCdsRequest } from "@/lib/integration/cdsHooks";
  */
 export async function POST(request: Request) {
   const auth = await authorizeApiKey(request);
+  if (auth.rateLimited) {
+    return Response.json(
+      {
+        error: "rate_limited",
+        message: `Rate limit exceeded. Retry after ${auth.retryAfterSeconds}s.`,
+        retryAfterSeconds: auth.retryAfterSeconds,
+        windowResetAt: auth.windowResetAt,
+      },
+      { status: 429, headers: { "Retry-After": String(auth.retryAfterSeconds) } }
+    );
+  }
   if (!auth.ok) {
     return Response.json(
       { error: "unauthorized", message: "Missing or invalid API key." },

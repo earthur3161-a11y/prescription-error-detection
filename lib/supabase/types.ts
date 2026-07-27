@@ -223,6 +223,11 @@ export type InstitutionApiKeyRow = {
   last_used_at: string | null;
   revoked_at: string | null;
   created_at: string;
+  // Rate limiting (0018_institution_api_rate_limiting.sql) — internal
+  // server state, never surfaced through institution_api_keys_public/
+  // _superadmin (both use explicit column lists that predate these two).
+  rate_window_start: string | null;
+  rate_window_count: number;
 };
 
 /** Mirrors the institution_api_keys_public view — never carries key_hash. */
@@ -515,6 +520,20 @@ export type Database = {
           p_status: PrescriptionStatusDb;
         };
         Returns: PrescriptionRow;
+      };
+      // service_role only — see 0018's header comment. Not callable from the
+      // browser client, included here only for typing supabaseService calls.
+      check_and_increment_api_rate_limit: {
+        Args: {
+          p_key_id: string;
+          p_limit: number;
+          p_window_seconds?: number;
+        };
+        Returns: {
+          allowed: boolean;
+          retry_after_seconds: number;
+          window_reset_at: string;
+        }[];
       };
     };
   };
