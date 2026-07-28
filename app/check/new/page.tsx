@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { DrugPicker } from "@/components/patient-check/DrugPicker";
 import { ProfileStep } from "@/components/patient-check/ProfileStep";
+import { ResumeCheckPrompt } from "@/components/patient-check/ResumeCheckPrompt";
 import { UnlockCheckStep } from "@/components/patient-check/UnlockCheckStep";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
+import { useCheckQuota } from "@/lib/query/hooks/useCheckQuota";
 import { useCreatePatientCheck } from "@/lib/query/hooks/usePatientChecks";
 import { useLocalPatientProfile, useSaveLocalPatientProfile } from "@/lib/query/hooks/usePatientProfile";
 import { useToastStore } from "@/lib/store/toast-store";
@@ -72,6 +74,14 @@ export default function NewCheckPage() {
   // credit; regenerated whenever the patient goes back and could change
   // what's being screened.
   const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
+  // Set once the patient confirms a phone via the "already paid for a
+  // check?" prompt (add/profile steps) — lets a returning patient whose
+  // payment succeeded but whose tab never saw it skip straight to "See my
+  // result" at the unlock step, instead of re-entering phone + OTP again on
+  // top of the drug list/profile they already had to redo.
+  const [resumePhone, setResumePhone] = useState<string | null>(null);
+  const resumeQuota = useCheckQuota(resumePhone);
+  const resumeHasCredit = (resumeQuota.data?.paidAvailable ?? 0) > 0 || (resumeQuota.data?.freeRemaining ?? 0) > 0;
 
   // Priority order: an in-progress draft from THIS abandoned attempt (more
   // recent, sessionStorage) beats a profile saved from an earlier
@@ -210,6 +220,7 @@ export default function NewCheckPage() {
               Add every medicine from this prescription or purchase.
             </p>
           </div>
+          <ResumeCheckPrompt confirmedPhone={resumePhone} onConfirm={setResumePhone} />
           <DrugPicker
             addedDrugs={addedDrugs}
             onAdd={(drug) => setAddedDrugs((prev) => (prev.some((d) => d.id === drug.id) ? prev : [...prev, drug]))}
@@ -230,6 +241,7 @@ export default function NewCheckPage() {
               This is optional, but it makes the check much more accurate.
             </p>
           </div>
+          {resumePhone && <ResumeCheckPrompt confirmedPhone={resumePhone} onConfirm={setResumePhone} />}
           <ProfileStep profile={profile} onChange={setProfile} knownDrugs={formulary.drugs} />
           <label className="flex items-center gap-2 text-sm text-secondary">
             <Checkbox checked={rememberProfile} onChange={(e) => setRememberProfile(e.target.checked)} />
@@ -242,7 +254,13 @@ export default function NewCheckPage() {
         </div>
       )}
 
-      {step === "unlock" && <UnlockCheckStep onUnlocked={handleUnlocked} unlocking={createCheck.isPending} />}
+      {step === "unlock" && (
+        <UnlockCheckStep
+          onUnlocked={handleUnlocked}
+          unlocking={createCheck.isPending}
+          initialPhone={resumeHasCredit ? resumePhone : null}
+        />
+      )}
     </div>
   );
 }

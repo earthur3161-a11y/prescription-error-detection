@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useCheckQuota, useInitiatePayment, usePaymentStatus } from "@/lib/query/hooks/useCheckQuota";
 import { useSendOtp, useVerifyOtp } from "@/lib/query/hooks/usePhoneVerification";
+import { isValidGhPhone } from "@/lib/utils/phone";
 
 type MobileMoneyProvider = "mtn" | "vod" | "atl";
 
@@ -22,16 +23,17 @@ const CHECK_PRICE_GHS = ((Number(process.env.NEXT_PUBLIC_CHECK_PRICE_PESEWAS) ||
 
 const PAYMENT_TIMEOUT_MS = 2 * 60 * 1000;
 
-function isValidGhPhone(phone: string): boolean {
-  const digits = phone.replace(/\D/g, "");
-  return /^0\d{9}$/.test(digits) || /^233\d{9}$/.test(digits);
-}
-
 type SubStep = "phone" | "otp" | "unlock" | "paying";
 
 interface UnlockCheckStepProps {
   onUnlocked: (phone: string) => void;
   unlocking: boolean;
+  /**
+   * A phone already confirmed earlier in the flow (the "already paid?"
+   * prompt at the start of NewCheckPage) — skips straight to checking quota
+   * for it instead of asking again. Null for the normal first-time path.
+   */
+  initialPhone: string | null;
 }
 
 /**
@@ -41,11 +43,11 @@ interface UnlockCheckStepProps {
  * fires) — everything here is UX around getting a phone into an unlockable
  * state, not the enforcement itself.
  */
-export function UnlockCheckStep({ onUnlocked, unlocking }: UnlockCheckStepProps) {
+export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockCheckStepProps) {
   const showToast = useToastStore((s) => s.show);
 
   const [phoneInput, setPhoneInput] = useState("");
-  const [confirmedPhone, setConfirmedPhone] = useState<string | null>(null);
+  const [confirmedPhone, setConfirmedPhone] = useState<string | null>(initialPhone);
   const [code, setCode] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   const [subStep, setSubStep] = useState<SubStep>("phone");
@@ -146,6 +148,16 @@ export function UnlockCheckStep({ onUnlocked, unlocking }: UnlockCheckStepProps)
   }
 
   if (subStep === "phone") {
+    // A phone already confirmed earlier in the flow — nothing to ask, just
+    // wait for the same quota lookup that drives the effect above.
+    if (confirmedPhone) {
+      return (
+        <div className="space-y-4 text-center">
+          <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
+          <p className="text-sm text-secondary">Checking your {confirmedPhone} account…</p>
+        </div>
+      );
+    }
     return (
       <div className="space-y-4">
         <div>

@@ -49,7 +49,7 @@ describe("UnlockCheckStep — payment failure surfaces immediately, not just via
       onSuccess({ reference: "ref_fast_decline", displayMessage: "Check your phone to approve." });
     });
 
-    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} />);
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone={null} />);
 
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
@@ -76,7 +76,7 @@ describe("UnlockCheckStep — payment failure surfaces immediately, not just via
       onSuccess({ reference: "ref_pending", displayMessage: "Check your phone to approve." });
     });
 
-    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} />);
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone={null} />);
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     await waitFor(() => expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument());
@@ -84,5 +84,29 @@ describe("UnlockCheckStep — payment failure surfaces immediately, not just via
 
     await waitFor(() => expect(screen.getByText(/check your phone/i)).toBeInTheDocument());
     expect(screen.queryByText(/payment failed/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("UnlockCheckStep — initialPhone (the 'already paid?' resume path)", () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    paymentStatusByReference.clear();
+    quotaState.data = undefined;
+  });
+
+  it("skips the phone-entry form entirely and goes straight to the credit screen when a verified, paid phone is passed in", async () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 1, phoneVerified: true };
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone="0244123456" />);
+
+    expect(screen.queryByLabelText(/^phone number$/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/paid check ready to use/i)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /see my result/i })).toBeInTheDocument();
+  });
+
+  it("still asks for a phone the normal way when initialPhone is null", () => {
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone={null} />);
+    expect(screen.getByLabelText(/^phone number$/i)).toBeInTheDocument();
   });
 });

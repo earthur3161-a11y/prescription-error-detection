@@ -44,6 +44,13 @@ vi.mock("@/lib/query/hooks/usePatientChecks", () => ({
   useCreatePatientCheck: () => ({ mutate: createCheckMutate, isPending: false }),
 }));
 
+// Only exercised via the "already paid?" resume prompt, which stays
+// collapsed unless a phone is entered — a stub with no data is enough for
+// every other test in this file, which never opens it.
+vi.mock("@/lib/query/hooks/useCheckQuota", () => ({
+  useCheckQuota: () => ({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() }),
+}));
+
 vi.mock("@/lib/store/toast-store", () => ({
   useToastStore: (selector: (s: { show: (t: unknown) => void }) => unknown) => selector({ show: vi.fn() }),
 }));

@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useInitiateSubscriptionPayment, useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
+import { isValidGhPhone } from "@/lib/utils/phone";
 import type { SubscriptionProduct } from "@/lib/supabase/types";
 
 type MobileMoneyProvider = "mtn" | "vod" | "atl";
@@ -37,11 +38,6 @@ const PRODUCT_PRICE_GHS: Record<SubscriptionProduct, string> = {
   physician_portal: ((Number(process.env.NEXT_PUBLIC_PHYSICIAN_PORTAL_PRICE_PESEWAS) || 0) / 100).toFixed(2),
   pharmacy_portal: ((Number(process.env.NEXT_PUBLIC_PHARMACY_PORTAL_PRICE_PESEWAS) || 0) / 100).toFixed(2),
 };
-
-function isValidGhPhone(phone: string): boolean {
-  const digits = phone.replace(/\D/g, "");
-  return /^0\d{9}$/.test(digits) || /^233\d{9}$/.test(digits);
-}
 
 export default function BillingPage() {
   const router = useRouter();
