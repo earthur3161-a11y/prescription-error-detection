@@ -6,6 +6,7 @@ import {
   listSuperadminAccounts,
   listSuperadminApiKeyActivity,
   listSuperadminCheckPayments,
+  listSuperadminDispenseActivity,
   listSuperadminInstitutions,
   listSuperadminOverrideActivity,
   listSuperadminPatientCheckActivity,
@@ -30,6 +31,10 @@ export function useSuperAdminActivity() {
     queryKey: ["superadmin", "activity", "overrides"],
     queryFn: listSuperadminOverrideActivity,
   });
+  const dispenses = useQuery({
+    queryKey: ["superadmin", "activity", "dispenses"],
+    queryFn: listSuperadminDispenseActivity,
+  });
   const patientChecks = useQuery({
     queryKey: ["superadmin", "activity", "patientChecks"],
     queryFn: listSuperadminPatientCheckActivity,
@@ -53,6 +58,7 @@ export function useSuperAdminActivity() {
     accounts,
     prescriptions,
     overrides,
+    dispenses,
     patientChecks,
     checkPayments,
     subscriptionPayments,
@@ -69,6 +75,7 @@ export function useSuperAdminActivity() {
         accounts: accounts.data ?? [],
         prescriptions: prescriptions.data ?? [],
         overrides: overrides.data ?? [],
+        dispenses: dispenses.data ?? [],
         patientChecks: patientChecks.data ?? [],
         checkPayments: checkPayments.data ?? [],
         subscriptionPayments: subscriptionPayments.data ?? [],
@@ -80,6 +87,7 @@ export function useSuperAdminActivity() {
       accounts.data,
       prescriptions.data,
       overrides.data,
+      dispenses.data,
       patientChecks.data,
       checkPayments.data,
       subscriptionPayments.data,

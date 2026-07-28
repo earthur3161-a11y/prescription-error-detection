@@ -12,18 +12,14 @@
 // because that content was never selected out of Postgres in the first
 // place.
 //
-// KNOWN GAP, TRACKED FOLLOW-UP (not fixed here): dispense_records and
-// batches moved to Supabase in 0010_pharmacy_dispense_gate.sql (the hard
-// dispense-verification gate needed a real server boundary), but this feed
-// was never extended to read from them — they're not filtered out, this
-// module simply doesn't query those tables yet. Stock adjustments and other
-// pharmacist-side actions (stockAdjustments, pharmacistActionRepository)
-// still live entirely in per-browser Dexie/IndexedDB and remain genuinely
-// unreachable from here, per the "stays on Dexie" scoping note in 0010's own
-// header. Surfacing dispense activity here is a small addition (query the
-// now-real dispense_records table); surfacing stock adjustments/pharmacist
-// actions still requires migrating that data server-side first. Flagged so
-// neither gets silently assumed to already be covered.
+// Dispense activity (get_superadmin_dispense_activity, 0021) is covered
+// below — same redacted-at-the-database-layer pattern as prescriptions/
+// overrides. KNOWN GAP, TRACKED FOLLOW-UP (not fixed here): stock
+// adjustments and other pharmacist-side actions (stockAdjustments,
+// pharmacistActionRepository) still live entirely in per-browser
+// Dexie/IndexedDB with no server-side table to query at all, per the "stays
+// on Dexie" scoping note in 0010's own header — genuinely unreachable from
+// here until that data is migrated server-side.
 
 import type {
   CheckPaymentRow,
@@ -31,6 +27,7 @@ import type {
   InstitutionRow,
   SubscriptionPaymentRow,
   SuperadminAccountRow,
+  SuperadminDispenseActivityRow,
   SuperadminOverrideActivityRow,
   SuperadminPatientCheckActivityRow,
   SuperadminPrescriptionActivityRow,
@@ -70,6 +67,7 @@ export interface ActivitySources {
   accounts: SuperadminAccountRow[];
   prescriptions: SuperadminPrescriptionActivityRow[];
   overrides: SuperadminOverrideActivityRow[];
+  dispenses: SuperadminDispenseActivityRow[];
   patientChecks: SuperadminPatientCheckActivityRow[];
   checkPayments: CheckPaymentRow[];
   subscriptionPayments: SubscriptionPaymentRow[];
@@ -115,6 +113,22 @@ export function buildSuperadminActivity(sources: ActivitySources): SuperadminAct
       actor: ov.user_name,
       action: `Processed an override on prescription #${ov.prescription_id.slice(0, 8)}`,
       tone: "caution",
+    });
+  }
+
+  // Dispenses — that one happened, to whom, by whom, how much; never which
+  // drug or the screening result behind it (same redaction reasoning as
+  // overrides above).
+  for (const disp of sources.dispenses) {
+    events.push({
+      id: `disp:${disp.id}`,
+      timestamp: disp.dispensed_at,
+      category: "clinical_workflow",
+      actorRole: "pharmacist",
+      actor: disp.pharmacist_name,
+      action: `Dispensed medication to ${disp.patient_name}`,
+      detail: `Quantity: ${disp.quantity_dispensed}`,
+      tone: "safe",
     });
   }
 

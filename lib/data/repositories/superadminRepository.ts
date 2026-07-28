@@ -7,6 +7,7 @@ import type {
   SubscriptionPaymentRow,
   SubscriptionRow,
   SuperadminAccountRow,
+  SuperadminDispenseActivityRow,
   SuperadminOverrideActivityRow,
   SuperadminPatientCheckActivityRow,
   SuperadminPrescriptionActivityRow,
@@ -74,6 +75,12 @@ export async function listSuperadminOverrideActivity(): Promise<SuperadminOverri
 
 export async function listSuperadminPatientCheckActivity(): Promise<SuperadminPatientCheckActivityRow[]> {
   const { data, error } = await supabase.rpc("get_superadmin_patient_check_activity");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listSuperadminDispenseActivity(): Promise<SuperadminDispenseActivityRow[]> {
+  const { data, error } = await supabase.rpc("get_superadmin_dispense_activity");
   if (error) throw error;
   return data ?? [];
 }

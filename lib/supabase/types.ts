@@ -269,6 +269,18 @@ export type SuperadminOverrideActivityRow = {
   prescription_id: string;
 };
 
+/** Row shape of get_superadmin_dispense_activity() (0021) — no drug identity/verdict/flags/override note, same redaction reasoning as SuperadminOverrideActivityRow. */
+export type SuperadminDispenseActivityRow = {
+  id: string;
+  dispensed_at: string;
+  prescription_id: string;
+  patient_id: string;
+  patient_name: string;
+  pharmacist_id: string;
+  pharmacist_name: string;
+  quantity_dispensed: number;
+};
+
 /** Row shape of get_superadmin_patient_check_activity() — no drugs/verdicts/profile. */
 export type SuperadminPatientCheckActivityRow = {
   id: string;
@@ -495,6 +507,10 @@ export type Database = {
       get_superadmin_override_activity: {
         Args: Record<string, never>;
         Returns: SuperadminOverrideActivityRow[];
+      };
+      get_superadmin_dispense_activity: {
+        Args: Record<string, never>;
+        Returns: SuperadminDispenseActivityRow[];
       };
       get_superadmin_patient_check_activity: {
         Args: Record<string, never>;
