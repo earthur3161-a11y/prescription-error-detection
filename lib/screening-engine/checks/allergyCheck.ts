@@ -34,19 +34,25 @@ export function checkAllergy(input: ScreeningInput): Flag[] {
     const rule = formulary.allergyRules.find(
       (r) => r.allergen.toLowerCase() === allergy.allergen.toLowerCase()
     );
-    // KNOWN GAP, TRACKED FOLLOW-UP (not fixed here): a patient-reported
-    // allergen with no matching AllergyRule (i.e. not one of the curated
-    // categories in allergyRules.ts — Penicillin, NSAIDs/Aspirin, Sulfa
-    // drugs, Fluoroquinolones, Cephalosporins, Macrolides) is silently
-    // unscreened, with no "allergen not recognized, verify manually"
-    // fallback flag. This is a *different* category from the unknown-data
-    // gaps fixed elsewhere in this engine (renalStatus/hepaticStatus/
-    // isPregnant/age): those were confirmed patient data with no rule to
-    // interpret it; this is missing/sparse *reference* data (the allergen
-    // itself was reported, we just have no rule authored for it) — same
-    // root cause as an unrecognized drugId, not the null-vs-normal pattern.
-    // Worth a "manual verification recommended" fallback flag eventually.
-    if (!rule) continue;
+    // A patient-reported allergen with no matching AllergyRule (not one of
+    // the curated categories in allergyRules.ts) has no cross-reactivity
+    // data to check against — missing/sparse *reference* data, not the
+    // null-vs-normal unknown-patient-data pattern the other checks guard.
+    // Same "unknown ≠ safe" discipline still applies: silently skipping it
+    // would let an unrecognized allergen resolve as if it carried no risk.
+    if (!rule) {
+      flags.push(
+        buildFlag({
+          type: "allergy",
+          code: "ALLERGEN_NOT_RECOGNIZED",
+          severity: "unknown",
+          clinical: `Patient-reported allergen "${allergy.allergen}" is not in the recognized allergy-class reference set — cross-reactivity with ${drug.generic_name} could not be automatically screened. Verify manually before prescribing.`,
+          patient: `Your profile lists an allergy to ${allergy.allergen}, which we don't have detailed safety information for yet — please double-check with your pharmacist before taking this.`,
+          relatedDrugId: drug.id,
+        })
+      );
+      continue;
+    }
 
     if (rule.related_drug_classes.includes(drug.class)) {
       flags.push(

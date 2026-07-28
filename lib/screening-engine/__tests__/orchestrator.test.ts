@@ -84,6 +84,27 @@ describe("screenDrugLine", () => {
     expect(result.flags.some((f) => f.code === "ALLERGY_CROSS_REACTIVE")).toBe(true);
   });
 
+  it("flags an unrecognized allergen (outside the curated allergy-class reference set) as unknown, not silently unscreened", () => {
+    const patient = makePatient({
+      allergies: [{ allergen: "Latex", severity: "moderate" }],
+    });
+    const result = screen({ patient, drugLine: makeLine({ drugId: "drug_amoxicillin" }) });
+    expect(result.flags.some((f) => f.code === "ALLERGEN_NOT_RECOGNIZED")).toBe(true);
+    expect(result.flags.find((f) => f.code === "ALLERGEN_NOT_RECOGNIZED")?.severity).toBe("unknown");
+    expect(result.verdict).not.toBe("safe");
+  });
+
+  it("does not raise ALLERGEN_NOT_RECOGNIZED for a curated allergen even when it has no match for this specific drug", () => {
+    // Penicillin IS a recognized allergen class — amoxicillin's own allergy
+    // rule just doesn't apply to an unrelated drug class here, which is a
+    // real "no interaction," not missing reference data.
+    const patient = makePatient({
+      allergies: [{ allergen: "Penicillin", severity: "moderate" }],
+    });
+    const result = screen({ patient, drugLine: makeLine({ drugId: "drug_paracetamol" }) });
+    expect(result.flags.some((f) => f.code === "ALLERGEN_NOT_RECOGNIZED")).toBe(false);
+  });
+
   it("blocks on a severe drug-drug interaction (warfarin + aspirin)", () => {
     const patient = makePatient({
       activeMedications: [{ drugId: "drug_warfarin", startedAt: "2024-01-01" }],
