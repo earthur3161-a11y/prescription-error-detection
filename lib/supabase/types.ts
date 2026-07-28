@@ -535,6 +535,50 @@ export type Database = {
           window_reset_at: string;
         }[];
       };
+      // Reporting module (0019) — institution/self-scoped inside the function
+      // body from the caller's own JWT claims, not a trusted parameter.
+      get_reporting_summary: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: {
+          total_prescriptions: number;
+          total_lines: number;
+          safe_lines: number;
+          caution_lines: number;
+          blocked_lines: number;
+          override_count: number;
+        }[];
+      };
+      get_reporting_daily_trend: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: {
+          day: string;
+          safe_count: number;
+          caution_count: number;
+          blocked_count: number;
+        }[];
+      };
+      get_reporting_drug_usage: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: {
+          drug_id: string;
+          times_prescribed: number;
+          flagged_count: number;
+        }[];
+      };
+      get_reporting_flag_types: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: { flag_type: string; count: number }[];
+      };
+      get_reporting_prescriber_performance: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: {
+          prescriber_id: string;
+          prescriber_name: string;
+          total_lines: number;
+          flagged_lines: number;
+          override_count: number;
+        }[];
+      };
     };
   };
 };

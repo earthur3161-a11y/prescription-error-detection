@@ -31,6 +31,7 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/prescriptions/new", label: "New Prescription", icon: FilePlus2 },
     { href: "/patients", label: "Patients", icon: Users },
     { href: "/prescriptions", label: "Prescription History", icon: FileText },
+    { href: "/reports", label: "My Reports", icon: BarChart3 },
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   pharmacist: [

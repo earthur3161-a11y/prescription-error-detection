@@ -14,6 +14,7 @@ import { usePatients } from "@/lib/query/hooks/usePatients";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { usePatientFeedbackReports } from "@/lib/query/hooks/usePatientFeedback";
 import { useProfiles } from "@/lib/query/hooks/useProfiles";
+import { useAuth } from "@/lib/auth/useAuth";
 import { formatDateTime } from "@/lib/utils/date";
 import { FLAG_TYPE_LABEL } from "@/lib/screening-engine";
 
@@ -40,6 +41,7 @@ function downloadCsv(rows: string[][], filename: string) {
 }
 
 export default function AdminAuditLogPage() {
+  const { user } = useAuth();
   const [userFilter, setUserFilter] = useState<string>("all");
   const { data: logs, isLoading } = useOverrideLogs(
     userFilter === "all" ? {} : { userId: userFilter }
@@ -49,6 +51,13 @@ export default function AdminAuditLogPage() {
   const { data: formulary } = useFormulary();
   const { data: feedbackReports } = usePatientFeedbackReports();
   const { data: profiles } = useProfiles();
+  // Only this institution's staff — the underlying override_logs rows are now
+  // institution-scoped (0019), so listing every profile system-wide here
+  // would let the filter name staff at other institutions even though
+  // selecting them always returns zero rows.
+  const institutionProfiles = [...(profiles?.values() ?? [])].filter(
+    (p) => p.institutionId === user?.institutionId
+  );
 
   const prescriptionById = useMemo(
     () => new Map((prescriptions ?? []).map((rx) => [rx.id, rx])),
@@ -200,7 +209,7 @@ export default function AdminAuditLogPage() {
         className="max-w-xs"
       >
         <option value="all">All users</option>
-        {[...(profiles?.values() ?? [])].map((p) => (
+        {institutionProfiles.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
           </option>

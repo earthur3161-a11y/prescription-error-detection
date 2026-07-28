@@ -11,6 +11,7 @@ function mapRow(row: ProfileRow): Profile {
     status: row.status,
     institution: row.institution ?? undefined,
     createdAt: row.created_at,
+    institutionId: row.institution_id,
   };
 }
 

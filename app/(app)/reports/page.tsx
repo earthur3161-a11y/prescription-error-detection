@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { BarChart3 } from "lucide-react";
-import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -10,7 +9,6 @@ import {
   useReportingDailyTrend,
   useReportingDrugUsage,
   useReportingFlagTypes,
-  useReportingPrescriberPerformance,
   useReportingSummary,
 } from "@/lib/query/hooks/useReporting";
 import {
@@ -20,12 +18,7 @@ import {
   toFlagTypeLabeledCounts,
   toTopFlaggedDrugs,
 } from "@/lib/analytics/reportingMetrics";
-import {
-  BarList,
-  CHART_COLORS,
-  SegmentBar,
-  StackedDailyChart,
-} from "@/components/analytics/AnalyticsCharts";
+import { BarList, CHART_COLORS, SegmentBar, StackedDailyChart } from "@/components/analytics/AnalyticsCharts";
 import {
   presetToRange,
   ReportingRangeSelect,
@@ -73,7 +66,13 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-export default function AnalyticsPage() {
+/**
+ * Own-scoped reporting for a prescriber (institutional or independent) — the
+ * RPCs behind these hooks scope to prescriber_id = auth.uid() for this role,
+ * never institution-wide, so there's no cross-prescriber comparison here by
+ * construction, not just by omission from the UI.
+ */
+export default function MyReportsPage() {
   const [preset, setPreset] = useState<ReportingRangePreset>("30");
   const range = presetToRange(preset);
 
@@ -81,22 +80,16 @@ export default function AnalyticsPage() {
   const dailyTrend = useReportingDailyTrend(range);
   const flagTypes = useReportingFlagTypes(range);
   const drugUsage = useReportingDrugUsage(range);
-  const prescriberPerformance = useReportingPrescriberPerformance(range);
   const formulary = useFormulary();
 
   const isLoading =
-    summary.isLoading ||
-    dailyTrend.isLoading ||
-    flagTypes.isLoading ||
-    drugUsage.isLoading ||
-    prescriberPerformance.isLoading ||
-    formulary.isLoading;
+    summary.isLoading || dailyTrend.isLoading || flagTypes.isLoading || drugUsage.isLoading || formulary.isLoading;
 
   if (isLoading) {
     return (
       <div className="mx-auto max-w-5xl space-y-4 p-6 sm:p-8">
         <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
@@ -121,7 +114,6 @@ export default function AnalyticsPage() {
   const emlStats = computeEmlUsageStats(drugUsage.data ?? [], drugs);
   const topFlaggedDrugs = toTopFlaggedDrugs(drugUsage.data ?? [], drugs);
   const flagTypeCounts = toFlagTypeLabeledCounts(flagTypes.data ?? []);
-  const prescribers = prescriberPerformance.data ?? [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
@@ -129,16 +121,12 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
             <BarChart3 className="size-6 text-brand" aria-hidden="true" />
-            Facility Analytics
+            My Reports
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Prescription screening volume, verdict trends, safety hotspots and prescriber
-            performance across the facility. Built from the same immutable record as the{" "}
-            <Link href="/admin/compliance" className="font-medium text-brand hover:underline">
-              Compliance Center
-            </Link>
-            . Excludes patient self-checks (no institution until pulled into a prescription) and
-            pharmacist inventory actions (browser-local, not yet server-tracked).
+            Your own screening volume, verdict trends and safety hotspots — never shared or
+            compared against other prescribers. Excludes patient self-checks until pulled into one
+            of your prescriptions.
           </p>
         </div>
         <ReportingRangeSelect value={preset} onChange={setPreset} />
@@ -189,45 +177,6 @@ export default function AnalyticsPage() {
           <BarList items={topFlaggedDrugs} color={CHART_COLORS.blocked} />
         </SectionCard>
       </div>
-
-      <SectionCard title="Prescriber performance">
-        {prescribers.length === 0 ? (
-          <p className="text-sm text-subtle">No prescribing activity in this range yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-subtle">
-                  <th className="py-2 pr-4">Prescriber</th>
-                  <th className="py-2 pr-4">Lines</th>
-                  <th className="py-2 pr-4">Flag rate</th>
-                  <th className="py-2 pr-4">Override rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {prescribers.map((p) => {
-                  const flagRate = p.totalLines === 0 ? 0 : p.flaggedLines / p.totalLines;
-                  const overrideRate = p.flaggedLines === 0 ? 0 : Math.min(1, p.overrideCount / p.flaggedLines);
-                  return (
-                    <tr key={p.prescriberId} className="border-b border-border last:border-0">
-                      <td className="py-2 pr-4 font-medium text-foreground">{p.prescriberName}</td>
-                      <td className="py-2 pr-4 text-secondary">{p.totalLines}</td>
-                      <td className="py-2 pr-4 text-secondary">
-                        {Math.round(flagRate * 100)}%
-                        <span className="text-subtle"> ({p.flaggedLines})</span>
-                      </td>
-                      <td className="py-2 pr-4 text-secondary">
-                        {Math.round(overrideRate * 100)}%
-                        <span className="text-subtle"> ({p.overrideCount})</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
     </div>
   );
 }
