@@ -156,8 +156,16 @@ export function buildAuditEvents(sources: AuditSources, lookups: AuditLookups): 
     });
   }
 
-  // 2. Patient self-checks — the patient channel's "check".
+  // 2. Patient self-checks — the patient channel's "check". Self-checks
+  // carry no institution_id at all (Patient Self-Check is the sole
+  // no-institution exception), so an un-pulled one isn't this institution's
+  // business yet; only surface it once it's been pulled into a real
+  // prescription, matching the same exclusion rule the reporting module
+  // (0019_reporting_module.sql) already applies. Without this, every
+  // institution's admin sees every other institution's self-check activity
+  // mixed into their own feed.
   for (const check of sources.patientChecks) {
+    if (check.pulledIntoPrescriptionId == null) continue;
     const verdict = worstVerdict(check.verdicts);
     events.push({
       id: `check:${check.id}`,
@@ -167,12 +175,7 @@ export function buildAuditEvents(sources: AuditSources, lookups: AuditLookups): 
       action: "Self-check screened",
       actor: "Patient (self-check)",
       subject: `${check.drugs.length} medicine${check.drugs.length === 1 ? "" : "s"}`,
-      detail:
-        check.pulledIntoPrescriptionId != null
-          ? "Later pulled into a pharmacy prescription."
-          : verdict === "safe"
-            ? "No safety flags raised."
-            : `Verdict ${verdict}.`,
+      detail: "Later pulled into a pharmacy prescription.",
       tone: toneFromVerdict(verdict),
       prescriptionId: check.pulledIntoPrescriptionId,
     });
