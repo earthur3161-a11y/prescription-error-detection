@@ -446,6 +446,9 @@ export interface Batch {
   quantityRemaining: number;
   /** Stored status; the effective active/near_expiry/expired status is derived from dates + settings, "recalled" is set manually. */
   status: BatchStatus;
+  /** Same owner_id/institutionId convention as Patient — see 0020_pharmacy_institution_boundary.sql. */
+  institutionId?: string | null;
+  ownerId?: string | null;
 }
 
 export interface DispenseRecord {

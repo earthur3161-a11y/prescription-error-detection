@@ -439,7 +439,7 @@ async function seedClinicalData(): Promise<void> {
 // actual gated dispenses, not backdated fixture data.
 // ---------------------------------------------------------------------------
 
-async function seedBatches(): Promise<void> {
+async function seedBatches(institutionId: string): Promise<void> {
   console.log("\nSeeding pharmacy batches...");
 
   const { count, error: countError } = await supabase
@@ -455,6 +455,8 @@ async function seedBatches(): Promise<void> {
   }
 
   const formulary = getFormularyBundle(DEFAULT_REGION);
+  // owner_id stays null (system-seeded, not added by a specific pharmacist)
+  // — same convention 0020's own backfill uses for pre-existing rows.
   const rows: BatchInsert[] = buildSeedBatches(formulary).map((b) => ({
     drug_id: b.drugId,
     batch_number: b.batchNumber,
@@ -463,6 +465,7 @@ async function seedBatches(): Promise<void> {
     expiry_date: b.expiryDate,
     quantity_remaining: b.quantityRemaining,
     status: b.status === "recalled" ? "recalled" : "active",
+    institution_id: institutionId,
   }));
 
   const { error } = await supabase.from("batches").insert(rows);
@@ -481,7 +484,7 @@ async function main() {
   console.log(`\nDone. Password for all demo accounts: "${DEMO_PASSWORD}" (MFA: any 6 digits, simulated).`);
 
   await seedClinicalData();
-  await seedBatches();
+  await seedBatches(await resolveInstitutionId("Korle Bu Teaching Hospital"));
 
   console.log("\nBackfilling institution_id on any pre-0012 clinical rows...");
   const prescriberId = await findExistingUserId("ama.owusu@demo.mediguard.gh");

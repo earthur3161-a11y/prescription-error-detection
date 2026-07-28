@@ -173,6 +173,7 @@ export async function POST(request: Request) {
     p_screening_flags: verdictResult.flags,
     p_screened_at: screenedAt,
     p_override_note: verdictResult.verdict === "safe" ? null : (overrideNote ?? null),
+    p_caller_institution_id: callerInstitutionId,
   });
 
   if (dispenseError || !record) {
@@ -185,7 +186,9 @@ export async function POST(request: Request) {
           ? 404
           : /override note is required/i.test(message)
             ? 422
-            : 500;
+            : /does not belong to your/i.test(message)
+              ? 403
+              : 500;
     return Response.json({ error: "dispense_failed", message }, { status });
   }
 

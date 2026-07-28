@@ -68,8 +68,15 @@ export function useAddBatch() {
   const invalidate = useInvalidate();
   const showToast = useToastStore((s) => s.show);
   return useMutation({
-    mutationFn: ({ batch, pharmacistId }: { batch: Parameters<typeof addBatch>[0]; pharmacistId: string }) =>
-      addBatch(batch, pharmacistId),
+    mutationFn: ({
+      batch,
+      pharmacistId,
+      institutionId,
+    }: {
+      batch: Parameters<typeof addBatch>[0];
+      pharmacistId: string;
+      institutionId: string | null;
+    }) => addBatch(batch, pharmacistId, institutionId),
     onSuccess: () => {
       invalidate([["batches"], ["stockAdjustments"]]);
       showToast({ title: "Batch added to stock", variant: "success" });

@@ -23,6 +23,8 @@ function mapRow(row: BatchRow): Batch {
     expiryDate: row.expiry_date,
     quantityRemaining: row.quantity_remaining,
     status: row.status,
+    institutionId: row.institution_id,
+    ownerId: row.owner_id,
   };
 }
 
@@ -44,9 +46,16 @@ export async function getBatch(id: string): Promise<Batch | null> {
   return data ? mapRow(data) : null;
 }
 
+/**
+ * institutionId must be the creating pharmacist's own JWT claim (null for an
+ * independent pharmacist's own private stock) — the batches_insert_own RLS
+ * policy (0020) rejects anything else, same enforcement as
+ * patientRepository.addPatient's institutionId parameter.
+ */
 export async function addBatch(
-  batch: Omit<Batch, "id" | "status">,
-  pharmacistId: string
+  batch: Omit<Batch, "id" | "status" | "institutionId" | "ownerId">,
+  pharmacistId: string,
+  institutionId: string | null
 ): Promise<Batch> {
   const { data, error } = await supabase
     .from("batches")
@@ -58,6 +67,8 @@ export async function addBatch(
       expiry_date: batch.expiryDate,
       quantity_remaining: batch.quantityRemaining,
       status: "active",
+      owner_id: pharmacistId,
+      institution_id: institutionId,
     })
     .select()
     .single();

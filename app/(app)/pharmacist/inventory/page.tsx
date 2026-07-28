@@ -98,6 +98,7 @@ export default function InventoryPage() {
           quantityRemaining: newBatch.quantityRemaining,
         },
         pharmacistId,
+        institutionId: user?.institutionId ?? null,
       },
       { onSuccess: () => { setAddOpen(false); setNewBatch({ drugId: "", batchNumber: "", supplier: "", expiryDate: "", quantityRemaining: 0 }); } }
     );

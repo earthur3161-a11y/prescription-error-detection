@@ -289,6 +289,13 @@ export type BatchRow = {
   quantity_remaining: number;
   status: BatchStatusDb;
   created_at: string;
+  // Institution boundary (0020_pharmacy_institution_boundary.sql) — same
+  // owner_id/institution_id convention as patients: owner_id always set from
+  // the creating pharmacist's own JWT, institution_id only for institutional
+  // pharmacists. owner_id is null on pre-0020 rows (no pharmacist_id ever
+  // existed to backfill it from).
+  institution_id: string | null;
+  owner_id: string | null;
 };
 
 export type ScreeningVerdictDb = "safe" | "caution" | "blocked";
@@ -407,7 +414,10 @@ export type Database = {
       batches: {
         Row: BatchRow;
         Insert: Partial<BatchRow> &
-          Pick<BatchRow, "drug_id" | "batch_number" | "supplier" | "received_date" | "expiry_date" | "quantity_remaining">;
+          Pick<
+            BatchRow,
+            "drug_id" | "batch_number" | "supplier" | "received_date" | "expiry_date" | "quantity_remaining"
+          >;
         Update: Partial<BatchRow>;
         Relationships: [];
       };
@@ -506,6 +516,7 @@ export type Database = {
           p_screening_flags: unknown;
           p_screened_at: string;
           p_override_note: string | null;
+          p_caller_institution_id: string | null;
         };
         Returns: DispenseRecordRow;
       };
