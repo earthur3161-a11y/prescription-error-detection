@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { Flag } from "@/lib/screening-engine";
 import type { FormularyBundle } from "@/lib/types";
 
 const mockSearchParams = vi.fn<() => URLSearchParams>();
@@ -132,5 +133,51 @@ describe("Widget screen page — authentication", () => {
 
     await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("shows every flag via a 'Show N more' expand affordance instead of silently truncating past 2", async () => {
+    // Regression test: the card used to hard-cap the visible list at
+    // state.flags.slice(0, 2) with no indication more existed, even though
+    // postMessage always carried the full list to the host. A drug flagged
+    // for 4 distinct reasons must let the embedder actually see all 4.
+    function flag(clinical: string): Flag {
+      return {
+        type: "interaction",
+        code: "TEST",
+        severity: "major",
+        message: clinical,
+        audience_variant: { clinical, patient: clinical },
+      };
+    }
+    const flags = [flag("Reason one"), flag("Reason two"), flag("Reason three"), flag("Reason four")];
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("apiKey=mg_live_test123"));
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        drugId: "drug_amoxicillin",
+        drug: "Amoxicillin",
+        verdict: "blocked",
+        flags,
+        screenedAt: "2026-01-01T00:00:00Z",
+        mode: "live",
+        institution: "Korle Bu Teaching Hospital",
+        enforcementLevel: "advisory",
+      }),
+    });
+    render(<WidgetScreenPage />);
+    postScreenMessage();
+
+    await waitFor(() => expect(screen.getByText("Reason one")).toBeInTheDocument());
+    expect(screen.getByText("Reason two")).toBeInTheDocument();
+    expect(screen.queryByText("Reason three")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reason four")).not.toBeInTheDocument();
+
+    const expandButton = screen.getByRole("button", { name: /show 2 more/i });
+    fireEvent.click(expandButton);
+
+    expect(screen.getByText("Reason three")).toBeInTheDocument();
+    expect(screen.getByText("Reason four")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /show.*more/i })).not.toBeInTheDocument();
   });
 });

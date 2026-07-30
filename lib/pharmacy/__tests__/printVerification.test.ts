@@ -187,6 +187,34 @@ describe("printVerificationProof — verdict-basis distinction on paper", () => 
     expect(html).toContain("Dispense Verification Record");
   });
 
+  it("lists all 12 check categories run by the orchestrator, including food/alcohol interaction — not a stale subset", () => {
+    // Regression test: this line previously stopped at 10 categories and
+    // never picked up food/alcohol interaction checks when those were added
+    // to lib/screening-engine/orchestrator.ts — the flags themselves always
+    // rendered correctly further down the page, only this summary undercounted.
+    const html = captureVerificationHtml([{ drug: drug(), line: line(), record: record() }]);
+    const match = html.match(/<b>Checks run:<\/b>\s*([^<]+)</);
+    expect(match).not.toBeNull();
+    const listed = (match![1] ?? "").split(",").map((s) => s.trim());
+    expect(listed).toHaveLength(12);
+    expect(listed).toEqual(
+      expect.arrayContaining([
+        "Patient data completeness",
+        "Prescription completeness",
+        "Allergy",
+        "Drug interaction",
+        "Duplicate therapy",
+        "Dose range",
+        "Cumulative dose",
+        "Contraindication (renal / hepatic / pregnancy)",
+        "Essential Medicines List status",
+        "Indication match",
+        "Food interaction",
+        "Alcohol interaction",
+      ])
+    );
+  });
+
   it("renders a distinct shape per verdict basis (seal for safe, ring for unknown-only) — not the same icon three times over", () => {
     const safeHtml = captureVerificationHtml([{ drug: drug(), line: line(), record: record({ screeningVerdict: "safe" }) }]);
     const unknownHtml = captureVerificationHtml([

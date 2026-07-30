@@ -42,6 +42,15 @@ export default function WidgetScreenPage() {
   );
 }
 
+// Flags shown before the list collapses behind "Show N more" — a small
+// embedded card can't fit an arbitrarily long list, but silently dropping
+// flags past this point (the previous behavior) is not acceptable for a
+// clinical safety surface: the host page's postMessage payload always had
+// the full list, only the on-page card didn't, so a host relying on the
+// visible card alone could miss a real finding with no indication anything
+// was cut off.
+const VISIBLE_FLAGS_COLLAPSED = 2;
+
 function WidgetInner() {
   const searchParams = useSearchParams();
   const isDemo = searchParams.get("demo") === "1";
@@ -55,6 +64,10 @@ function WidgetInner() {
   const [state, setState] = useState<WidgetState>(
     isDemo ? { status: "waiting" } : apiKey ? { status: "waiting" } : { status: "missing-key" }
   );
+  // Reset per result (see the two setState({ status: "result", ... }) call
+  // sites below) so a second screening request from the host never inherits
+  // an expanded state left over from a previous drug's flag list.
+  const [showAllFlags, setShowAllFlags] = useState(false);
 
   useEffect(() => {
     function runDemoScreen(msg: HostMessage, bundle: NonNullable<typeof formulary>) {
@@ -81,6 +94,7 @@ function WidgetInner() {
       };
       const result = screenDrugLine({ patient, drugLine, otherLines: [drugLine], formulary: bundle });
       const drugName = bundle.drugs.find((d) => d.id === msg.drug.drugId)?.generic_name ?? msg.drug.drugId;
+      setShowAllFlags(false);
       setState({ status: "result", drugName, verdict: result.verdict, flags: result.flags });
       window.parent.postMessage({ type: "mediguard:verdict", verdict: result }, "*");
     }
@@ -119,6 +133,7 @@ function WidgetInner() {
       // page sees one consistent event contract regardless of demo mode.
       const verdict = body.verdict as Verdict;
       const flags = body.flags as Flag[];
+      setShowAllFlags(false);
       setState({ status: "result", drugName: String(body.drug), verdict, flags });
       window.parent.postMessage(
         {
@@ -182,12 +197,21 @@ function WidgetInner() {
             <VerdictMark verdict={state.verdict} flags={state.flags} />
             {state.flags.length > 0 && (
               <ul className="space-y-1 pt-1">
-                {state.flags.slice(0, 2).map((f, i) => (
+                {(showAllFlags ? state.flags : state.flags.slice(0, VISIBLE_FLAGS_COLLAPSED)).map((f, i) => (
                   <li key={i} className="text-xs text-secondary">
                     {f.audience_variant.clinical}
                   </li>
                 ))}
               </ul>
+            )}
+            {!showAllFlags && state.flags.length > VISIBLE_FLAGS_COLLAPSED && (
+              <button
+                type="button"
+                onClick={() => setShowAllFlags(true)}
+                className="text-xs font-medium text-brand hover:underline"
+              >
+                Show {state.flags.length - VISIBLE_FLAGS_COLLAPSED} more
+              </button>
             )}
           </div>
         )}

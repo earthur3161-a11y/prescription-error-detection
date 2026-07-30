@@ -16,6 +16,13 @@ interface PharmacistRef {
   id: string;
 }
 
+// Kept in the same order as the checks array in
+// lib/screening-engine/orchestrator.ts's screenDrugLine() — 12 categories,
+// matching all 12 check files under lib/screening-engine/checks/. Previously
+// stopped at 10 and never picked up food/alcohol interaction checks when
+// those were added (see FORMULARY_VERSION in lib/data/db.ts); the flags
+// themselves always rendered correctly below this line, only this summary
+// undercounted the categories.
 const CHECKS_RUN = [
   "Patient data completeness",
   "Prescription completeness",
@@ -27,6 +34,8 @@ const CHECKS_RUN = [
   "Contraindication (renal / hepatic / pregnancy)",
   "Essential Medicines List status",
   "Indication match",
+  "Food interaction",
+  "Alcohol interaction",
 ];
 
 // Light-mode design tokens, resolved to plain hex. This print window is a
