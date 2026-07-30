@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { VerdictMark } from "@/components/ui/VerdictMark";
+import { FlagSeverityChip } from "@/components/ui/FlagSeverityChip";
 import { CounselingSheet } from "@/components/pharmacy/CounselingSheet";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
@@ -24,7 +26,8 @@ import { printVerificationProof, type VerificationItem } from "@/lib/pharmacy/pr
 import { isGenuineOverrideNote } from "@/lib/pharmacy/overrideValidation";
 import { DispenseError } from "@/lib/pharmacy/dispenseClient";
 import { pharmacyStateOf } from "@/lib/pharmacy/status";
-import { screenDrugLine } from "@/lib/screening-engine";
+import { screenDrugLine, type Verdict } from "@/lib/screening-engine";
+import { cn } from "@/lib/utils/cn";
 import type { Batch } from "@/lib/types";
 
 interface LineState {
@@ -33,6 +36,14 @@ interface LineState {
   partialReason: string;
   overrideNote: string;
 }
+
+// Only ever indexed for caution/blocked (c.flagged excludes safe by
+// definition) — safe included for type completeness, never rendered.
+const FLAGGED_BOX_CLASS: Record<Verdict, string> = {
+  safe: "bg-safe-bg text-safe-fg",
+  caution: "bg-caution-bg text-caution-fg",
+  blocked: "bg-blocked-bg text-blocked-fg",
+};
 
 export default function DispensePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -256,54 +267,55 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
           return (
             <Card key={c.line.id}>
               <CardBody className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-foreground">{c.drug.generic_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Prescribed: {c.line.doseMg}mg · {c.line.frequencyPerDay}×/day · {c.line.durationDays} days → suggest {c.suggestedQty} units
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {c.verdictResult && (
-                      <Badge tone={c.verdictResult.verdict === "safe" ? "safe" : c.verdictResult.verdict === "caution" ? "caution" : "blocked"}>
-                        Screening: {c.verdictResult.verdict}
+                <div className="flex items-start gap-4">
+                  {c.verdictResult && (
+                    <VerdictMark verdict={c.verdictResult.verdict} flags={c.verdictResult.flags} size="seal" className="mt-0.5 shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-foreground">{c.drug.generic_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Prescribed: {c.line.doseMg}mg · {c.line.frequencyPerDay}×/day · {c.line.durationDays} days → suggest {c.suggestedQty} units
+                        </p>
+                      </div>
+                      <Badge tone={c.totalStock === 0 ? "blocked" : c.totalStock < 20 ? "caution" : "safe"}>
+                        {c.totalStock} dispensable in stock
                       </Badge>
+                    </div>
+
+                    {c.flagged && c.verdictResult && (
+                      <div className={cn("space-y-2 rounded-lg px-4 py-3 text-sm", FLAGGED_BOX_CLASS[c.verdictResult.verdict])}>
+                        <p className="flex items-center gap-1.5 font-medium">
+                          <ShieldAlert className="size-4 shrink-0" aria-hidden="true" />
+                          Screening flagged this drug — dispensing is blocked without a genuine override note.
+                        </p>
+                        <ul className="space-y-1.5">
+                          {c.verdictResult.flags.map((f, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <FlagSeverityChip severity={f.severity} />
+                              <span className="text-secondary">{f.audience_variant.clinical}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-medium text-secondary">
+                            Override note <span className="text-blocked-fg">*</span>
+                          </label>
+                          <Textarea
+                            value={c.ls.overrideNote}
+                            onChange={(e) => setLine(c.line.id, { overrideNote: e.target.value })}
+                            rows={3}
+                            placeholder="Explain why you're proceeding despite this flag — this will be printed verbatim on the verification record."
+                          />
+                          {c.ls.overrideNote.trim().length > 0 && !isGenuineOverrideNote(c.ls.overrideNote) && (
+                            <p className="mt-1 text-xs text-blocked-fg">Too short or too generic — give a real, specific reason.</p>
+                          )}
+                        </div>
+                      </div>
                     )}
-                    <Badge tone={c.totalStock === 0 ? "blocked" : c.totalStock < 20 ? "caution" : "safe"}>
-                      {c.totalStock} dispensable in stock
-                    </Badge>
                   </div>
                 </div>
-
-                {c.flagged && c.verdictResult && (
-                  <div className="space-y-2 rounded-lg bg-caution-bg px-4 py-3 text-sm text-caution-fg">
-                    <p className="flex items-center gap-1.5 font-medium">
-                      <ShieldAlert className="size-4 shrink-0" aria-hidden="true" />
-                      Screening flagged this drug — dispensing is blocked without a genuine override note.
-                    </p>
-                    <ul className="space-y-1 pl-1">
-                      {c.verdictResult.flags.map((f, i) => (
-                        <li key={i} className="text-secondary">
-                          [{f.severity}] {f.audience_variant.clinical}
-                        </li>
-                      ))}
-                    </ul>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-secondary">
-                        Override note <span className="text-blocked-fg">*</span>
-                      </label>
-                      <Textarea
-                        value={c.ls.overrideNote}
-                        onChange={(e) => setLine(c.line.id, { overrideNote: e.target.value })}
-                        rows={3}
-                        placeholder="Explain why you're proceeding despite this flag — this will be printed verbatim on the verification record."
-                      />
-                      {c.ls.overrideNote.trim().length > 0 && !isGenuineOverrideNote(c.ls.overrideNote) && (
-                        <p className="mt-1 text-xs text-blocked-fg">Too short or too generic — give a real, specific reason.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {noStock ? (
                   <div className="space-y-2 rounded-lg bg-blocked-bg px-4 py-3 text-sm text-blocked-fg">

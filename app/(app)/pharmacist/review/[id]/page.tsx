@@ -158,7 +158,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
                 {patient?.renalStatus === "impaired" && <Badge tone="caution">Renal impairment</Badge>}
               </div>
             </div>
-            <RiskScoreBadge verdict={overall} size="lg" />
+            <RiskScoreBadge verdict={overall} flags={allFlags} size="lg" />
           </div>
 
           <div className="border-t border-border pt-4">

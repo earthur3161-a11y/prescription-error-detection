@@ -34,11 +34,6 @@ export function getVerdictBasis(verdict: Verdict, flags: Flag[] = []): VerdictBa
   return "confirmed";
 }
 
-/** True whenever ANY flag on this verdict is unknown-severity, regardless of basis — drives the small secondary "unknown contributed" mark on a mixed caution/blocked. */
-export function hasUnknownContribution(flags: Flag[] = []): boolean {
-  return flags.some((f) => f.severity === "unknown");
-}
-
 export const VERDICT_LABEL: Record<Verdict, string> = {
   safe: "Safe",
   caution: "Caution",

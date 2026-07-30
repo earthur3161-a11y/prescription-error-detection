@@ -34,11 +34,19 @@ export function CautionTriangle({ size, color, className }: ShapeProps) {
   );
 }
 
-/** Blocked — filled regular octagon, the stop-sign shape. Real, confirmed finding at major/severe severity; unknown-severity alone never floors a verdict this far. */
+/**
+ * Blocked — filled regular octagon, the stop-sign shape. Real, confirmed
+ * finding at major/severe severity; unknown-severity alone never floors a
+ * verdict this far. Corner cut is 6 units on a 20-unit bounding box —
+ * close to the ~29% cut a mathematically regular octagon needs (an earlier,
+ * gentler 4.5-unit cut under-cut it enough that the diagonal notches didn't
+ * read as distinct corners at a glance, collapsing the silhouette toward
+ * the safe seal's circle instead of staying visually distinct from it).
+ */
 export function BlockedOctagon({ size, color, className }: ShapeProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path d="M7.5 2h9L21 6.5v9L16.5 20h-9L3 15.5v-9L7.5 2Z" fill={color} />
+      <path d="M8 2h8L22 8v8L16 22h-8L2 16v-8L8 2Z" fill={color} />
       <path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="white" strokeWidth="2.1" strokeLinecap="round" />
     </svg>
   );
