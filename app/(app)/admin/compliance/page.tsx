@@ -19,17 +19,8 @@ import {
   type AuditCategory,
   type AuditChannel,
   type AuditEvent,
-  type AuditTone,
 } from "@/lib/compliance/auditEvents";
 import { formatDateTime } from "@/lib/utils/date";
-
-const BADGE_TONE: Record<AuditTone, "safe" | "caution" | "blocked" | "brand" | "neutral"> = {
-  safe: "safe",
-  caution: "caution",
-  blocked: "blocked",
-  info: "brand",
-  neutral: "neutral",
-};
 
 const CHANNEL_TONE: Record<AuditChannel, "safe" | "caution" | "blocked" | "brand" | "neutral"> = {
   patient: "safe",
@@ -54,7 +45,7 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint?:
     <Card>
       <CardBody>
         <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
         {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
       </CardBody>
     </Card>
@@ -76,7 +67,7 @@ function EventRow({ event }: { event: AuditEvent }) {
                 ? "bg-safe-fg"
                 : event.tone === "info"
                   ? "bg-brand"
-                  : "bg-slate-300")
+                  : "bg-muted-foreground")
         }
       />
       <div className="min-w-0 flex-1">

@@ -18,7 +18,7 @@ import {
 import { formatDateTime } from "@/lib/utils/date";
 
 const TONE_DOT: Record<SuperadminActivityEvent["tone"], string> = {
-  neutral: "bg-slate-300",
+  neutral: "bg-muted-foreground",
   safe: "bg-safe-fg",
   caution: "bg-caution-fg",
   blocked: "bg-blocked-fg",

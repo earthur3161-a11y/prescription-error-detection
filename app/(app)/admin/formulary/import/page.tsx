@@ -124,15 +124,15 @@ export default function FormularyImportPage() {
             <h2 className="font-semibold text-foreground">2. Review before publishing</h2>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg bg-safe-bg px-3 py-2 text-sm">
-                <p className="text-2xl font-semibold text-safe-fg">{result.toPublish.length}</p>
+                <p className="text-2xl font-semibold tabular-nums text-safe-fg">{result.toPublish.length}</p>
                 <p className="text-secondary">ready to publish</p>
               </div>
               <div className="rounded-lg bg-muted px-3 py-2 text-sm">
-                <p className="text-2xl font-semibold text-secondary">{result.duplicates.length}</p>
+                <p className="text-2xl font-semibold tabular-nums text-secondary">{result.duplicates.length}</p>
                 <p className="text-secondary">duplicates skipped</p>
               </div>
               <div className="rounded-lg bg-blocked-bg px-3 py-2 text-sm">
-                <p className="text-2xl font-semibold text-blocked-fg">{result.errors.length}</p>
+                <p className="text-2xl font-semibold tabular-nums text-blocked-fg">{result.errors.length}</p>
                 <p className="text-secondary">rows with errors</p>
               </div>
             </div>

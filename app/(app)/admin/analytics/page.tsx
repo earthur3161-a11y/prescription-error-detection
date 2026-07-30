@@ -55,7 +55,7 @@ function Kpi({
     <Card>
       <CardBody>
         <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className={`mt-1 text-2xl font-semibold ${valueClass}`}>{value}</p>
+        <p className={`mt-1 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
         {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
       </CardBody>
     </Card>
@@ -197,11 +197,11 @@ export default function AnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-subtle">
-                  <th className="py-2 pr-4">Prescriber</th>
-                  <th className="py-2 pr-4">Lines</th>
-                  <th className="py-2 pr-4">Flag rate</th>
-                  <th className="py-2 pr-4">Override rate</th>
+                <tr className="border-b border-border text-xs font-semibold uppercase tracking-wide text-subtle">
+                  <th className="py-1.5 pr-4 text-left">Prescriber</th>
+                  <th className="py-1.5 px-3 text-right">Lines</th>
+                  <th className="py-1.5 px-3 text-right">Flag rate</th>
+                  <th className="py-1.5 pl-3 text-right">Override rate</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,13 +210,13 @@ export default function AnalyticsPage() {
                   const overrideRate = p.flaggedLines === 0 ? 0 : Math.min(1, p.overrideCount / p.flaggedLines);
                   return (
                     <tr key={p.prescriberId} className="border-b border-border last:border-0">
-                      <td className="py-2 pr-4 font-medium text-foreground">{p.prescriberName}</td>
-                      <td className="py-2 pr-4 text-secondary">{p.totalLines}</td>
-                      <td className="py-2 pr-4 text-secondary">
+                      <td className="py-1.5 pr-4 font-medium text-foreground">{p.prescriberName}</td>
+                      <td className="py-1.5 px-3 text-right tabular-nums text-secondary">{p.totalLines}</td>
+                      <td className="py-1.5 px-3 text-right tabular-nums text-secondary">
                         {Math.round(flagRate * 100)}%
                         <span className="text-subtle"> ({p.flaggedLines})</span>
                       </td>
-                      <td className="py-2 pr-4 text-secondary">
+                      <td className="py-1.5 pl-3 text-right tabular-nums text-secondary">
                         {Math.round(overrideRate * 100)}%
                         <span className="text-subtle"> ({p.overrideCount})</span>
                       </td>

@@ -48,7 +48,7 @@ function Kpi({
     <Card>
       <CardBody>
         <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className={`mt-1 text-2xl font-semibold ${valueClass}`}>{value}</p>
+        <p className={`mt-1 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
         {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
       </CardBody>
     </Card>

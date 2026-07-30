@@ -2,13 +2,18 @@
 
 import type { DailyPoint, LabeledCount } from "@/lib/analytics/facilityMetrics";
 
-// Design-token colors (from the app's verdict palette), inlined as hex so the
-// SVG/CSS charts stay self-contained and CSP-safe (no external chart library).
+// The actual verdict-palette CSS custom properties (globals.css), not
+// hardcoded hex — these previously duplicated the palette as literal hex
+// (including a plain blue "brand" that never matched --brand's graphite
+// charcoal), which silently didn't shift with the light/dark theme the way
+// every other verdict-colored element in the app does. var(--x) here means
+// these charts now repaint correctly on theme toggle like everything else.
 export const CHART_COLORS = {
-  safe: "#16A34A",
-  caution: "#D97706",
-  blocked: "#DC2626",
-  brand: "#2563EB",
+  safe: "var(--safe-fg)",
+  caution: "var(--caution-fg)",
+  blocked: "var(--blocked-fg)",
+  unknown: "var(--unknown-fg)",
+  brand: "var(--brand)",
 } as const;
 
 function formatDayLabel(date: string): string {
@@ -43,8 +48,8 @@ export function SegmentBar({
           <li key={seg.label} className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full" style={{ backgroundColor: seg.color }} aria-hidden="true" />
             <span className="text-secondary">{seg.label}</span>
-            <span className="font-medium text-foreground">{seg.value}</span>
-            <span className="text-subtle">
+            <span className="font-medium tabular-nums text-foreground">{seg.value}</span>
+            <span className="tabular-nums text-subtle">
               ({total > 0 ? Math.round((seg.value / total) * 100) : 0}%)
             </span>
           </li>
@@ -79,7 +84,7 @@ export function BarList({
               style={{ width: `${(item.count / max) * 100}%`, backgroundColor: color }}
             />
           </div>
-          <span className="w-8 shrink-0 text-right text-sm font-medium text-foreground">{item.count}</span>
+          <span className="w-8 shrink-0 text-right text-sm font-medium tabular-nums text-foreground">{item.count}</span>
         </li>
       ))}
     </ul>

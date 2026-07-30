@@ -150,7 +150,7 @@ export default function AdminAuditLogPage() {
         <Card>
           <CardBody>
             <p className="text-xs font-semibold uppercase tracking-wide text-subtle">EML compliance</p>
-            <p className="mt-1 text-2xl font-semibold text-foreground">{emlStats.percent}%</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{emlStats.percent}%</p>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {emlStats.nonEmlCount} of {emlStats.total} prescriptions include a non-EML drug
             </p>
@@ -164,7 +164,7 @@ export default function AdminAuditLogPage() {
               {topFlagTypes.map(([type, count]) => (
                 <li key={type} className="flex justify-between">
                   <span>{FLAG_TYPE_LABELS[type] ?? type}</span>
-                  <span className="font-medium">{count}</span>
+                  <span className="font-medium tabular-nums">{count}</span>
                 </li>
               ))}
             </ul>
@@ -178,7 +178,7 @@ export default function AdminAuditLogPage() {
               {topOverriddenDrugs.map(([drugId, count]) => (
                 <li key={drugId} className="flex justify-between">
                   <span>{drugNameById.get(drugId) ?? drugId}</span>
-                  <span className="font-medium">{count}</span>
+                  <span className="font-medium tabular-nums">{count}</span>
                 </li>
               ))}
             </ul>
