@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, Info, ShieldCheck, Sparkles, XCircle, type LucideIcon } from "lucide-react";
+import { AlertTriangle, HelpCircle, Info, ShieldCheck, Sparkles, XCircle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
-type NoticeTone = "neutral" | "brand" | "safe" | "caution" | "blocked";
+type NoticeTone = "neutral" | "brand" | "safe" | "caution" | "blocked" | "unknown";
 
 interface NoticeProps {
   tone?: NoticeTone;
@@ -18,6 +18,7 @@ const toneClasses: Record<NoticeTone, string> = {
   safe: "border-safe-border bg-safe-bg text-safe-fg",
   caution: "border-caution-border bg-caution-bg text-caution-fg",
   blocked: "border-blocked-border bg-blocked-bg text-blocked-fg",
+  unknown: "border-unknown-border bg-unknown-bg text-unknown-fg",
 };
 
 const toneIcons: Record<NoticeTone, LucideIcon> = {
@@ -26,6 +27,7 @@ const toneIcons: Record<NoticeTone, LucideIcon> = {
   safe: ShieldCheck,
   caution: AlertTriangle,
   blocked: XCircle,
+  unknown: HelpCircle,
 };
 
 /** Shared inline banner for coverage disclosures, status notices, and alerts. */

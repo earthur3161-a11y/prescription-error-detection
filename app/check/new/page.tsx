@@ -122,6 +122,10 @@ export default function NewCheckPage() {
   // then flips draftHydrated — the signal the persist effect below waits
   // on. Runs even when there's no pending draft, so a patient with nothing
   // to rehydrate doesn't block persistence forever.
+  // KNOWN GAP, TRACKED FOLLOW-UP (not fixed here): this setState-in-effect
+  // pattern trips react-hooks/set-state-in-effect. Pre-existing (confirmed
+  // via git stash against commit d3c395d, predates the July 2026 UI/UX
+  // pass) and out of scope for a visual-only change — see AGENTS.md.
   useEffect(() => {
     if (draftHydrated || !formulary) return;
     if (pendingDraftDrugIds) {
@@ -206,7 +210,7 @@ export default function NewCheckPage() {
         </Button>
         <div className="flex-1">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full bg-gradient-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
+            <div className="h-full bg-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
           </div>
           <p className="mt-1.5 hidden text-xs font-medium text-subtle sm:block">Step {STEP_NUMBER[step]} of 3</p>
         </div>

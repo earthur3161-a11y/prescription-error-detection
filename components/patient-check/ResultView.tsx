@@ -2,6 +2,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { StepBadge } from "@/components/ui/StepBadge";
 import { VerdictMark } from "@/components/ui/VerdictMark";
 import { FlagSeverityIcon } from "@/components/ui/FlagSeverityChip";
+import { Notice } from "@/components/ui/Notice";
 import { cn } from "@/lib/utils/cn";
 import { TONE_VAR, getVerdictBasis, getVerdictColorToken, getVerdictShape } from "@/lib/design/verdictVisuals";
 import { SHAPE_COMPONENT } from "@/components/ui/shapes";
@@ -73,7 +74,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
   const basis = getVerdictBasis(verdict, allFlags);
   const tone = getVerdictColorToken(verdict, basis);
   const BannerShape = SHAPE_COMPONENT[getVerdictShape(verdict, basis)];
-  const guidance = getPatientGuidance(verdict);
+  const guidance = getPatientGuidance(verdict, basis);
 
   return (
     <div className="space-y-6">
@@ -82,6 +83,12 @@ export function ResultView({ check, formulary }: ResultViewProps) {
         <h1 className="text-xl font-semibold font-serif sm:text-2xl">{guidance.headline}</h1>
         <p className="mt-1.5 text-sm opacity-90">{guidance.detail}</p>
       </div>
+
+      {guidance.basisNote && (
+        <Notice tone="unknown" title="What we don't know yet">
+          {guidance.basisNote}
+        </Notice>
+      )}
 
       <Card>
         <CardBody className="space-y-1.5">

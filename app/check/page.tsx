@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, ClipboardCheck, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, ClipboardCheck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
@@ -27,7 +27,7 @@ export default function CheckLandingPage() {
 
       <Link href="/check/new">
         <Button size="lg" className="w-full">
-          <Sparkles className="size-5" aria-hidden="true" />
+          <ShieldCheck className="size-5" aria-hidden="true" />
           Check my medicine
         </Button>
       </Link>

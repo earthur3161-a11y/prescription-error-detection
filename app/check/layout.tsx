@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 
 export default function CheckLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-hero min-h-screen">
+    <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 glass border-b border-border/60">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
           <Link href="/check" className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-gradient-brand shadow-glow">
-              <ShieldCheck className="size-5 text-white" aria-hidden="true" />
+            <span className="grid size-8 place-items-center rounded-lg bg-brand">
+              <ShieldCheck className="size-5 text-brand-foreground" aria-hidden="true" />
             </span>
             <span className="font-semibold text-foreground">MediGuard</span>
           </Link>
