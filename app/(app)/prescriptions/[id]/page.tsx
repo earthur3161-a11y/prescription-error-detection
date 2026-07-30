@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Textarea } from "@/components/ui/Textarea";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { PrescriptionLineSummary } from "@/components/prescription/PrescriptionLineSummary";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
@@ -90,7 +90,10 @@ export default function PrescriptionDetailPage({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <VerdictBadge verdict={overallVerdict(prescription.verdicts)} />
+              <VerdictMark
+                verdict={overallVerdict(prescription.verdicts)}
+                flags={prescription.verdicts.flatMap((v) => v.flags)}
+              />
               <PrescriptionStatusBadge status={prescription.status} />
             </div>
           </div>

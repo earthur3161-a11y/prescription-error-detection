@@ -1,9 +1,10 @@
-import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { StepBadge } from "@/components/ui/StepBadge";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
+import { FlagSeverityIcon } from "@/components/ui/FlagSeverityChip";
 import { cn } from "@/lib/utils/cn";
-import { FLAG_ICON } from "@/lib/utils/flagPresentation";
+import { TONE_VAR, getVerdictBasis, getVerdictColorToken, getVerdictShape } from "@/lib/design/verdictVisuals";
+import { SHAPE_COMPONENT } from "@/components/ui/shapes";
 import { getPatientGuidance } from "@/lib/patient-check/guidance";
 import { buildSyntheticPatient } from "@/lib/patient-check/buildSyntheticPatient";
 import {
@@ -30,16 +31,16 @@ function dedupeByPatientText(flags: Flag[]): Flag[] {
   });
 }
 
-const verdictBannerClasses: Record<Verdict, string> = {
+// This banner's layout (border-2, centered, large) is bespoke to this one
+// screen, so its bg/border/text classes stay local rather than folding into
+// the shared VerdictMark — Tailwind still needs each one literal for its
+// scanner to generate the CSS.
+const BANNER_TONE_CLASS: Record<ReturnType<typeof getVerdictColorToken>, string> = {
   safe: "bg-safe-bg border-safe-border text-safe-fg",
   caution: "bg-caution-bg border-caution-border text-caution-fg",
   blocked: "bg-blocked-bg border-blocked-border text-blocked-fg",
-};
-
-const verdictIcon: Record<Verdict, typeof CheckCircle2> = {
-  safe: CheckCircle2,
-  caution: AlertTriangle,
-  blocked: XCircle,
+  unknown: "bg-unknown-bg border-unknown-border text-unknown-fg",
+  neutral: "bg-muted border-border text-muted-foreground",
 };
 
 const verdictLabel: Record<Verdict, string> = {
@@ -68,14 +69,17 @@ export function ResultView({ check, formulary }: ResultViewProps) {
   );
 
   const verdict = overallVerdict(liveVerdicts);
+  const allFlags = liveVerdicts.flatMap((v) => v.flags);
+  const basis = getVerdictBasis(verdict, allFlags);
+  const tone = getVerdictColorToken(verdict, basis);
+  const BannerShape = SHAPE_COMPONENT[getVerdictShape(verdict, basis)];
   const guidance = getPatientGuidance(verdict);
-  const Icon = verdictIcon[verdict];
 
   return (
     <div className="space-y-6">
-      <div className={cn("rounded-2xl border-2 p-6 text-center sm:p-8", verdictBannerClasses[verdict])}>
-        <Icon className="mx-auto mb-3 size-12 sm:size-14" aria-hidden="true" />
-        <h1 className="text-xl font-semibold sm:text-2xl">{guidance.headline}</h1>
+      <div className={cn("rounded-2xl border-2 p-6 text-center sm:p-8", BANNER_TONE_CLASS[tone])}>
+        <BannerShape size={56} color={TONE_VAR[tone]} className="mx-auto mb-3" />
+        <h1 className="text-xl font-semibold font-serif sm:text-2xl">{guidance.headline}</h1>
         <p className="mt-1.5 text-sm opacity-90">{guidance.detail}</p>
       </div>
 
@@ -105,7 +109,12 @@ export function ResultView({ check, formulary }: ResultViewProps) {
               <CardBody className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-foreground">{drug.generic_name}</p>
-                  <VerdictBadge verdict={lineVerdict.verdict} label={verdictLabel[lineVerdict.verdict]} size="sm" />
+                  <VerdictMark
+                    verdict={lineVerdict.verdict}
+                    flags={lineVerdict.flags}
+                    label={verdictLabel[lineVerdict.verdict]}
+                    size="badge"
+                  />
                 </div>
                 <p className="text-xs text-subtle">
                   {drug.onEssentialMedicinesList
@@ -114,15 +123,12 @@ export function ResultView({ check, formulary }: ResultViewProps) {
                 </p>
                 {lineVerdict.flags.length > 0 && (
                   <ul className="space-y-1.5">
-                    {dedupeByPatientText(lineVerdict.flags).map((flag, fi) => {
-                      const FlagIcon = FLAG_ICON[flag.severity];
-                      return (
-                        <li key={fi} className="flex items-start gap-2 text-sm text-secondary">
-                          <FlagIcon className="mt-0.5 size-4 shrink-0 text-subtle" aria-hidden="true" />
-                          {flag.audience_variant.patient}
-                        </li>
-                      );
-                    })}
+                    {dedupeByPatientText(lineVerdict.flags).map((flag, fi) => (
+                      <li key={fi} className="flex items-start gap-2 text-sm text-secondary">
+                        <FlagSeverityIcon severity={flag.severity} size={16} className="mt-0.5 shrink-0" />
+                        {flag.audience_variant.patient}
+                      </li>
+                    ))}
                   </ul>
                 )}
               </CardBody>

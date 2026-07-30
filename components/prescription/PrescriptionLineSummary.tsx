@@ -1,9 +1,9 @@
 import { Card, CardBody } from "@/components/ui/Card";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils/cn";
+import { FlagSeverityIcon } from "@/components/ui/FlagSeverityChip";
+import { TONE_BORDER_L_CLASS, getVerdictBasis, getVerdictColorToken } from "@/lib/design/verdictVisuals";
 import { formatDateTime } from "@/lib/utils/date";
-import { FLAG_COLOR_CLASS, FLAG_ICON } from "@/lib/utils/flagPresentation";
 import type { Drug, OverrideLog, PrescriptionDrugLine } from "@/lib/types";
 import type { DrugLineVerdict } from "@/lib/screening-engine";
 
@@ -27,12 +27,8 @@ export function PrescriptionLineSummary({
   verdict,
   overrideLog,
 }: PrescriptionLineSummaryProps) {
-  const borderTone =
-    verdict.verdict === "blocked"
-      ? "border-l-4 border-l-blocked-fg"
-      : verdict.verdict === "caution"
-        ? "border-l-4 border-l-caution-fg"
-        : "border-l-4 border-l-safe-fg";
+  const basis = getVerdictBasis(verdict.verdict, verdict.flags);
+  const borderTone = TONE_BORDER_L_CLASS[getVerdictColorToken(verdict.verdict, basis)];
 
   return (
     <Card className={borderTone}>
@@ -51,16 +47,15 @@ export function PrescriptionLineSummary({
               {drug.onEssentialMedicinesList ? "On Ghana EML" : "Not on Ghana EML"}
             </Badge>
           </div>
-          <VerdictBadge verdict={verdict.verdict} />
+          <VerdictMark verdict={verdict.verdict} flags={verdict.flags} />
         </div>
 
         {verdict.flags.length > 0 && (
           <ul className="divide-y divide-border border-t border-border">
             {verdict.flags.map((flag, i) => {
-              const Icon = FLAG_ICON[flag.severity];
               return (
                 <li key={`${flag.code}-${i}`} className="flex items-start gap-2.5 py-2">
-                  <Icon className={cn("mt-0.5 size-4 shrink-0", FLAG_COLOR_CLASS[flag.severity])} aria-hidden="true" />
+                  <FlagSeverityIcon severity={flag.severity} size={16} className="mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm text-secondary">
                       <span className="mr-1.5 rounded bg-muted px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

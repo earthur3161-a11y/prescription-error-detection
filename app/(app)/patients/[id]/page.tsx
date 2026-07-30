@@ -7,7 +7,7 @@ import { PatientCard } from "@/components/patient/PatientCard";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -70,7 +70,11 @@ export default function PatientProfilePage({
                 <CardBody className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-secondary">{formatDateTime(rx.createdAt)}</p>
                   <div className="flex items-center gap-2">
-                    <VerdictBadge verdict={overallVerdict(rx.verdicts)} size="sm" />
+                    <VerdictMark
+                      verdict={overallVerdict(rx.verdicts)}
+                      flags={rx.verdicts.flatMap((v) => v.flags)}
+                      size="chip"
+                    />
                     <PrescriptionStatusBadge status={rx.status} />
                   </div>
                 </CardBody>

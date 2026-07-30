@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { useMyApiKeys } from "@/lib/query/hooks/useInstitution";
-import type { Verdict } from "@/lib/screening-engine";
+import type { Flag, Verdict } from "@/lib/screening-engine";
 
 const EXAMPLE_PAYLOAD = {
   patient: {
@@ -168,7 +168,10 @@ export default function IntegrationSandboxPage() {
             )}
             {result && (
               <div className="space-y-3">
-                <VerdictBadge verdict={result.verdict} />
+                <VerdictMark
+                  verdict={result.verdict}
+                  flags={Array.isArray(result.flags) ? (result.flags as Flag[]) : []}
+                />
                 <pre className="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 text-xs text-slate-100">
                   {JSON.stringify(result, null, 2)}
                 </pre>

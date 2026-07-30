@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { ChevronDown, Trash2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils/cn";
-import { FLAG_COLOR_CLASS, FLAG_ICON } from "@/lib/utils/flagPresentation";
+import { FlagSeverityIcon } from "@/components/ui/FlagSeverityChip";
+import { TONE_BORDER_L_CLASS, getVerdictBasis, getVerdictColorToken } from "@/lib/design/verdictVisuals";
 import type { Drug, OverrideLog, PrescriptionDrugLine, Route } from "@/lib/types";
 import type { DrugLineVerdict, Flag } from "@/lib/screening-engine";
 
@@ -24,10 +25,9 @@ interface VerdictCardProps {
 }
 
 function FlagRow({ flag }: { flag: Flag }) {
-  const Icon = FLAG_ICON[flag.severity];
   return (
     <li className="flex items-start gap-2.5 py-1.5">
-      <Icon className={cn("mt-0.5 size-4 shrink-0", FLAG_COLOR_CLASS[flag.severity])} aria-hidden="true" />
+      <FlagSeverityIcon severity={flag.severity} size={16} className="mt-0.5 shrink-0" />
       <p className="text-sm text-secondary">{flag.message}</p>
     </li>
   );
@@ -46,12 +46,9 @@ export function VerdictCard({
   const needsOverride = verdict.verdict !== "safe";
   const dailyTotal = line.doseMg * line.frequencyPerDay;
 
-  const borderTone =
-    verdict.verdict === "blocked"
-      ? "border-l-4 border-l-blocked-fg"
-      : verdict.verdict === "caution"
-        ? "border-l-4 border-l-caution-fg"
-        : "border-l-4 border-l-safe-fg";
+  const basis = getVerdictBasis(verdict.verdict, verdict.flags);
+  const tone = getVerdictColorToken(verdict.verdict, basis);
+  const borderTone = TONE_BORDER_L_CLASS[tone];
 
   return (
     <Card className={cn("transition-colors", borderTone)}>
@@ -68,7 +65,7 @@ export function VerdictCard({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <VerdictBadge verdict={verdict.verdict} />
+            <VerdictMark verdict={verdict.verdict} flags={verdict.flags} />
             <button
               onClick={onRemove}
               aria-label={`Remove ${drug.generic_name} from prescription`}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FilePlus2, Users } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth/useAuth";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -99,7 +99,11 @@ export default function DashboardPage() {
                       className="flex items-center justify-between gap-3 py-2.5 text-sm text-secondary hover:text-brand"
                     >
                       <span>{formatDateTime(rx.createdAt)}</span>
-                      <VerdictBadge verdict={overallVerdict(rx.verdicts)} size="sm" />
+                      <VerdictMark
+                        verdict={overallVerdict(rx.verdicts)}
+                        flags={rx.verdicts.flatMap((v) => v.flags)}
+                        size="chip"
+                      />
                     </Link>
                   </li>
                 ))}

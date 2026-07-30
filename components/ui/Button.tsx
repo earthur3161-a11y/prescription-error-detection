@@ -10,8 +10,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
+  // Flat, no gradient/glow — a clinical instrument reads as precise and
+  // calm, not a consumer app selling itself. Weight comes from contrast and
+  // a crisp shadow, not decoration.
   primary:
-    "bg-gradient-brand text-white shadow-glow hover:brightness-110 active:scale-[0.98] disabled:bg-none disabled:bg-muted disabled:text-subtle disabled:shadow-none",
+    "bg-brand text-brand-foreground shadow-soft hover:bg-brand-strong active:scale-[0.98] disabled:bg-muted disabled:text-subtle disabled:shadow-none",
   secondary:
     "bg-surface text-secondary border border-border-strong hover:bg-surface-2 hover:border-border-strong active:scale-[0.98] disabled:text-subtle disabled:bg-muted",
   ghost:

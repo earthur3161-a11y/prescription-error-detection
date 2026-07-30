@@ -25,27 +25,43 @@
   --border: #e6ebf2;
   --border-strong: #cdd6e3;
 
-  /* Brand */
-  --brand: #2563eb;
-  --brand-strong: #1d4ed8;
+  /* Ink — the primary/brand color. Graphite charcoal, deliberately detached
+     from the "healthcare blue" default (confirmed via side-by-side + a
+     computed deuteranopia/protanopia simulation before adopting — see the
+     design-review artifact referenced in the PR). Flat, no gradient. */
+  --brand: #34383d;
+  --brand-strong: #24272b;
   --brand-teal: #0ea5a4;
-  --brand-subtle: #eef4ff;
+  --brand-subtle: #eceded;
   --brand-foreground: #ffffff;
 
-  /* Verdict palette */
-  --safe-fg: #15803d;
-  --safe-bg: #dcfce7;
-  --safe-border: #86efac;
+  /* Verdict palette — four states, not three. `unknown` sits outside the
+     green/amber/red hue family entirely (slate-violet) specifically so it
+     can never read as "a paler caution" — color alone doesn't carry this
+     distinction (see the design-review artifact's ΔE tables), so every
+     verdict-adjacent component also carries a distinct shape: safe = seal
+     (filled circle), caution = triangle, blocked = octagon (stop-sign),
+     unknown = open dashed ring. See lib/design/verdictVisuals.ts. */
+  --safe-fg: #1e7a4c;
+  --safe-bg: #e3f5ea;
+  --safe-border: #9fd9b8;
 
-  --caution-fg: #b45309;
-  --caution-bg: #fef3c7;
-  --caution-border: #fcd34d;
+  --caution-fg: #b5750a;
+  --caution-bg: #fbf0dc;
+  --caution-border: #e8c077;
 
-  --blocked-fg: #dc2626;
-  --blocked-bg: #fee2e2;
-  --blocked-border: #fca5a5;
+  --blocked-fg: #b3261e;
+  --blocked-bg: #fbe4e2;
+  --blocked-border: #e7a29c;
 
-  /* Gradients */
+  --unknown-fg: #5b4b8a;
+  --unknown-bg: #edeaf7;
+  --unknown-border: #b9aad9;
+
+  /* Gradients — kept for any non-clinical marketing/auth surface that still
+     wants them; the four clinical services (Patient/Physician/Pharmacist/
+     Admin) no longer reference these, deliberately, per the "precise and
+     calm, not decorative" brief. */
   --gradient-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #0ea5a4 100%);
   --gradient-brand-soft: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   --hero-glow-1: rgba(37, 99, 235, 0.16);
@@ -58,7 +74,7 @@
   --shadow-lg: 0 12px 24px -6px rgb(15 23 42 / 0.12), 0 24px 56px -12px rgb(15 23 42 / 0.2);
   --shadow-glow: 0 8px 24px -6px rgb(37 99 235 / 0.4);
 
-  --ring: rgb(37 99 235 / 0.35);
+  --ring: rgb(52 56 61 / 0.4);
 }
 
 :root[data-theme="dark"] {
@@ -76,23 +92,30 @@
   --border: #24304a;
   --border-strong: #33415e;
 
-  --brand: #4f8cff;
-  --brand-strong: #3b82f6;
+  /* Light-mode ink (#34383d) inverted to a light warm-neutral silver so it
+     still reads as the actionable/primary color against a dark page —
+     foreground flips to near-black text-on-button to match. */
+  --brand: #c7cbcf;
+  --brand-strong: #dee1e3;
   --brand-teal: #2dd4bf;
-  --brand-subtle: rgba(79, 140, 255, 0.14);
-  --brand-foreground: #ffffff;
+  --brand-subtle: rgba(199, 203, 207, 0.14);
+  --brand-foreground: #15171a;
 
-  --safe-fg: #4ade80;
-  --safe-bg: rgba(34, 197, 94, 0.14);
-  --safe-border: rgba(34, 197, 94, 0.4);
+  --safe-fg: #4fae7d;
+  --safe-bg: rgba(79, 174, 125, 0.16);
+  --safe-border: rgba(79, 174, 125, 0.4);
 
-  --caution-fg: #fbbf24;
-  --caution-bg: rgba(245, 158, 11, 0.14);
-  --caution-border: rgba(245, 158, 11, 0.4);
+  --caution-fg: #d99a3d;
+  --caution-bg: rgba(217, 154, 61, 0.16);
+  --caution-border: rgba(217, 154, 61, 0.4);
 
-  --blocked-fg: #f87171;
-  --blocked-bg: rgba(239, 68, 68, 0.15);
-  --blocked-border: rgba(239, 68, 68, 0.42);
+  --blocked-fg: #e36158;
+  --blocked-bg: rgba(227, 97, 88, 0.17);
+  --blocked-border: rgba(227, 97, 88, 0.42);
+
+  --unknown-fg: #9c8fc7;
+  --unknown-bg: rgba(156, 143, 199, 0.16);
+  --unknown-border: rgba(156, 143, 199, 0.42);
 
   --gradient-brand: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #2dd4bf 100%);
   --gradient-brand-soft: linear-gradient(135deg, #4f8cff 0%, #818cf8 100%);
@@ -103,9 +126,9 @@
   --shadow-soft: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 4px 16px -4px rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 12px 32px -8px rgb(0 0 0 / 0.6);
   --shadow-lg: 0 12px 24px -6px rgb(0 0 0 / 0.55), 0 24px 56px -12px rgb(0 0 0 / 0.7);
-  --shadow-glow: 0 8px 28px -6px rgb(79 140 255 / 0.5);
+  --shadow-glow: 0 8px 28px -6px rgb(199 203 207 / 0.35);
 
-  --ring: rgb(79 140 255 / 0.5);
+  --ring: rgb(199 203 207 / 0.5);
 }
 
 @theme inline {
@@ -141,7 +164,18 @@
   --color-blocked-bg: var(--blocked-bg);
   --color-blocked-border: var(--blocked-border);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-unknown-fg: var(--unknown-fg);
+  --color-unknown-bg: var(--unknown-bg);
+  --color-unknown-border: var(--unknown-border);
+
+  /* Three registers, one family (IBM Plex) — chosen for its technical/
+     documentation heritage rather than generic startup polish. Sans for UI,
+     serif for verdict headlines and the print verification record's
+     masthead, mono for doses/timestamps/codes and anywhere precision should
+     visually read as precision. */
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-plex-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Consolas, monospace;
 
   --shadow-soft: var(--shadow-soft);
   --shadow-md: var(--shadow-md);

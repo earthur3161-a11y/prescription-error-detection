@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { screenDrugLine, type Flag, type Verdict } from "@/lib/screening-engine";
@@ -179,7 +179,7 @@ function WidgetInner() {
         {state.status === "result" && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-foreground">{state.drugName}</p>
-            <VerdictBadge verdict={state.verdict} />
+            <VerdictMark verdict={state.verdict} flags={state.flags} />
             {state.flags.length > 0 && (
               <ul className="space-y-1 pt-1">
                 {state.flags.slice(0, 2).map((f, i) => (

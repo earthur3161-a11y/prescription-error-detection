@@ -1,6 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import type { Verdict } from "@/lib/screening-engine";
 
 interface SignSubmitBarProps {
@@ -25,7 +25,7 @@ export function SignSubmitBar({
           (v) =>
             verdictCounts[v] > 0 && (
               <span key={v} className="flex items-center gap-1.5">
-                <VerdictBadge verdict={v} size="sm" />
+                <VerdictMark verdict={v} size="chip" />
                 <span>× {verdictCounts[v]}</span>
               </span>
             )

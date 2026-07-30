@@ -6,7 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { VerdictBadge } from "@/components/ui/VerdictBadge";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
 import { Button } from "@/components/ui/Button";
@@ -118,7 +118,11 @@ export default function PrescriptionHistoryPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <SourceBadge source={rx.source} />
-                  <VerdictBadge verdict={overallVerdict(rx.verdicts)} size="sm" />
+                  <VerdictMark
+                    verdict={overallVerdict(rx.verdicts)}
+                    flags={rx.verdicts.flatMap((v) => v.flags)}
+                    size="chip"
+                  />
                   <PrescriptionStatusBadge status={rx.status} />
                 </div>
               </CardBody>
