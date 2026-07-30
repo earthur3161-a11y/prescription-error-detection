@@ -13,7 +13,7 @@ interface AllergyListProps {
 
 export function AllergyList({ allergies }: AllergyListProps) {
   if (allergies === null) {
-    return <p className="text-sm text-caution-fg">Not on file — verify manually.</p>;
+    return <p className="text-sm text-unknown-fg">Not on file — verify manually.</p>;
   }
   if (allergies.length === 0) {
     return <p className="text-sm text-muted-foreground">No known allergies recorded.</p>;

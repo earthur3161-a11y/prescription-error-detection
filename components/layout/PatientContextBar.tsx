@@ -106,7 +106,7 @@ export function PatientContextBar({ patientId, onSelect, onClear, allowCreate }:
 
   if (!patientId || !patient) {
     return (
-      <div className="border-b border-border bg-surface px-6 py-4">
+      <div className="border-b border-border bg-surface px-4 py-3">
         <label htmlFor="patient-search" className="mb-1.5 block text-sm font-medium text-secondary">
           Patient
         </label>
@@ -145,7 +145,7 @@ export function PatientContextBar({ patientId, onSelect, onClear, allowCreate }:
   }, null);
 
   return (
-    <div className="space-y-3 border-b border-border bg-surface px-6 py-4">
+    <div className="space-y-2.5 border-b border-border bg-surface px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-full bg-brand-subtle text-brand">
@@ -163,7 +163,7 @@ export function PatientContextBar({ patientId, onSelect, onClear, allowCreate }:
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               {patient.allergies === null && (
-                <Badge tone="caution">Allergy data unknown</Badge>
+                <Badge tone="unknown">Allergy data unknown</Badge>
               )}
               {worstAllergy && (
                 <Badge tone={allergySeverityTone[worstAllergy]}>
@@ -172,7 +172,7 @@ export function PatientContextBar({ patientId, onSelect, onClear, allowCreate }:
               )}
               {patient.allergies?.length === 0 && <Badge tone="neutral">No known allergies</Badge>}
               {patient.activeMedications === null && (
-                <Badge tone="caution">Medication data unknown</Badge>
+                <Badge tone="unknown">Medication data unknown</Badge>
               )}
               {patient.activeMedications && patient.activeMedications.length > 0 && (
                 <Badge tone="neutral">{patient.activeMedications.length} active medication(s)</Badge>

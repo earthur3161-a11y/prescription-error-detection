@@ -199,10 +199,10 @@ export function PrescriptionBuilder({
         }}
       />
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-6 sm:p-8">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
 
         {formularyLoading ? (
@@ -213,7 +213,7 @@ export function PrescriptionBuilder({
         ) : (
           <>
             {formulary && <ScreeningCoverageNotice formulary={formulary} />}
-            <DrugSearchAdd onAdd={handleAddDrug} />
+            <DrugSearchAdd key={patientId} onAdd={handleAddDrug} autoFocus={!!patientId} />
             <DrugLineList
               lines={lines}
               drugs={formulary?.drugs ?? []}

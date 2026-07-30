@@ -1,7 +1,7 @@
 import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils/cn";
 
-type Tone = "neutral" | "brand" | "safe" | "caution" | "blocked";
+type Tone = "neutral" | "brand" | "safe" | "caution" | "blocked" | "unknown";
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: Tone;
@@ -13,6 +13,7 @@ const toneClasses: Record<Tone, string> = {
   safe: "bg-safe-bg text-safe-fg",
   caution: "bg-caution-bg text-caution-fg",
   blocked: "bg-blocked-bg text-blocked-fg",
+  unknown: "bg-unknown-bg text-unknown-fg",
 };
 
 export function Badge({ className, tone = "neutral", ...props }: BadgeProps) {

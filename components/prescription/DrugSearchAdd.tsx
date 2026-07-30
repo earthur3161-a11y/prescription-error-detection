@@ -7,9 +7,11 @@ import type { Drug } from "@/lib/types";
 
 interface DrugSearchAddProps {
   onAdd: (drug: Drug) => void;
+  /** Focuses the search box on mount — used when this remounts right after a patient is selected, so the next keystroke starts the first drug search with no click needed. */
+  autoFocus?: boolean;
 }
 
-export function DrugSearchAdd({ onAdd }: DrugSearchAddProps) {
+export function DrugSearchAdd({ onAdd, autoFocus }: DrugSearchAddProps) {
   const [query, setQuery] = useState("");
   const { data: results, isLoading } = useDrugSearch(query);
 
@@ -36,6 +38,7 @@ export function DrugSearchAdd({ onAdd }: DrugSearchAddProps) {
       loading={isLoading}
       placeholder="Search drug by generic or brand name to add…"
       emptyMessage="No matching drugs in the formulary."
+      autoFocus={autoFocus}
     />
   );
 }

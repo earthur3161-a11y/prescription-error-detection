@@ -8,7 +8,7 @@ interface MedicationListProps {
 
 export function MedicationList({ medications, drugs }: MedicationListProps) {
   if (medications === null) {
-    return <p className="text-sm text-caution-fg">Not on file — verify manually.</p>;
+    return <p className="text-sm text-unknown-fg">Not on file — verify manually.</p>;
   }
   if (medications.length === 0) {
     return <p className="text-sm text-muted-foreground">No active medications recorded.</p>;

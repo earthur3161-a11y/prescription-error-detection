@@ -66,7 +66,7 @@ export default function PatientsPage() {
                     </p>
                   </div>
                 </div>
-                {patient.allergies === null && <Badge tone="caution">Allergy data unknown</Badge>}
+                {patient.allergies === null && <Badge tone="unknown">Allergy data unknown</Badge>}
                 {patient.allergies && patient.allergies.length > 0 && (
                   <Badge tone="blocked">{patient.allergies.length} allergy record(s)</Badge>
                 )}

@@ -16,6 +16,7 @@ interface ComboboxProps<T> {
   emptyMessage?: string;
   renderItem?: (item: T) => ReactNode;
   className?: string;
+  autoFocus?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export function Combobox<T>({
   emptyMessage = "No results found.",
   renderItem,
   className,
+  autoFocus,
 }: ComboboxProps<T>) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -83,6 +85,7 @@ export function Combobox<T>({
           aria-controls={listboxId}
           aria-autocomplete="list"
           autoComplete="off"
+          autoFocus={autoFocus}
           className="h-11 w-full rounded-xl border border-border-strong bg-surface pl-9 pr-3 text-sm text-foreground placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
           placeholder={placeholder}
           value={query}
