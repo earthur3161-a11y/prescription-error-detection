@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { supabase } from "@/lib/supabase/client";
 import type { AccountRole } from "@/lib/types";
 
@@ -157,9 +157,8 @@ export default function ActivateAccountPage() {
                   <label htmlFor="pw" className="mb-1.5 block text-sm font-medium text-secondary">
                     New password
                   </label>
-                  <Input
+                  <PasswordInput
                     id="pw"
-                    type="password"
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -170,9 +169,8 @@ export default function ActivateAccountPage() {
                   <label htmlFor="pw2" className="mb-1.5 block text-sm font-medium text-secondary">
                     Confirm password
                   </label>
-                  <Input
+                  <PasswordInput
                     id="pw2"
-                    type="password"
                     autoComplete="new-password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}

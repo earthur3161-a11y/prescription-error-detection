@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import { authenticate } from "@/lib/data/repositories/accountRepository";
@@ -114,9 +115,8 @@ export function PortalSignupForm({ config }: { config: PortalSignupConfig }) {
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-secondary">
                 Password
               </label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
