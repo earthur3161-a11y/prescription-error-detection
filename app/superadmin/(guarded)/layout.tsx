@@ -36,10 +36,10 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-surface">
         <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
+          <Link href="/superadmin" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <ShieldAlert className="size-6 text-foreground" aria-hidden="true" />
             <span className="font-semibold text-foreground">MediGuard Operations</span>
-          </div>
+          </Link>
           <button
             onClick={() => {
               logout();

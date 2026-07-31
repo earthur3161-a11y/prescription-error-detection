@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import type { UserRole } from "@/lib/types";
 
 interface NavItem {
@@ -35,9 +36,12 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { href: "/settings", label: "Settings", icon: Settings },
   ],
   pharmacist: [
+    // Inventory leads the list — it's this role's ROLE_HOME_ROUTE (lib/auth/roles.ts),
+    // same "home route goes first" convention Prescriber's Dashboard and
+    // Admin's Facility Analytics already follow below.
+    { href: "/pharmacist/inventory", label: "Inventory", icon: Package },
     { href: "/pharmacist/verify/new", label: "Verify Prescription", icon: FilePlus2 },
     { href: "/prescriptions", label: "Prescription History", icon: FileText },
-    { href: "/pharmacist/inventory", label: "Inventory", icon: Package },
     { href: "/pharmacist/drug-info", label: "Drug Info", icon: BookOpen },
     { href: "/pharmacist/reports", label: "Reports", icon: FileText },
     { href: "/pharmacist/error-log", label: "Error & Flag Log", icon: ShieldAlert },
@@ -65,10 +69,14 @@ export function Sidebar({ role, onNavigate }: SidebarProps) {
 
   return (
     <nav aria-label="Main navigation" className="flex h-full flex-col bg-surface">
-      <div className="flex items-center gap-2 px-5 py-5">
+      <Link
+        href={ROLE_HOME_ROUTE[role]}
+        onClick={onNavigate}
+        className="flex items-center gap-2 px-5 py-5 transition-opacity hover:opacity-80"
+      >
         <ShieldCheck className="size-7 text-brand" aria-hidden="true" />
         <span className="text-lg font-semibold text-foreground">MediGuard</span>
-      </div>
+      </Link>
       <ul className="flex-1 space-y-1 px-3">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
