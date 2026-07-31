@@ -490,6 +490,8 @@ export type Database = {
           status: SubscriptionStatus;
           period_end: string | null;
           days_remaining: number;
+          /** status = 'active' AND period_end > now(), computed server-side — the one signal callers should actually gate on, not the raw status column alone (0022_restore_subscription_enforcement.sql). */
+          is_active: boolean;
         }[];
       };
       update_my_institution_enforcement_level: {

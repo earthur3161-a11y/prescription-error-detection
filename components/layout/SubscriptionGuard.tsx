@@ -28,7 +28,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!product || subscription.isLoading) return;
-    if (subscription.data && subscription.data.status !== "active") {
+    if (subscription.data && !subscription.data.isActive) {
       router.replace("/billing");
     }
   }, [product, subscription.isLoading, subscription.data, router]);
@@ -42,7 +42,7 @@ export function SubscriptionGuard({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (subscription.data && subscription.data.status !== "active") return null;
+  if (subscription.data && !subscription.data.isActive) return null;
 
   return <>{children}</>;
 }

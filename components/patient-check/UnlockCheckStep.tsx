@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useCheckQuota, useInitiatePayment, usePaymentStatus } from "@/lib/query/hooks/useCheckQuota";
 import { useSendOtp, useVerifyOtp } from "@/lib/query/hooks/usePhoneVerification";
+import { usePaymentTimeout } from "@/lib/hooks/usePaymentTimeout";
 import { isValidGhPhone } from "@/lib/utils/phone";
 
 type MobileMoneyProvider = "mtn" | "vod" | "atl";
@@ -52,7 +53,6 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   const [subStep, setSubStep] = useState<SubStep>("phone");
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
-  const [paymentTimedOut, setPaymentTimedOut] = useState(false);
   const otpAutoSent = useRef(false);
 
   const quota = useCheckQuota(confirmedPhone);
@@ -60,6 +60,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
   const verifyOtp = useVerifyOtp();
   const initiatePayment = useInitiatePayment();
   const paymentStatus = usePaymentStatus(subStep === "paying" ? paymentReference : null);
+  const paymentTimedOut = usePaymentTimeout(subStep === "paying" && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
   // Once quota resolves for a freshly-confirmed phone, route to the right
   // sub-step: already verified with credit -> unlock; verified with none ->
@@ -91,12 +92,6 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subStep, confirmedPhone]);
-
-  useEffect(() => {
-    if (subStep !== "paying" || paymentStatus.data?.status !== "pending") return;
-    const timer = setTimeout(() => setPaymentTimedOut(true), PAYMENT_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [subStep, paymentStatus.data?.status]);
 
   useEffect(() => {
     if (subStep === "paying" && paymentStatus.data?.status === "success" && confirmedPhone) {
@@ -138,7 +133,6 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
       {
         onSuccess: (res) => {
           setPaymentReference(res.reference);
-          setPaymentTimedOut(false);
           setSubStep("paying");
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },

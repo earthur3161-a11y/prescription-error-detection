@@ -12,9 +12,16 @@ import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import { useToastStore } from "@/lib/store/toast-store";
-import { useInitiateSubscriptionPayment, useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
+import {
+  useInitiateSubscriptionPayment,
+  useSubscriptionPaymentStatus,
+  useSubscriptionStatus,
+} from "@/lib/query/hooks/useSubscriptionStatus";
+import { usePaymentTimeout } from "@/lib/hooks/usePaymentTimeout";
 import { isValidGhPhone } from "@/lib/utils/phone";
 import type { SubscriptionProduct } from "@/lib/supabase/types";
+
+const PAYMENT_TIMEOUT_MS = 2 * 60 * 1000;
 
 type MobileMoneyProvider = "mtn" | "vod" | "atl";
 
@@ -46,11 +53,18 @@ export default function BillingPage() {
   const product = role ? ROLE_PRODUCT[role] : undefined;
 
   const [paying, setPaying] = useState(false);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
 
   const subscription = useSubscriptionStatus(product ?? null, paying);
   const initiatePayment = useInitiateSubscriptionPayment();
+  // Distinct from `subscription` above: that only ever tells us "active" or
+  // not (the webhook never touches it on failure — 0006_subscriptions.sql),
+  // so it alone can't tell "still pending" apart from "definitively failed."
+  // This is what makes a declined/abandoned/reversed charge visible at all.
+  const paymentStatus = useSubscriptionPaymentStatus(paying ? paymentReference : null);
+  const paymentTimedOut = usePaymentTimeout(paying && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -58,11 +72,11 @@ export default function BillingPage() {
   }, [hasHydrated, role, product, router]);
 
   useEffect(() => {
-    if (paying && subscription.data?.status === "active") {
+    if (paying && subscription.data?.isActive) {
       setPaying(false);
       showToast({ title: "Subscription active", description: "You're all set.", variant: "success" });
     }
-  }, [paying, subscription.data?.status, showToast]);
+  }, [paying, subscription.data?.isActive, showToast]);
 
   if (!hasHydrated || !role || !product) {
     return (
@@ -81,6 +95,7 @@ export default function BillingPage() {
       { phone: phone.trim(), provider },
       {
         onSuccess: (res) => {
+          setPaymentReference(res.reference);
           setPaying(true);
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },
@@ -89,7 +104,18 @@ export default function BillingPage() {
     );
   }
 
-  const isActive = subscription.data?.status === "active";
+  // Shared by "Cancel" (immediate, user-initiated) and "Try again" (after a
+  // detected failure or timeout) — both mean the same thing: abandon this
+  // attempt and return to the form. A fresh handlePay() call always gets a
+  // brand-new reference from the server, so there's no risk of this stale
+  // one being reused or confused with a later attempt.
+  function resetToForm() {
+    setPaying(false);
+    setPaymentReference(null);
+  }
+
+  const isActive = subscription.data?.isActive ?? false;
+  const paymentFailed = paying && paymentStatus.data?.status === "failed";
 
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
@@ -118,12 +144,25 @@ export default function BillingPage() {
                 Continue to {PRODUCT_LABEL[product]}
               </Button>
             </div>
+          ) : paymentFailed ? (
+            <div className="space-y-4 text-center">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Payment failed</h2>
+                <p className="mt-1 text-sm text-secondary">
+                  The payment wasn&rsquo;t approved. Nothing was charged — you can try again.
+                </p>
+              </div>
+              <Button variant="secondary" className="w-full" onClick={resetToForm}>
+                Try again
+              </Button>
+            </div>
           ) : paying ? (
             <div className="space-y-3 text-center">
               <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
               <p className="text-sm text-secondary">Approve the payment request on your phone to activate.</p>
-              <Button variant="secondary" className="w-full" onClick={() => setPaying(false)}>
-                Cancel
+              {paymentTimedOut && <p className="text-sm text-caution-fg">Didn&rsquo;t get the prompt?</p>}
+              <Button variant="secondary" className="w-full" onClick={resetToForm}>
+                {paymentTimedOut ? "Try again" : "Cancel"}
               </Button>
             </div>
           ) : (
