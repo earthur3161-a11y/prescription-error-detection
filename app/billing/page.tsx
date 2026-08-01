@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -49,7 +48,7 @@ const PRODUCT_PRICE_GHS: Record<SubscriptionProduct, string> = {
 export default function BillingPage() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.show);
-  const { role, hasHydrated } = useAuth();
+  const { role, hasHydrated, logout } = useAuth();
   const product = role ? ROLE_PRODUCT[role] : undefined;
 
   const [paying, setPaying] = useState(false);
@@ -119,9 +118,25 @@ export default function BillingPage() {
 
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand">
-        ← MediGuard home
-      </Link>
+      {/*
+        Not a plain link to "/": every role has a ROLE_HOME_ROUTE, and "/"
+        immediately redirects any signed-in user straight back into it
+        (app/page.tsx) — which SubscriptionGuard then bounces right back
+        here, since that's exactly why this user is on /billing in the
+        first place. A still-authenticated user has no reachable "home"
+        while unsubscribed, so leaving has to mean signing out (same
+        action as Topbar's/Super Admin's "Sign out"), not just navigating.
+      */}
+      <button
+        type="button"
+        onClick={() => {
+          logout();
+          router.replace("/");
+        }}
+        className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand"
+      >
+        ← Sign out
+      </button>
       <Card className="w-full max-w-md animate-fade-up shadow-md">
         <CardBody className="space-y-5">
           <div className="text-center">
