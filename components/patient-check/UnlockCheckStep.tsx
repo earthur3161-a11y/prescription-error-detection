@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useCheckQuota, useInitiatePayment, usePaymentStatus } from "@/lib/query/hooks/useCheckQuota";
-import { useSendOtp, useVerifyOtp } from "@/lib/query/hooks/usePhoneVerification";
 import { usePaymentTimeout } from "@/lib/hooks/usePaymentTimeout";
-import { isValidGhPhone } from "@/lib/utils/phone";
 
 type MobileMoneyProvider = "mtn" | "vod" | "atl";
 
@@ -24,112 +21,44 @@ const CHECK_PRICE_GHS = ((Number(process.env.NEXT_PUBLIC_CHECK_PRICE_PESEWAS) ||
 
 const PAYMENT_TIMEOUT_MS = 2 * 60 * 1000;
 
-type SubStep = "phone" | "otp" | "unlock" | "paying";
+type SubStep = "unlock" | "paying";
 
 interface UnlockCheckStepProps {
   onUnlocked: (phone: string) => void;
   unlocking: boolean;
-  /**
-   * A phone already confirmed earlier in the flow (the "already paid?"
-   * prompt at the start of NewCheckPage) — skips straight to checking quota
-   * for it instead of asking again. Null for the normal first-time path.
-   */
-  initialPhone: string | null;
+  /** Already verified by SignInStep before this component is ever reached. */
+  phone: string;
 }
 
 /**
- * Gates entry into the screening result behind phone verification and a
- * free/paid check quota. Real enforcement happens server-side in
- * create_patient_check_with_quota (called by the parent once onUnlocked
- * fires) — everything here is UX around getting a phone into an unlockable
- * state, not the enforcement itself.
+ * Gates entry into the screening result behind a free/paid check quota.
+ * Phone identity is already verified by SignInStep before this is reached —
+ * this is purely "do you have a check available, and if not, pay for one."
+ * Real enforcement happens server-side in create_patient_check_with_quota
+ * (called by the parent once onUnlocked fires) — everything here is UX
+ * around getting to an unlockable state, not the enforcement itself.
  */
-export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockCheckStepProps) {
+export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckStepProps) {
   const showToast = useToastStore((s) => s.show);
 
-  const [phoneInput, setPhoneInput] = useState("");
-  const [confirmedPhone, setConfirmedPhone] = useState<string | null>(initialPhone);
-  const [code, setCode] = useState("");
+  const [subStep, setSubStep] = useState<SubStep>("unlock");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
-  const [subStep, setSubStep] = useState<SubStep>("phone");
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
-  const otpAutoSent = useRef(false);
 
-  const quota = useCheckQuota(confirmedPhone);
-  const sendOtp = useSendOtp();
-  const verifyOtp = useVerifyOtp();
+  const quota = useCheckQuota(phone);
   const initiatePayment = useInitiatePayment();
   const paymentStatus = usePaymentStatus(subStep === "paying" ? paymentReference : null);
   const paymentTimedOut = usePaymentTimeout(subStep === "paying" && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
-  // Once quota resolves for a freshly-confirmed phone, route to the right
-  // sub-step: already verified with credit -> unlock; verified with none ->
-  // still unlock (shows the payment option there); not verified -> OTP.
   useEffect(() => {
-    if (!quota.data || subStep !== "phone") return;
-    setSubStep(quota.data.phoneVerified ? "unlock" : "otp");
-  }, [quota.data, subStep]);
-
-  // A failed lookup must never leave the patient stuck on a "Continue"
-  // button that silently does nothing — surface it and let them retry.
-  useEffect(() => {
-    if (!quota.isError || subStep !== "phone") return;
-    showToast({ title: "Couldn't reach the server", description: "Check your connection and try again.", variant: "error" });
-    setConfirmedPhone(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quota.isError, subStep]);
-
-  // Auto-send the OTP once when entering that sub-step, so the patient
-  // doesn't have to press an extra button for the common case.
-  useEffect(() => {
-    if (subStep !== "otp" || otpAutoSent.current || !confirmedPhone) return;
-    otpAutoSent.current = true;
-    sendOtp.mutate(confirmedPhone, {
-      onSuccess: (res) => {
-        if (res.alreadyVerified) setSubStep("unlock");
-      },
-      onError: (err: Error) => showToast({ title: "Couldn't send code", description: err.message, variant: "error" }),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subStep, confirmedPhone]);
-
-  useEffect(() => {
-    if (subStep === "paying" && paymentStatus.data?.status === "success" && confirmedPhone) {
-      onUnlocked(confirmedPhone);
+    if (subStep === "paying" && paymentStatus.data?.status === "success") {
+      onUnlocked(phone);
     }
-  }, [subStep, paymentStatus.data?.status, confirmedPhone, onUnlocked]);
-
-  function handlePhoneSubmit() {
-    if (!isValidGhPhone(phoneInput)) {
-      showToast({ title: "Enter a valid Ghana phone number", variant: "error" });
-      return;
-    }
-    otpAutoSent.current = false;
-    setConfirmedPhone(phoneInput.trim());
-  }
-
-  function handleVerifyCode() {
-    if (!confirmedPhone) return;
-    verifyOtp.mutate(
-      { phone: confirmedPhone, code: code.trim() },
-      {
-        onSuccess: (res) => {
-          if (res.verified) {
-            setSubStep("unlock");
-            quota.refetch();
-          } else {
-            showToast({ title: "Incorrect code", description: "Check the code and try again.", variant: "error" });
-          }
-        },
-        onError: (err: Error) => showToast({ title: "Couldn't verify code", description: err.message, variant: "error" }),
-      }
-    );
-  }
+  }, [subStep, paymentStatus.data?.status, phone, onUnlocked]);
 
   function handlePay() {
-    if (!confirmedPhone) return;
     initiatePayment.mutate(
-      { phone: confirmedPhone, provider },
+      { phone, provider },
       {
         onSuccess: (res) => {
           setPaymentReference(res.reference);
@@ -141,78 +70,18 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
     );
   }
 
-  if (subStep === "phone") {
-    // A phone already confirmed earlier in the flow — nothing to ask, just
-    // wait for the same quota lookup that drives the effect above.
-    if (confirmedPhone) {
-      return (
-        <div className="space-y-4 text-center">
-          <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
-          <p className="text-sm text-secondary">Checking your {confirmedPhone} account…</p>
-        </div>
-      );
-    }
+  if (quota.isFetching || !quota.data) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">What's your phone number?</h2>
-          <p className="mt-1 text-sm text-secondary">
-            You get 3 free checks. After that, a small payment unlocks each additional check.
-          </p>
-        </div>
-        <Input
-          type="tel"
-          inputMode="tel"
-          placeholder="0244 123 456"
-          value={phoneInput}
-          onChange={(e) => setPhoneInput(e.target.value)}
-          aria-label="Phone number"
-        />
-        <Button size="lg" className="w-full" onClick={handlePhoneSubmit} disabled={quota.isFetching}>
-          {quota.isFetching ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : "Continue"}
-        </Button>
-      </div>
-    );
-  }
-
-  if (subStep === "otp") {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Enter the code we texted you</h2>
-          <p className="mt-1 text-sm text-secondary">
-            {process.env.NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS === "true"
-              ? "Simulated in this demo — enter any digits."
-              : `Sent to ${confirmedPhone}.`}
-          </p>
-        </div>
-        <Input
-          type="text"
-          inputMode="numeric"
-          placeholder="6-digit code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          aria-label="Verification code"
-        />
-        <Button size="lg" className="w-full" onClick={handleVerifyCode} disabled={verifyOtp.isPending || code.trim().length < 3}>
-          {verifyOtp.isPending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : "Verify"}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full"
-          onClick={() => confirmedPhone && sendOtp.mutate(confirmedPhone)}
-          disabled={sendOtp.isPending}
-        >
-          Resend code
-        </Button>
+      <div className="space-y-4 text-center">
+        <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
+        <p className="text-sm text-secondary">Checking your account…</p>
       </div>
     );
   }
 
   if (subStep === "unlock") {
-    const freeRemaining = quota.data?.freeRemaining ?? 0;
-    const paidAvailable = quota.data?.paidAvailable ?? 0;
+    const freeRemaining = quota.data.freeRemaining ?? 0;
+    const paidAvailable = quota.data.paidAvailable ?? 0;
     const hasCredit = freeRemaining > 0 || paidAvailable > 0;
 
     if (hasCredit) {
@@ -223,12 +92,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
               ? `You have ${freeRemaining} free check${freeRemaining === 1 ? "" : "s"} remaining.`
               : "You have a paid check ready to use."}
           </Notice>
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => confirmedPhone && onUnlocked(confirmedPhone)}
-            disabled={unlocking}
-          >
+          <Button size="lg" className="w-full" onClick={() => onUnlocked(phone)} disabled={unlocking}>
             {unlocking ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : "See my result"}
           </Button>
         </div>
@@ -240,7 +104,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
         <div>
           <h2 className="text-lg font-semibold text-foreground">Pay to see this result</h2>
           <p className="mt-1 text-sm text-secondary">
-            You've used your 3 free checks. Each additional check is GHS {CHECK_PRICE_GHS}.
+            You&rsquo;ve used your 3 free checks. Each additional check is GHS {CHECK_PRICE_GHS}.
           </p>
         </div>
         <Select value={provider} onChange={(e) => setProvider(e.target.value as MobileMoneyProvider)} aria-label="Mobile money network">
@@ -294,7 +158,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, initialPhone }: UnlockC
       </div>
       {paymentTimedOut && (
         <div className="space-y-2">
-          <p className="text-sm text-caution-fg">Didn't get the prompt?</p>
+          <p className="text-sm text-caution-fg">Didn&rsquo;t get the prompt?</p>
           <Button variant="secondary" className="w-full" onClick={() => setSubStep("unlock")}>
             Try again
           </Button>

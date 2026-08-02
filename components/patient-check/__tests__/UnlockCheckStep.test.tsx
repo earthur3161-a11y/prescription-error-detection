@@ -4,8 +4,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const quotaState = {
   data: undefined as { freeRemaining: number; paidAvailable: number; phoneVerified: boolean } | undefined,
   isFetching: false,
-  isError: false,
-  refetch: vi.fn(),
 };
 const paymentStatusByReference = new Map<string, { status: "pending" | "success" | "failed" }>();
 const initiatePaymentMock = vi.fn();
@@ -14,17 +12,8 @@ vi.mock("@/lib/store/toast-store", () => ({
   useToastStore: (selector: (s: { show: (t: unknown) => void }) => unknown) => selector({ show: vi.fn() }),
 }));
 
-vi.mock("@/lib/query/hooks/usePhoneVerification", () => ({
-  useSendOtp: () => ({ mutate: vi.fn(), isPending: false }),
-  useVerifyOtp: () => ({ mutate: vi.fn(), isPending: false }),
-}));
-
 vi.mock("@/lib/query/hooks/useCheckQuota", () => ({
-  // Mirrors the real hook's `enabled: !!phone` — data must stay undefined
-  // until a phone is actually confirmed, or the component's own effect
-  // (which advances subStep the moment quota.data is truthy) skips the
-  // phone-entry step before the test ever gets to interact with it.
-  useCheckQuota: (phone: string | null) => (phone ? quotaState : { ...quotaState, data: undefined }),
+  useCheckQuota: () => quotaState,
   useInitiatePayment: () => ({ mutate: initiatePaymentMock, isPending: false }),
   usePaymentStatus: (reference: string | null) => ({
     data: reference ? paymentStatusByReference.get(reference) : undefined,
@@ -33,28 +22,65 @@ vi.mock("@/lib/query/hooks/useCheckQuota", () => ({
 
 const { UnlockCheckStep } = await import("../UnlockCheckStep");
 
-describe("UnlockCheckStep — payment failure surfaces immediately, not just via the pending timeout", () => {
-  afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
-    paymentStatusByReference.clear();
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  paymentStatusByReference.clear();
+  quotaState.data = undefined;
+});
+
+// Phone identity is verified upstream by SignInStep before this component is
+// ever reached — it only takes an already-confirmed phone, never asks for
+// one itself.
+describe("UnlockCheckStep — takes an already-verified phone directly", () => {
+  it("shows a loading state while quota is still resolving, no phone form", () => {
     quotaState.data = undefined;
+    quotaState.isFetching = true;
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    expect(screen.queryByLabelText(/phone number/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/checking your account/i)).toBeInTheDocument();
+    quotaState.isFetching = false;
   });
 
+  it("shows remaining free checks and a 'See my result' button once quota resolves with credit", () => {
+    quotaState.data = { freeRemaining: 2, paidAvailable: 0, phoneVerified: true };
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    expect(screen.getByText(/2 free checks remaining/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /see my result/i })).toBeInTheDocument();
+  });
+
+  it("calls onUnlocked with the given phone when 'See my result' is clicked", () => {
+    quotaState.data = { freeRemaining: 1, paidAvailable: 0, phoneVerified: true };
+    const onUnlocked = vi.fn();
+
+    render(<UnlockCheckStep onUnlocked={onUnlocked} unlocking={false} phone="0244123456" />);
+    fireEvent.click(screen.getByRole("button", { name: /see my result/i }));
+
+    expect(onUnlocked).toHaveBeenCalledWith("0244123456");
+  });
+
+  it("shows the pay screen when there's no free or paid credit", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument();
+  });
+});
+
+describe("UnlockCheckStep — payment failure surfaces immediately, not just via the pending timeout", () => {
   it("shows a 'Payment failed' state with a working retry as soon as status is 'failed' — no stuck spinner", async () => {
-    // A verified phone with no free/paid credit — the "pay" screen.
     quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
     initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
       paymentStatusByReference.set("ref_fast_decline", { status: "failed" });
       onSuccess({ reference: "ref_fast_decline", displayMessage: "Check your phone to approve." });
     });
 
-    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone={null} />);
-
-    fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-
-    await waitFor(() => expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument());
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
     fireEvent.click(screen.getByRole("button", { name: /pay ghs/i }));
 
     // Must appear immediately — this must NOT depend on PAYMENT_TIMEOUT_MS
@@ -76,37 +102,10 @@ describe("UnlockCheckStep — payment failure surfaces immediately, not just via
       onSuccess({ reference: "ref_pending", displayMessage: "Check your phone to approve." });
     });
 
-    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone={null} />);
-    fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument());
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
     fireEvent.click(screen.getByRole("button", { name: /pay ghs/i }));
 
     await waitFor(() => expect(screen.getByText(/check your phone/i)).toBeInTheDocument());
     expect(screen.queryByText(/payment failed/i)).not.toBeInTheDocument();
-  });
-});
-
-describe("UnlockCheckStep — initialPhone (the 'already paid?' resume path)", () => {
-  afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
-    paymentStatusByReference.clear();
-    quotaState.data = undefined;
-  });
-
-  it("skips the phone-entry form entirely and goes straight to the credit screen when a verified, paid phone is passed in", async () => {
-    quotaState.data = { freeRemaining: 0, paidAvailable: 1, phoneVerified: true };
-
-    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone="0244123456" />);
-
-    expect(screen.queryByLabelText(/^phone number$/i)).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/paid check ready to use/i)).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /see my result/i })).toBeInTheDocument();
-  });
-
-  it("still asks for a phone the normal way when initialPhone is null", () => {
-    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} initialPhone={null} />);
-    expect(screen.getByLabelText(/^phone number$/i)).toBeInTheDocument();
   });
 });

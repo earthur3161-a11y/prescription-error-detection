@@ -7,7 +7,7 @@ import { RouteFadeIn } from "@/components/layout/RouteFadeIn";
 
 export const metadata: Metadata = {
   title: "MediGuard — Check your prescription",
-  description: "A quick, free second check on your prescription — no account needed.",
+  description: "A quick, free second check on your prescription — sign in with just your phone number.",
 };
 
 export default function CheckLayout({ children }: { children: ReactNode }) {

@@ -22,7 +22,7 @@ import { useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
 
 const TRUST_ITEMS = [
   { icon: Clock, label: "Under a minute" },
-  { icon: Lock, label: "No account needed" },
+  { icon: Lock, label: "Just your phone number" },
   { icon: ShieldCheck, label: "Private & confidential" },
 ];
 

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Notice } from "@/components/ui/Notice";
 import { DrugPicker } from "@/components/patient-check/DrugPicker";
 import { ProfileStep } from "@/components/patient-check/ProfileStep";
-import { ResumeCheckPrompt } from "@/components/patient-check/ResumeCheckPrompt";
+import { SignInStep } from "@/components/patient-check/SignInStep";
 import { UnlockCheckStep } from "@/components/patient-check/UnlockCheckStep";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useCheckQuota } from "@/lib/query/hooks/useCheckQuota";
@@ -19,10 +20,12 @@ import { buildSyntheticPatient } from "@/lib/patient-check/buildSyntheticPatient
 import { buildDefaultLine } from "@/lib/prescription/lineDefaults";
 import type { Drug, PatientCheckProfile, PrescriptionDrugLine } from "@/lib/types";
 
-type Step = "add" | "profile" | "unlock";
+type Step = "signin" | "add" | "profile" | "unlock";
 
-const STEP_PROGRESS: Record<Step, string> = { add: "33%", profile: "66%", unlock: "100%" };
-const STEP_NUMBER: Record<Step, number> = { add: 1, profile: 2, unlock: 3 };
+// "signin" has no progress bar (its own header is hidden entirely — see the
+// render below), so these entries are placeholders never actually shown.
+const STEP_PROGRESS: Record<Step, string> = { signin: "0%", add: "33%", profile: "66%", unlock: "100%" };
+const STEP_NUMBER: Record<Step, number> = { signin: 0, add: 1, profile: 2, unlock: 3 };
 
 const EMPTY_PROFILE: PatientCheckProfile = {
   ageYears: null,
@@ -57,7 +60,14 @@ export default function NewCheckPage() {
   const saveProfile = useSaveLocalPatientProfile();
   const showToast = useToastStore((s) => s.show);
 
-  const [step, setStep] = useState<Step>("add");
+  const [step, setStep] = useState<Step>("signin");
+  const [confirmedPhone, setConfirmedPhone] = useState<string | null>(null);
+  // Surfaced right at the top of "add", the first screen after sign-in — so
+  // a returning patient whose payment succeeded but whose tab never saw it
+  // (get_check_quota still reports the unconsumed credit correctly) learns
+  // that immediately, before redoing any work, not only after reaching
+  // UnlockCheckStep at the very end.
+  const quota = useCheckQuota(confirmedPhone);
   const [addedDrugs, setAddedDrugs] = useState<Drug[]>([]);
   const [profile, setProfile] = useState<PatientCheckProfile>(EMPTY_PROFILE);
   const [rememberProfile, setRememberProfile] = useState(true);
@@ -74,14 +84,6 @@ export default function NewCheckPage() {
   // credit; regenerated whenever the patient goes back and could change
   // what's being screened.
   const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
-  // Set once the patient confirms a phone via the "already paid for a
-  // check?" prompt (add/profile steps) — lets a returning patient whose
-  // payment succeeded but whose tab never saw it skip straight to "See my
-  // result" at the unlock step, instead of re-entering phone + OTP again on
-  // top of the drug list/profile they already had to redo.
-  const [resumePhone, setResumePhone] = useState<string | null>(null);
-  const resumeQuota = useCheckQuota(resumePhone);
-  const resumeHasCredit = (resumeQuota.data?.paidAvailable ?? 0) > 0 || (resumeQuota.data?.freeRemaining ?? 0) > 0;
 
   // Priority order: an in-progress draft from THIS abandoned attempt (more
   // recent, sessionStorage) beats a profile saved from an earlier
@@ -158,6 +160,8 @@ export default function NewCheckPage() {
       setStep("profile");
     } else if (step === "profile") {
       setStep("add");
+    } else if (step === "add") {
+      setStep("signin");
     } else {
       router.push("/check");
     }
@@ -204,17 +208,30 @@ export default function NewCheckPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" aria-label="Back" className="px-1.5" onClick={goBack}>
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </Button>
-        <div className="flex-1">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full bg-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
+      {step !== "signin" && (
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" aria-label="Back" className="px-1.5" onClick={goBack}>
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </Button>
+          <div className="flex-1">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full bg-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
+            </div>
+            <p className="mt-1.5 hidden text-xs font-medium text-subtle sm:block">Step {STEP_NUMBER[step]} of 3</p>
           </div>
-          <p className="mt-1.5 hidden text-xs font-medium text-subtle sm:block">Step {STEP_NUMBER[step]} of 3</p>
         </div>
-      </div>
+      )}
+
+      {step === "signin" && (
+        <div key="signin" className="animate-fade-up">
+          <SignInStep
+            onSignedIn={(phone) => {
+              setConfirmedPhone(phone);
+              setStep("add");
+            }}
+          />
+        </div>
+      )}
 
       {step === "add" && (
         <div key="add" className="space-y-6 animate-fade-up">
@@ -224,7 +241,13 @@ export default function NewCheckPage() {
               Add every medicine from this prescription or purchase.
             </p>
           </div>
-          <ResumeCheckPrompt confirmedPhone={resumePhone} onConfirm={setResumePhone} />
+          {quota.data && (
+            <Notice tone="safe" icon={ShieldCheck}>
+              {(quota.data.paidAvailable ?? 0) > 0
+                ? "You have a paid check ready — pick your medicines below and you won't be charged again."
+                : `You have ${quota.data.freeRemaining} free check${quota.data.freeRemaining === 1 ? "" : "s"} remaining.`}
+            </Notice>
+          )}
           <DrugPicker
             addedDrugs={addedDrugs}
             onAdd={(drug) => setAddedDrugs((prev) => (prev.some((d) => d.id === drug.id) ? prev : [...prev, drug]))}
@@ -245,7 +268,6 @@ export default function NewCheckPage() {
               This is optional, but it makes the check much more accurate.
             </p>
           </div>
-          {resumePhone && <ResumeCheckPrompt confirmedPhone={resumePhone} onConfirm={setResumePhone} />}
           <ProfileStep profile={profile} onChange={setProfile} knownDrugs={formulary.drugs} />
           <label className="flex items-center gap-2 text-sm text-secondary">
             <Checkbox checked={rememberProfile} onChange={(e) => setRememberProfile(e.target.checked)} />
@@ -258,13 +280,9 @@ export default function NewCheckPage() {
         </div>
       )}
 
-      {step === "unlock" && (
+      {step === "unlock" && confirmedPhone && (
         <div key="unlock" className="animate-fade-up">
-          <UnlockCheckStep
-            onUnlocked={handleUnlocked}
-            unlocking={createCheck.isPending}
-            initialPhone={resumeHasCredit ? resumePhone : null}
-          />
+          <UnlockCheckStep onUnlocked={handleUnlocked} unlocking={createCheck.isPending} phone={confirmedPhone} />
         </div>
       )}
     </div>

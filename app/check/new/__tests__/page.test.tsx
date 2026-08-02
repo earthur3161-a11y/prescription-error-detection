@@ -44,21 +44,26 @@ vi.mock("@/lib/query/hooks/usePatientChecks", () => ({
   useCreatePatientCheck: () => ({ mutate: createCheckMutate, isPending: false }),
 }));
 
-// Only exercised via the "already paid?" resume prompt, which stays
-// collapsed unless a phone is entered — a stub with no data is enough for
-// every other test in this file, which never opens it.
+// Drives the "you have N free checks" reassurance Notice at the top of
+// "add" — undefined data here just means that Notice doesn't render, which
+// no test in this file depends on either way.
 vi.mock("@/lib/query/hooks/useCheckQuota", () => ({
-  useCheckQuota: () => ({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() }),
+  useCheckQuota: () => ({ data: undefined, isFetching: false }),
 }));
 
 vi.mock("@/lib/store/toast-store", () => ({
   useToastStore: (selector: (s: { show: (t: unknown) => void }) => unknown) => selector({ show: vi.fn() }),
 }));
 
-// UnlockCheckStep's own behavior (payment polling, failure UI, etc.) has its
-// own dedicated test file — here it's stubbed to a single button so this
-// file can test NewCheckPage's own responsibility (the sessionStorage
-// draft) in isolation, without re-driving phone/OTP/payment through it.
+// SignInStep and UnlockCheckStep each have their own dedicated test file —
+// here they're stubbed to single buttons so this file can test NewCheckPage's
+// own responsibility (the sign-in gate ordering, the sessionStorage draft) in
+// isolation, without re-driving phone/OTP/payment through either of them.
+vi.mock("@/components/patient-check/SignInStep", () => ({
+  SignInStep: ({ onSignedIn }: { onSignedIn: (phone: string) => void }) => (
+    <button onClick={() => onSignedIn("0244123456")}>Stub sign in</button>
+  ),
+}));
 vi.mock("@/components/patient-check/UnlockCheckStep", () => ({
   UnlockCheckStep: ({ onUnlocked }: { onUnlocked: (phone: string) => void }) => (
     <button onClick={() => onUnlocked("0244123456")}>Stub unlock</button>
@@ -66,6 +71,29 @@ vi.mock("@/components/patient-check/UnlockCheckStep", () => ({
 }));
 
 const { default: NewCheckPage } = await import("../page");
+
+function signIn() {
+  fireEvent.click(screen.getByRole("button", { name: /stub sign in/i }));
+}
+
+describe("NewCheckPage — mandatory sign-in gate", () => {
+  afterEach(() => cleanup());
+
+  it("shows the sign-in step first, before any drug-adding UI", () => {
+    render(<NewCheckPage />);
+
+    expect(screen.getByRole("button", { name: /stub sign in/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^continue$/i })).not.toBeInTheDocument();
+  });
+
+  it("moves to the 'add' step once signed in", () => {
+    render(<NewCheckPage />);
+    signIn();
+
+    expect(screen.queryByRole("button", { name: /stub sign in/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/what did you get/i)).toBeInTheDocument();
+  });
+});
 
 describe("NewCheckPage — in-progress draft survives a refresh via sessionStorage", () => {
   beforeEach(() => {
@@ -78,7 +106,7 @@ describe("NewCheckPage — in-progress draft survives a refresh via sessionStora
     sessionStorage.clear();
   });
 
-  it("rehydrates a previously-entered drug list and profile from sessionStorage on mount", async () => {
+  it("rehydrates a previously-entered drug list and profile from sessionStorage after signing in", async () => {
     sessionStorage.setItem(
       DRAFT_STORAGE_KEY,
       JSON.stringify({
@@ -98,16 +126,19 @@ describe("NewCheckPage — in-progress draft survives a refresh via sessionStora
     );
 
     render(<NewCheckPage />);
+    signIn();
 
-    // Step "add" (the initial/default step — only data is rehydrated, not
-    // step position) must show the drug that was already added before the
-    // simulated refresh, not a blank picker.
+    // Step "add" — only data is rehydrated, not step position — must show
+    // the drug that was already added before the simulated refresh, not a
+    // blank picker.
     await waitFor(() => expect(screen.getByText("Amoxicillin")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /^continue$/i })).not.toBeDisabled();
   });
 
   it("starts with an empty form when there is no draft", async () => {
     render(<NewCheckPage />);
+    signIn();
+
     expect(screen.queryByText("Amoxicillin")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^continue$/i })).toBeDisabled();
   });
@@ -135,6 +166,7 @@ describe("NewCheckPage — in-progress draft survives a refresh via sessionStora
     });
 
     render(<NewCheckPage />);
+    signIn();
     await waitFor(() => expect(screen.getByText("Amoxicillin")).toBeInTheDocument());
     expect(sessionStorage.getItem(DRAFT_STORAGE_KEY)).not.toBeNull();
 

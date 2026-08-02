@@ -20,8 +20,8 @@ export default function CheckLandingPage() {
           Got a new prescription or medicine?
         </h1>
         <p className="mt-2 text-secondary">
-          Get a free, quick second check — did the doctor or pharmacist make a mistake? Takes
-          about a minute, no account needed.
+          Get a free, quick second check — did the doctor or pharmacist make a mistake? Sign in
+          with just your phone number to get 3 free checks — no password, no registration.
         </p>
       </div>
 

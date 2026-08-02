@@ -87,7 +87,7 @@ export default function LoginChooserPage() {
           <Link href="/check" className="font-medium text-brand hover:underline">
             Check your medicine
           </Link>{" "}
-          — no account needed.
+          — sign in with just your phone number for 3 free checks.
         </p>
         <p className="mt-3 text-center text-xs text-subtle">
           MediGuard staff?{" "}
