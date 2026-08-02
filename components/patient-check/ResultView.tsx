@@ -78,7 +78,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
 
   return (
     <div className="space-y-6">
-      <div className={cn("rounded-2xl border-2 p-6 text-center sm:p-8", BANNER_TONE_CLASS[tone])}>
+      <div className={cn("animate-scale-in rounded-2xl border-2 p-6 text-center sm:p-8", BANNER_TONE_CLASS[tone])}>
         <BannerShape size={56} color={TONE_VAR[tone]} className="mx-auto mb-3" />
         <h1 className="text-xl font-semibold font-serif sm:text-2xl">{guidance.headline}</h1>
         <p className="mt-1.5 text-sm opacity-90">{guidance.detail}</p>
@@ -95,7 +95,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">
             What should I do next?
           </h2>
-          <ul className="space-y-2 pt-1">
+          <ul className="stagger space-y-2 pt-1">
             {guidance.steps.map((step, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-secondary">
                 <StepBadge step={i + 1} className="mt-0.5" />
@@ -106,7 +106,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
         </CardBody>
       </Card>
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {check.drugs.map((line, i) => {
           const drug = drugs.find((d) => d.id === line.drugId);
           const lineVerdict = liveVerdicts[i];

@@ -166,7 +166,7 @@ export default function CheckHistoryPage() {
         {!checksLoading && (checks?.length ?? 0) === 0 && (
           <p className="text-sm text-muted-foreground">No checks yet on this device.</p>
         )}
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {(checks ?? []).map((check) => {
             // Re-screen against the current formulary so the headline matches
             // the (also re-screened) result page rather than a stale snapshot.

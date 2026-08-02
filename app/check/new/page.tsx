@@ -217,7 +217,7 @@ export default function NewCheckPage() {
       </div>
 
       {step === "add" && (
-        <div className="space-y-6">
+        <div key="add" className="space-y-6 animate-fade-up">
           <div>
             <h1 className="text-xl font-semibold text-foreground sm:text-2xl">What did you get?</h1>
             <p className="mt-1 text-sm text-secondary">
@@ -238,7 +238,7 @@ export default function NewCheckPage() {
       )}
 
       {step === "profile" && formulary && (
-        <div className="space-y-6">
+        <div key="profile" className="space-y-6 animate-fade-up">
           <div>
             <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Tell us a bit about you</h1>
             <p className="mt-1 text-sm text-secondary">
@@ -259,11 +259,13 @@ export default function NewCheckPage() {
       )}
 
       {step === "unlock" && (
-        <UnlockCheckStep
-          onUnlocked={handleUnlocked}
-          unlocking={createCheck.isPending}
-          initialPhone={resumeHasCredit ? resumePhone : null}
-        />
+        <div key="unlock" className="animate-fade-up">
+          <UnlockCheckStep
+            onUnlocked={handleUnlocked}
+            unlocking={createCheck.isPending}
+            initialPhone={resumeHasCredit ? resumePhone : null}
+          />
+        </div>
       )}
     </div>
   );

@@ -43,7 +43,7 @@ export function ResumeCheckPrompt({ confirmedPhone, onConfirm }: ResumeCheckProm
     const hasCredit = (quota.data?.paidAvailable ?? 0) > 0 || (quota.data?.freeRemaining ?? 0) > 0;
     if (hasCredit) {
       return (
-        <Notice tone="safe" icon={ShieldCheck}>
+        <Notice tone="safe" icon={ShieldCheck} className="animate-fade-in">
           {(quota.data?.paidAvailable ?? 0) > 0
             ? "You have a paid check ready — pick your medicines below and you won't be charged again."
             : `You have ${quota.data?.freeRemaining} free check${quota.data?.freeRemaining === 1 ? "" : "s"} remaining.`}
