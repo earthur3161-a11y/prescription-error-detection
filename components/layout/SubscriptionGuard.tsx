@@ -4,13 +4,8 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth/useAuth";
+import { ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
-import type { SubscriptionProduct } from "@/lib/supabase/types";
-
-const ROLE_PRODUCT: Partial<Record<string, SubscriptionProduct>> = {
-  prescriber: "physician_portal",
-  pharmacist: "pharmacy_portal",
-};
 
 /**
  * DB-level RLS is the real enforcement (subscriptions gate patients/

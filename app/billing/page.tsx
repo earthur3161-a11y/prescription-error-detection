@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/lib/auth/useAuth";
-import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
+import { ROLE_HOME_ROUTE, ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useToastStore } from "@/lib/store/toast-store";
 import {
   useInitiateSubscriptionPayment,
@@ -30,11 +31,6 @@ const PROVIDERS: { value: MobileMoneyProvider; label: string }[] = [
   { value: "atl", label: "AirtelTigo Money" },
 ];
 
-const ROLE_PRODUCT: Partial<Record<string, SubscriptionProduct>> = {
-  prescriber: "physician_portal",
-  pharmacist: "pharmacy_portal",
-};
-
 const PRODUCT_LABEL: Record<SubscriptionProduct, string> = {
   physician_portal: "Physician Portal",
   pharmacy_portal: "Pharmacy Portal",
@@ -48,7 +44,7 @@ const PRODUCT_PRICE_GHS: Record<SubscriptionProduct, string> = {
 export default function BillingPage() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.show);
-  const { role, hasHydrated, logout } = useAuth();
+  const { role, hasHydrated } = useAuth();
   const product = role ? ROLE_PRODUCT[role] : undefined;
 
   const [paying, setPaying] = useState(false);
@@ -119,24 +115,15 @@ export default function BillingPage() {
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
       {/*
-        Not a plain link to "/": every role has a ROLE_HOME_ROUTE, and "/"
-        immediately redirects any signed-in user straight back into it
-        (app/page.tsx) — which SubscriptionGuard then bounces right back
-        here, since that's exactly why this user is on /billing in the
-        first place. A still-authenticated user has no reachable "home"
-        while unsubscribed, so leaving has to mean signing out (same
-        action as Topbar's/Super Admin's "Sign out"), not just navigating.
+        A plain link, not a sign-out action: app/page.tsx knows to hold a
+        signed-in, unsubscribed professional on the public homepage instead
+        of bouncing them straight to ROLE_HOME_ROUTE (which SubscriptionGuard
+        would just send right back here) — see the comment there. That's
+        what makes a simple "/" href work without looping.
       */}
-      <button
-        type="button"
-        onClick={() => {
-          logout();
-          router.replace("/");
-        }}
-        className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand"
-      >
-        ← Sign out
-      </button>
+      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand">
+        ← Return home
+      </Link>
       <Card className="w-full max-w-md animate-fade-up shadow-md">
         <CardBody className="space-y-5">
           <div className="text-center">

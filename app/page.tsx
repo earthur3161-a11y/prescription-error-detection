@@ -17,7 +17,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/lib/auth/useAuth";
-import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
+import { ROLE_HOME_ROUTE, ROLE_PRODUCT } from "@/lib/auth/roles";
+import { useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
 
 const TRUST_ITEMS = [
   { icon: Clock, label: "Under a minute" },
@@ -52,14 +53,31 @@ const OPERATING_STEPS = [
 export default function Home() {
   const router = useRouter();
   const { role, hasHydrated } = useAuth();
+  const product = role ? ROLE_PRODUCT[role] : undefined;
+  // Only fires for prescriber/pharmacist (enabled: !!product) — a no-op query
+  // for every anonymous visitor and every admin/superadmin.
+  const subscription = useSubscriptionStatus(product ?? null, false);
+  const resolvingSubscription = !!product && subscription.isLoading;
+  // A signed-in prescriber/pharmacist without an active subscription has no
+  // reachable ROLE_HOME_ROUTE (SubscriptionGuard would just bounce them to
+  // /billing) — redirecting them away from here anyway turned /billing's
+  // "return home" link into a loop back to itself. Holding them here instead
+  // is what makes that link actually work, without forcing a sign-out. Kept
+  // separate from resolvingSubscription so an actively-subscribed user still
+  // redirects the instant their status resolves, with no marketing-page flash.
+  const subscriptionInactive = !!product && !subscription.isLoading && !subscription.data?.isActive;
 
   useEffect(() => {
-    if (!hasHydrated) return;
+    if (!hasHydrated || resolvingSubscription || subscriptionInactive) return;
     if (role) router.replace(ROLE_HOME_ROUTE[role]);
-  }, [hasHydrated, role, router]);
+  }, [hasHydrated, role, resolvingSubscription, subscriptionInactive, router]);
 
-  // Signed-in professionals never see the public landing page — it's not part of their workspace.
-  if (!hasHydrated || role) return null;
+  // Signed-in professionals with workspace access never see the public
+  // landing page — it's not part of their workspace. Still resolving their
+  // subscription status keeps this blank rather than risking a flash of
+  // either the marketing page or a redirect that gets reversed a moment later.
+  if (!hasHydrated || resolvingSubscription) return null;
+  if (role && !subscriptionInactive) return null;
 
   return (
     <div className="bg-hero min-h-screen">

@@ -1,15 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 
-const replace = vi.fn();
-const logout = vi.fn();
-
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace, push: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }));
 
 vi.mock("@/lib/auth/useAuth", () => ({
-  useAuth: () => ({ role: "prescriber", hasHydrated: true, logout }),
+  useAuth: () => ({ role: "prescriber", hasHydrated: true }),
 }));
 
 vi.mock("@/lib/query/hooks/useSubscriptionStatus", () => ({
@@ -22,19 +19,17 @@ const { default: BillingPage } = await import("../page");
 
 afterEach(() => cleanup());
 
-// Regression test: an unsubscribed, still-authenticated user clicking the
-// billing page's "home" link used to be sent to "/", which immediately
+// Regression test: this used to be a plain link to "/", which immediately
 // redirects any signed-in user to their ROLE_HOME_ROUTE (app/page.tsx) —
-// which SubscriptionGuard then bounces straight back to /billing, since
-// that's exactly why they landed here. There's no reachable "home" while
-// signed in and unsubscribed, so leaving now means actually signing out.
-describe("Billing page 'leave' control", () => {
-  it("signs the user out and navigates to / instead of looping back through ROLE_HOME_ROUTE", () => {
+// which SubscriptionGuard then bounced straight back to /billing, since
+// that's exactly why they landed here. app/page.tsx now holds a signed-in,
+// unsubscribed professional on the public page instead of redirecting them
+// away, so a plain link is enough — verified here by asserting the href.
+describe("Billing page 'return home' link", () => {
+  it("links to / (app/page.tsx is responsible for not looping this back)", () => {
     render(<BillingPage />);
 
-    screen.getByRole("button", { name: /sign out/i }).click();
-
-    expect(logout).toHaveBeenCalledTimes(1);
-    expect(replace).toHaveBeenCalledWith("/");
+    const homeLink = screen.getByRole("link", { name: /return home/i });
+    expect(homeLink).toHaveAttribute("href", "/");
   });
 });
