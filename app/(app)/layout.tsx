@@ -9,6 +9,7 @@ import { SubscriptionGuard } from "@/components/layout/SubscriptionGuard";
 import { Topbar } from "@/components/layout/Topbar";
 import { useAuth } from "@/lib/auth/useAuth";
 import { PROFESSIONAL_ROLES } from "@/lib/auth/roles";
+import { cn } from "@/lib/utils/cn";
 
 function Shell({ children }: { children: ReactNode }) {
   const { role } = useAuth();
@@ -25,25 +26,43 @@ function Shell({ children }: { children: ReactNode }) {
         <Sidebar role={role} />
       </div>
 
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div
-            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm animate-fade-in"
+      {/*
+        Always mounted (not conditionally rendered) so both the open AND
+        close transitions can actually play — conditional mounting means the
+        close has zero time to animate before the DOM node disappears.
+        `inert` when closed removes it from both the tab order and the
+        accessibility tree in one go, so its (still-present, just
+        off-screen) links can't be reached by keyboard/AT while hidden —
+        conditional mounting used to make that unreachability automatic.
+      */}
+      <div
+        className={cn("fixed inset-0 z-40 md:hidden", mobileNavOpen ? "pointer-events-auto" : "pointer-events-none")}
+        inert={!mobileNavOpen}
+      >
+        <div
+          className={cn(
+            "absolute inset-0 bg-slate-950/50 backdrop-blur-sm transition-opacity duration-300 motion-reduce:transition-none",
+            mobileNavOpen ? "opacity-100" : "opacity-0"
+          )}
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+        <div
+          className={cn(
+            "absolute left-0 top-0 h-full w-64 border-r border-border transition-transform duration-300 motion-reduce:transition-none",
+            mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <button
             onClick={() => setMobileNavOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute left-0 top-0 h-full w-64 border-r border-border">
-            <button
-              onClick={() => setMobileNavOpen(false)}
-              aria-label="Close navigation menu"
-              className="absolute right-3 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
-            >
-              <X className="size-5" />
-            </button>
-            <Sidebar role={role} onNavigate={() => setMobileNavOpen(false)} />
-          </div>
+            aria-label="Close navigation menu"
+            className="absolute right-3 top-3 grid size-11 place-items-center rounded-lg text-muted-foreground hover:bg-muted"
+          >
+            <X className="size-5" />
+          </button>
+          <Sidebar role={role} onNavigate={() => setMobileNavOpen(false)} />
         </div>
-      )}
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setMobileNavOpen(true)} />
