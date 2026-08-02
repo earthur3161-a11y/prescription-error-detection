@@ -43,7 +43,7 @@ function SuperAdminDashboard() {
         {!isLoading && pending.length === 0 && (
           <p className="py-6 text-center text-sm text-muted-foreground">No requests awaiting review.</p>
         )}
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {pending.map((req) => (
             <Card key={req.id}>
               <CardBody className="space-y-3">
@@ -93,7 +93,7 @@ function SuperAdminDashboard() {
         {!isLoading && reviewed.length === 0 && (
           <p className="py-6 text-center text-sm text-muted-foreground">Nothing reviewed yet.</p>
         )}
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {reviewed.map((req) => (
             <Card key={req.id}>
               <CardBody className="space-y-2">

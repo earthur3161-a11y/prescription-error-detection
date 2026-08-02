@@ -58,7 +58,7 @@ export default function SuperAdminAccountsPage() {
         </Notice>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-4">
         <StatCard label={SUPERADMIN_ROLE_LABEL.prescriber} value={counts.prescriber} />
         <StatCard label={SUPERADMIN_ROLE_LABEL.pharmacist} value={counts.pharmacist} />
         <StatCard label={SUPERADMIN_ROLE_LABEL.admin} value={counts.admin} />

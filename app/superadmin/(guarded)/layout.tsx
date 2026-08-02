@@ -35,7 +35,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-surface">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 px-4 py-4 sm:px-6">
           <Link href="/superadmin" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <ShieldAlert className="size-6 text-foreground" aria-hidden="true" />
             <span className="font-semibold text-foreground">MediGuard Operations</span>
@@ -52,7 +52,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
             Sign out
           </button>
         </div>
-        <nav aria-label="Super Admin sections" className="flex gap-1 px-6">
+        <nav aria-label="Super Admin sections" className="flex gap-1 px-4 sm:px-6">
           {TABS.map((tab) => {
             const active = pathname === tab.href;
             return (
@@ -73,7 +73,11 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <div key={pathname} className="animate-fade-in">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
