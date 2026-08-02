@@ -238,11 +238,13 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
         <Card>
           <CardBody className="space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">Patient counseling</h2>
-            {dispensedItems.map((item) => (
-              <div key={item.line.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
-                <CounselingSheet drug={item.drug} line={item.line} />
-              </div>
-            ))}
+            <div className="stagger">
+              {dispensedItems.map((item) => (
+                <div key={item.line.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+                  <CounselingSheet drug={item.drug} line={item.line} />
+                </div>
+              ))}
+            </div>
           </CardBody>
         </Card>
       </div>
@@ -260,7 +262,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
         <p className="mt-1 text-sm text-muted-foreground">Batch defaults to First-Expiry-First-Out. Expired stock is excluded and cannot be dispensed. Every line is re-screened at the moment of dispense.</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {lineChecks.map((c) => {
           if (!c.drug) return null;
           const noStock = c.dispensable.length === 0;

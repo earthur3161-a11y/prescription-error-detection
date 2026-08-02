@@ -132,7 +132,7 @@ export default function InventoryPage() {
         </CardBody>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="stagger grid gap-3 sm:grid-cols-3">
         <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Low stock</p><p className="mt-1 text-2xl font-semibold text-caution-fg">{totals.lowStock}</p><p className="text-sm text-muted-foreground">drugs below threshold</p></CardBody></Card>
         <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Near expiry</p><p className="mt-1 text-2xl font-semibold text-caution-fg">{totals.nearExpiry}</p><p className="text-sm text-muted-foreground">batches within {nearExpiryDays} days</p></CardBody></Card>
         <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Expired</p><p className="mt-1 text-2xl font-semibold text-blocked-fg">{totals.expired}</p><p className="text-sm text-muted-foreground">batches to remove</p></CardBody></Card>
@@ -143,7 +143,7 @@ export default function InventoryPage() {
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search stock by drug or brand…" className="pl-9" />
       </div>
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {filtered.map((s) => (
           <Card key={s.drug.id} className={s.lowStock ? "border-l-4 border-l-caution-fg" : undefined}>
             <CardBody className="space-y-2">

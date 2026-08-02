@@ -194,7 +194,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
       <Card>
         <CardBody className="space-y-2">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">Prescription</h2>
-          <ul className="divide-y divide-border">
+          <ul className="stagger divide-y divide-border">
             {prescription.drugs.map((line, i) => {
               const drug = formulary.drugs.find((d) => d.id === line.drugId);
               const v = verdicts[i];

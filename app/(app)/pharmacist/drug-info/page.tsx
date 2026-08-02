@@ -63,7 +63,7 @@ export default function DrugInfoPage() {
           {results.length === 0 && <p className="text-sm text-muted-foreground">No matches.</p>}
           {results.map((d) => (
             <button key={d.id} onClick={() => setSelected(d)} className="block w-full text-left">
-              <Card className="transition-shadow hover:shadow-md">
+              <Card className="transition-all active:scale-[0.98] hover:shadow-md">
                 <CardBody className="flex items-center justify-between py-3">
                   <div>
                     <p className="font-medium text-foreground">{d.generic_name}</p>

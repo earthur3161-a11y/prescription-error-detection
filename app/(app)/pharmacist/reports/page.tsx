@@ -99,7 +99,7 @@ export default function PharmacyReportsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="stagger grid gap-3 sm:grid-cols-4">
         <Card><CardBody className="text-center"><PackageCheck className="mx-auto size-5 text-safe-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.dispensed}</p><p className="text-xs text-muted-foreground">Dispensed</p></CardBody></Card>
         <Card><CardBody className="text-center"><PauseCircle className="mx-auto size-5 text-caution-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.holds}</p><p className="text-xs text-muted-foreground">Holds / queries</p></CardBody></Card>
         <Card><CardBody className="text-center"><XCircle className="mx-auto size-5 text-blocked-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.rejections}</p><p className="text-xs text-muted-foreground">Rejections</p></CardBody></Card>
@@ -110,7 +110,7 @@ export default function PharmacyReportsPage() {
         <CardBody className="space-y-3">
           <h2 className="font-semibold text-foreground">Interventions logged today</h2>
           {today.interventionList.length === 0 && <p className="text-sm text-muted-foreground">None logged today.</p>}
-          <ul className="space-y-2">
+          <ul className="stagger space-y-2">
             {today.interventionList.map((a) => (
               <li key={a.id} className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
                 <p className="text-secondary">{a.reason}</p>

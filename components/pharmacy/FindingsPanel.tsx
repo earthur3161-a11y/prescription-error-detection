@@ -43,7 +43,7 @@ export function FindingsPanel({ flags }: { flags: Flag[] }) {
   return (
     <div className="space-y-3">
       <p className="text-sm font-medium text-secondary">{summariseByCategory(flags)}</p>
-      <div className="space-y-2">
+      <div className="stagger space-y-2">
         {groups.map((group) => {
           const isOpen = open.has(group.type);
           return (
