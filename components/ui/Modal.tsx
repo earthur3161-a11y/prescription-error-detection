@@ -46,7 +46,7 @@ export function Modal({
             </div>
             <Dialog.Close
               aria-label="Close"
-              className="rounded-lg p-1.5 text-subtle transition-colors hover:bg-muted hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="grid size-11 shrink-0 place-items-center rounded-lg text-subtle transition-colors hover:bg-muted hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
               <X className="size-5" />
             </Dialog.Close>

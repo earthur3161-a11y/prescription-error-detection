@@ -268,7 +268,7 @@ export function ProfileStep({ profile, onChange, knownDrugs }: ProfileStepProps)
                       <button
                         onClick={() => removeAllergen(a.allergen)}
                         aria-label={`Remove ${a.allergen}`}
-                        className="text-subtle hover:text-blocked-fg"
+                        className="-m-2.5 p-2.5 text-subtle hover:text-blocked-fg"
                       >
                         <X className="size-4" />
                       </button>
@@ -334,7 +334,7 @@ export function ProfileStep({ profile, onChange, knownDrugs }: ProfileStepProps)
                           })
                         }
                         aria-label="Remove medicine"
-                        className="text-subtle hover:text-blocked-fg"
+                        className="-m-2.5 p-2.5 text-subtle hover:text-blocked-fg"
                       >
                         <X className="size-4" />
                       </button>

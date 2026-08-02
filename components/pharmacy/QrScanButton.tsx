@@ -79,7 +79,7 @@ export function QrScanButton({ onResult }: QrScanButtonProps) {
             <button
               onClick={stop}
               aria-label="Stop scanning"
-              className="absolute right-2 top-2 rounded-lg bg-white/90 p-1.5 text-secondary"
+              className="absolute right-2 top-2 grid size-11 place-items-center rounded-lg bg-white/90 text-secondary"
             >
               <X className="size-4" />
             </button>

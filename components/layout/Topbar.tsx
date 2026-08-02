@@ -25,7 +25,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <button
           onClick={onMenuClick}
           aria-label="Open navigation menu"
-          className="rounded-lg p-2 text-muted-foreground hover:bg-muted md:hidden"
+          className="grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted md:hidden"
         >
           <Menu className="size-5" />
         </button>
@@ -38,9 +38,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
       <div className="flex items-center gap-3">
         {user && role && (
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium text-foreground">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{ROLE_LABELS[role]}</p>
+          <div className="text-right">
+            <p className="max-w-[7rem] truncate text-sm font-medium text-foreground sm:max-w-none">
+              {user.name}
+            </p>
+            <p className="hidden text-xs text-muted-foreground sm:block">{ROLE_LABELS[role]}</p>
           </div>
         )}
         {user && (
@@ -55,7 +57,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             router.replace("/login");
           }}
           aria-label="Sign out"
-          className="grid size-9 place-items-center rounded-xl border border-border text-secondary transition-all duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-foreground"
+          className="grid size-11 shrink-0 place-items-center rounded-xl border border-border text-secondary transition-all duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-foreground"
         >
           <LogOut className="size-[18px]" />
         </button>

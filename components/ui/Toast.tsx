@@ -48,7 +48,7 @@ export function ToastViewport() {
             <button
               aria-label="Dismiss"
               onClick={() => dismiss(toast.id)}
-              className="text-subtle hover:text-secondary"
+              className="-m-2.5 shrink-0 p-2.5 text-subtle hover:text-secondary"
             >
               <X className="size-4" />
             </button>

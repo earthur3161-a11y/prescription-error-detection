@@ -178,7 +178,7 @@ export default function InventoryPage() {
                           <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>
                           <button
                             onClick={() => { setAdjustBatch(b); setAdjType("addition"); setAdjQty(0); setAdjReason(""); }}
-                            className="rounded-lg p-1.5 text-subtle hover:bg-muted hover:text-brand"
+                            className="-m-2.5 rounded-lg p-2.5 text-subtle hover:bg-muted hover:text-brand"
                             aria-label={`Adjust ${b.batchNumber}`}
                           >
                             <Pencil className="size-4" />

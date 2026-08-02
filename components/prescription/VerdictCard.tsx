@@ -118,7 +118,7 @@ export function VerdictCard({
             <button
               onClick={onRemove}
               aria-label={`Remove ${drug.generic_name} from prescription`}
-              className="rounded-lg p-1.5 text-subtle hover:bg-muted hover:text-blocked-fg"
+              className="-m-2.5 rounded-lg p-2.5 text-subtle hover:bg-muted hover:text-blocked-fg"
             >
               <Trash2 className="size-4" aria-hidden="true" />
             </button>

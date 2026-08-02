@@ -46,7 +46,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
               router.replace("/superadmin/login");
             }}
             aria-label="Sign out"
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
+            className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Sign out
