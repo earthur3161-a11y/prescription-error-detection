@@ -146,7 +146,7 @@ export default function AdminAuditLogPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="stagger grid gap-4 sm:grid-cols-3">
         <Card>
           <CardBody>
             <p className="text-xs font-semibold uppercase tracking-wide text-subtle">EML compliance</p>
@@ -190,7 +190,7 @@ export default function AdminAuditLogPage() {
         <Card>
           <CardBody className="space-y-2">
             <h2 className="font-semibold text-foreground">Patient-reported issues</h2>
-            <ul className="space-y-2">
+            <ul className="stagger space-y-2">
               {feedbackReports.map((report) => (
                 <li key={report.id} className="rounded-lg bg-surface-2 px-3 py-2 text-sm">
                   <span className="text-subtle">{formatDateTime(report.createdAt)}</span>
@@ -227,7 +227,7 @@ export default function AdminAuditLogPage() {
         <p className="py-8 text-center text-sm text-muted-foreground">No overrides logged yet.</p>
       )}
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {(logs ?? []).map((log) => {
           const prescription = prescriptionById.get(log.prescriptionId);
           return (

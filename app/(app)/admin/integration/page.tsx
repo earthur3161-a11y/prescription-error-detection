@@ -145,30 +145,32 @@ export default function IntegrationDashboardPage() {
           {!keysLoading && activeKeys.length === 0 && (
             <p className="text-sm text-muted-foreground">No active keys yet — mint one above.</p>
           )}
-          {activeKeys.map((key) => (
-            <div key={key.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-2 px-4 py-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Badge tone={key.mode === "live" ? "brand" : "neutral"}>{key.mode}</Badge>
-                  <code className="text-sm text-muted-foreground">{key.keyPrefix}…</code>
+          <div className="stagger space-y-3">
+            {activeKeys.map((key) => (
+              <div key={key.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-2 px-4 py-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Badge tone={key.mode === "live" ? "brand" : "neutral"}>{key.mode}</Badge>
+                    <code className="text-sm text-muted-foreground">{key.keyPrefix}…</code>
+                  </div>
+                  <p className="mt-1 text-xs text-subtle">
+                    Created {formatDateTime(key.createdAt)}
+                    {key.lastUsedAt ? ` · last used ${formatDateTime(key.lastUsedAt)}` : " · never used"}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-subtle">
-                  Created {formatDateTime(key.createdAt)}
-                  {key.lastUsedAt ? ` · last used ${formatDateTime(key.lastUsedAt)}` : " · never used"}
-                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-blocked-fg hover:text-blocked-fg"
+                  onClick={() => revokeKey.mutate(key.id)}
+                  disabled={revokeKey.isPending}
+                >
+                  <XCircle className="size-4" aria-hidden="true" />
+                  Revoke
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-blocked-fg hover:text-blocked-fg"
-                onClick={() => revokeKey.mutate(key.id)}
-                disabled={revokeKey.isPending}
-              >
-                <XCircle className="size-4" aria-hidden="true" />
-                Revoke
-              </Button>
-            </div>
-          ))}
+            ))}
+          </div>
           {revokedKeys.length > 0 && (
             <details className="text-sm text-muted-foreground">
               <summary className="cursor-pointer">{revokedKeys.length} revoked key{revokedKeys.length === 1 ? "" : "s"}</summary>

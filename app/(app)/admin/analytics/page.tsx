@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
         <ReportingRangeSelect value={preset} onChange={setPreset} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Prescriptions" value={String(s.totalPrescriptions)} sub={`${s.totalLines} drug lines`} />
         <Kpi
           label="Flagged rate"
@@ -194,37 +194,43 @@ export default function AnalyticsPage() {
         {prescribers.length === 0 ? (
           <p className="text-sm text-subtle">No prescribing activity in this range yet.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs font-semibold uppercase tracking-wide text-subtle">
-                  <th className="py-1.5 pr-4 text-left">Prescriber</th>
-                  <th className="py-1.5 px-3 text-right">Lines</th>
-                  <th className="py-1.5 px-3 text-right">Flag rate</th>
-                  <th className="py-1.5 pl-3 text-right">Override rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {prescribers.map((p) => {
-                  const flagRate = p.totalLines === 0 ? 0 : p.flaggedLines / p.totalLines;
-                  const overrideRate = p.flaggedLines === 0 ? 0 : Math.min(1, p.overrideCount / p.flaggedLines);
-                  return (
-                    <tr key={p.prescriberId} className="border-b border-border last:border-0">
-                      <td className="py-1.5 pr-4 font-medium text-foreground">{p.prescriberName}</td>
-                      <td className="py-1.5 px-3 text-right tabular-nums text-secondary">{p.totalLines}</td>
-                      <td className="py-1.5 px-3 text-right tabular-nums text-secondary">
-                        {Math.round(flagRate * 100)}%
-                        <span className="text-subtle"> ({p.flaggedLines})</span>
-                      </td>
-                      <td className="py-1.5 pl-3 text-right tabular-nums text-secondary">
-                        {Math.round(overrideRate * 100)}%
-                        <span className="text-subtle"> ({p.overrideCount})</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="relative">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs font-semibold uppercase tracking-wide text-subtle">
+                    <th className="sticky left-0 bg-surface py-1.5 pr-4 text-left">Prescriber</th>
+                    <th className="py-1.5 px-3 text-right">Lines</th>
+                    <th className="py-1.5 px-3 text-right">Flag rate</th>
+                    <th className="py-1.5 pl-3 text-right">Override rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prescribers.map((p) => {
+                    const flagRate = p.totalLines === 0 ? 0 : p.flaggedLines / p.totalLines;
+                    const overrideRate = p.flaggedLines === 0 ? 0 : Math.min(1, p.overrideCount / p.flaggedLines);
+                    return (
+                      <tr key={p.prescriberId} className="border-b border-border last:border-0">
+                        <td className="sticky left-0 bg-surface py-1.5 pr-4 font-medium text-foreground">{p.prescriberName}</td>
+                        <td className="py-1.5 px-3 text-right tabular-nums text-secondary">{p.totalLines}</td>
+                        <td className="py-1.5 px-3 text-right tabular-nums text-secondary">
+                          {Math.round(flagRate * 100)}%
+                          <span className="text-subtle"> ({p.flaggedLines})</span>
+                        </td>
+                        <td className="py-1.5 pl-3 text-right tabular-nums text-secondary">
+                          {Math.round(overrideRate * 100)}%
+                          <span className="text-subtle"> ({p.overrideCount})</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div
+              className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface to-transparent md:hidden"
+              aria-hidden="true"
+            />
           </div>
         )}
       </SectionCard>

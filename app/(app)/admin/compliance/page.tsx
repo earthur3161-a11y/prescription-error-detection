@@ -154,7 +154,7 @@ export default function CompliancePage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-4">
         <StatCard label="Total events" value={events.length} hint="across all channels" />
         <StatCard label="Checks" value={counts.checks} hint="screenings run" />
         <StatCard label="Alerts" value={counts.alerts} hint="clinical alerts raised" />
