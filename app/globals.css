@@ -300,4 +300,17 @@
   .stagger > * {
     animation: none !important;
   }
+  /*
+   * Blanket fallback for plain CSS transitions (transition-transform,
+   * transition-opacity, transition-colors, etc.) — e.g. the mobile nav
+   * drawer's slide/fade in app/(app)/layout.tsx. Those rely on per-call-site
+   * motion-reduce: variants today (still present, now redundant but
+   * harmless), which is easy to forget on some future addition; this makes
+   * the guarantee global and automatic instead of dependent on remembering
+   * it at each new usage, the same way the animation: none rule above
+   * already is for the keyframe-based entrance tokens.
+   */
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+  }
 }
