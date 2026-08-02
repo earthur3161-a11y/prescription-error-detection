@@ -125,7 +125,7 @@ export default function PrescriptionDetailPage({
 
       <ScreeningCoverageNotice formulary={formulary} />
 
-      <div className="space-y-4">
+      <div className="stagger space-y-4">
         {prescription.drugs.map((line, i) => {
           const drug = formulary.drugs.find((d) => d.id === line.drugId);
           const verdict = prescription.verdicts[i];

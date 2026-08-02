@@ -63,10 +63,10 @@ export default function PatientProfilePage({
         {(prescriptions?.length ?? 0) === 0 && (
           <p className="text-sm text-muted-foreground">No prescriptions on file for this patient.</p>
         )}
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {(prescriptions ?? []).map((rx) => (
             <Link key={rx.id} href={`/prescriptions/${rx.id}`}>
-              <Card className="transition-shadow hover:shadow-md">
+              <Card className="transition-all active:scale-[0.98] hover:shadow-md">
                 <CardBody className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-secondary">{formatDateTime(rx.createdAt)}</p>
                   <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ export default function PatientProfilePage({
           <h2 className="mb-3 font-semibold text-foreground">Dispensing History</h2>
           <Card>
             <CardBody>
-              <ul className="divide-y divide-border">
+              <ul className="stagger divide-y divide-border">
                 {dispenses.map((d) => (
                   <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                     <span className="text-foreground">

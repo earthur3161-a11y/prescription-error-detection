@@ -56,12 +56,12 @@ export default function DashboardPage() {
               </div>
             )}
             {!patientsLoading && (
-              <ul className="divide-y divide-border">
+              <ul className="stagger divide-y divide-border">
                 {(patients ?? []).slice(0, 5).map((p) => (
                   <li key={p.id}>
                     <Link
                       href={`/patients/${p.id}`}
-                      className="flex items-center gap-3 py-2.5 text-sm text-secondary hover:text-brand"
+                      className="flex items-center gap-3 py-2.5 text-sm text-secondary transition-colors active:bg-muted hover:text-brand"
                     >
                       <Users className="size-4 shrink-0 text-subtle" aria-hidden="true" />
                       {p.name}
@@ -91,12 +91,12 @@ export default function DashboardPage() {
               <p className="py-4 text-sm text-muted-foreground">No prescriptions yet.</p>
             )}
             {!rxLoading && (
-              <ul className="divide-y divide-border">
+              <ul className="stagger divide-y divide-border">
                 {(prescriptions ?? []).slice(0, 5).map((rx) => (
                   <li key={rx.id}>
                     <Link
                       href={`/prescriptions/${rx.id}`}
-                      className="flex items-center justify-between gap-3 py-2.5 text-sm text-secondary hover:text-brand"
+                      className="flex items-center justify-between gap-3 py-2.5 text-sm text-secondary transition-colors active:bg-muted hover:text-brand"
                     >
                       <span>{formatDateTime(rx.createdAt)}</span>
                       <VerdictMark

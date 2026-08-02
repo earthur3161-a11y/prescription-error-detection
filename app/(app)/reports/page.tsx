@@ -132,7 +132,7 @@ export default function MyReportsPage() {
         <ReportingRangeSelect value={preset} onChange={setPreset} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Prescriptions" value={String(s.totalPrescriptions)} sub={`${s.totalLines} drug lines`} />
         <Kpi
           label="Flagged rate"

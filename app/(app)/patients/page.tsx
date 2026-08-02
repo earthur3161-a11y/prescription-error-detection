@@ -50,10 +50,10 @@ export default function PatientsPage() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {(patients ?? []).map((patient) => (
           <Link key={patient.id} href={`/patients/${patient.id}`}>
-            <Card className="transition-shadow hover:shadow-md">
+            <Card className="transition-all active:scale-[0.98] hover:shadow-md">
               <CardBody className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex size-10 items-center justify-center rounded-full bg-brand-subtle text-brand">

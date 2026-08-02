@@ -103,10 +103,10 @@ export default function PrescriptionHistoryPage() {
         <p className="py-8 text-center text-sm text-muted-foreground">No prescriptions match these filters.</p>
       )}
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {filtered.map((rx) => (
           <Link key={rx.id} href={isPharmacist ? `/pharmacist/review/${rx.id}` : `/prescriptions/${rx.id}`}>
-            <Card className="transition-shadow hover:shadow-md">
+            <Card className="transition-all active:scale-[0.98] hover:shadow-md">
               <CardBody className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-medium text-foreground">

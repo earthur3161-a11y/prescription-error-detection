@@ -114,7 +114,7 @@ export default function SettingsPage() {
       <Card>
         <CardBody className="space-y-3">
           <h2 className="font-semibold text-foreground">Users</h2>
-          <ul className="divide-y divide-border">
+          <ul className="stagger divide-y divide-border">
             {[...(profiles?.values() ?? [])].map((p) => (
               <li key={p.id} className="flex items-center justify-between py-2 text-sm">
                 <span className="text-foreground">{p.name}</span>
