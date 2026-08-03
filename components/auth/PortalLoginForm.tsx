@@ -31,7 +31,6 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
   const { login, role, hasHydrated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mfa, setMfa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -45,12 +44,6 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!/^\d{6}$/.test(mfa)) {
-      setError("Enter your 6-digit authenticator code.");
-      return;
-    }
-
     setPending(true);
     try {
       // Role is enforced in the data layer — an account of a different role
@@ -116,24 +109,6 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="mfa" className="mb-1.5 block text-sm font-medium text-secondary">
-                Authenticator code
-              </label>
-              <Input
-                id="mfa"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="6-digit code"
-                value={mfa}
-                onChange={(e) => setMfa(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                required
-              />
-              <p className="mt-1 text-xs text-subtle">
-                Multi-factor authentication (simulated in this demo — enter any 6 digits).
-              </p>
-            </div>
-
             {error && (
               <p role="alert" className="rounded-lg bg-blocked-bg px-3 py-2 text-sm text-blocked-fg">
                 {error}

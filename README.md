@@ -48,7 +48,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Accounts & access (no demo shortcuts)
 
 There are **no shared/quick-login demo buttons**. Sign-in requires a real,
-provisioned account (email + password + a simulated 6-digit MFA code), and the
+provisioned account (email + password), and the
 portal enforces the account's role **in the data layer** (`accountRepository.authenticate`)
 — a pharmacy account cannot sign in through `/physician/login` even by visiting
 the URL directly. Failed logins return a single generic "Invalid login" that
@@ -71,8 +71,7 @@ Getting an account:
 **Dev/staging accounts** are seeded only when `DEV_ACCOUNTS_ENABLED`
 (`NODE_ENV !== "production"`, or `NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS=true`), so
 they never ship in a production build. In `npm run dev` the seeded logins are
-printed to the browser console. They are (shared password `MediGuard!24`, any
-6-digit code for MFA):
+printed to the browser console. They are (shared password `MediGuard!24`):
 
 | Portal | Email |
 | --- | --- |
