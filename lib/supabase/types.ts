@@ -153,6 +153,11 @@ export type SelfCheckAccountRow = {
   phone_verified: boolean;
   otp_send_count: number;
   otp_last_sent_at: string | null;
+  // sha256(phone + code); never the plaintext code. Cleared (null) once
+  // consumed by a successful verify — see 0023_self_hosted_otp_codes.sql.
+  otp_code_hash: string | null;
+  otp_expires_at: string | null;
+  otp_verify_attempts: number;
   free_checks_used: number;
   created_at: string;
 };
