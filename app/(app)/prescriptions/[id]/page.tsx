@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Flag, PackageCheck } from "lucide-react";
+import { ArrowLeft, Flag, PackageCheck, Pencil, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -23,6 +23,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict } from "@/lib/screening-engine";
+import { isPrescriptionEditable } from "@/lib/types";
 
 export default function PrescriptionDetailPage({
   params,
@@ -31,7 +32,7 @@ export default function PrescriptionDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { data: prescription, isLoading } = usePrescription(id);
   const { data: patient } = usePatient(prescription?.patientId ?? null);
   const { data: formulary } = useFormulary();
@@ -41,6 +42,7 @@ export default function PrescriptionDetailPage({
 
   const [flagModalOpen, setFlagModalOpen] = useState(false);
   const [flagNote, setFlagNote] = useState("");
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   if (isLoading || !formulary) {
     return (
@@ -63,6 +65,10 @@ export default function PrescriptionDetailPage({
   const prescriber = profiles?.get(prescription.prescriberId);
   const overrideByDrugId = new Map((overrideLogs ?? []).map((log) => [log.drugId, log]));
   const canPharmacistAct = role === "pharmacist" && prescription.status === "submitted";
+  // Mirrors create_prescription_version()'s own guards exactly (0016/0025) —
+  // only the original prescriber, only while still in an editable status.
+  const canPrescriberEdit =
+    role === "prescriber" && !!user && prescription.prescriberId === user.id && isPrescriptionEditable(prescription);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -142,6 +148,19 @@ export default function PrescriptionDetailPage({
         })}
       </div>
 
+      {canPrescriberEdit && (
+        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+          <Button variant="secondary" onClick={() => router.push(`/prescriptions/${prescription.id}/edit`)}>
+            <Pencil className="size-5" aria-hidden="true" />
+            Edit
+          </Button>
+          <Button variant="secondary" onClick={() => setCancelModalOpen(true)}>
+            <XCircle className="size-5" aria-hidden="true" />
+            Cancel Prescription
+          </Button>
+        </div>
+      )}
+
       {canPharmacistAct && (
         <div className="flex flex-wrap gap-3 border-t border-border pt-4">
           {/* Navigates into the real gated flow (review -> approve -> dispense)
@@ -192,6 +211,32 @@ export default function PrescriptionDetailPage({
           placeholder="e.g. Please confirm renal function before dispensing…"
         />
       </Modal>
+
+      <Modal
+        open={cancelModalOpen}
+        onOpenChange={setCancelModalOpen}
+        title="Cancel this prescription?"
+        description="The prescription is kept, marked cancelled — it's never deleted. This can't be undone from here; a fresh prescription would be needed to resume treatment."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setCancelModalOpen(false)}>
+              Keep prescription
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={updateStatus.isPending}
+              onClick={() => {
+                updateStatus.mutate(
+                  { id: prescription.id, status: "cancelled" },
+                  { onSuccess: () => setCancelModalOpen(false) }
+                );
+              }}
+            >
+              Cancel prescription
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }

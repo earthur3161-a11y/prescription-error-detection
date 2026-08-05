@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useCreatePrescription } from "@/lib/query/hooks/useCreatePrescription";
+import { useCreatePrescriptionVersion } from "@/lib/query/hooks/useCreatePrescriptionVersion";
 import { useCreateOverrideLog } from "@/lib/query/hooks/useCreateOverrideLog";
 import { screenDrugLine, type DrugLineVerdict, type Verdict } from "@/lib/screening-engine";
 import { buildDefaultLine } from "@/lib/prescription/lineDefaults";
@@ -35,6 +36,8 @@ interface PrescriptionBuilderProps {
   initialPatientId?: string | null;
   initialLines?: PrescriptionDrugLine[];
   allowPatientCreate?: boolean;
+  /** Edit mode: submitting creates a new version of this existing prescription (create_prescription_version) instead of a fresh root prescription — see app/(app)/prescriptions/[id]/edit/page.tsx. */
+  editingPrescriptionId?: string;
   onSubmitted: (prescriptionId: string) => void;
 }
 
@@ -56,6 +59,7 @@ export function PrescriptionBuilder({
   initialPatientId = null,
   initialLines = [],
   allowPatientCreate = false,
+  editingPrescriptionId,
   onSubmitted,
 }: PrescriptionBuilderProps) {
   const [patientId, setPatientId] = useState<string | null>(initialPatientId);
@@ -73,6 +77,7 @@ export function PrescriptionBuilder({
   const { data: patient } = usePatient(patientId);
   const { data: formulary, isLoading: formularyLoading } = useFormulary();
   const createPrescription = useCreatePrescription();
+  const createPrescriptionVersion = useCreatePrescriptionVersion();
   const createOverrideLog = useCreateOverrideLog();
 
   const verdicts = useMemo<Record<string, DrugLineVerdict>>(() => {
@@ -159,12 +164,23 @@ export function PrescriptionBuilder({
 
   function handleSubmit() {
     if (!canSubmit || !patientId) return;
+    const drugLines = lines;
+    const lineVerdicts = lines.map((l) => verdicts[l.id]);
+
+    if (editingPrescriptionId) {
+      createPrescriptionVersion.mutate(
+        { editingId: editingPrescriptionId, newId: prescriptionId, drugs: drugLines, verdicts: lineVerdicts },
+        { onSuccess: (created) => onSubmitted(created.id) }
+      );
+      return;
+    }
+
     const prescription: Prescription = {
       id: prescriptionId,
       patientId,
       prescriberId,
-      drugs: lines,
-      verdicts: lines.map((l) => verdicts[l.id]),
+      drugs: drugLines,
+      verdicts: lineVerdicts,
       status: "submitted",
       createdAt: new Date().toISOString(),
       source,
@@ -231,8 +247,11 @@ export function PrescriptionBuilder({
         verdictCounts={verdictCounts}
         canSubmit={canSubmit}
         blockingReason={blockingReason}
-        submitting={createPrescription.isPending}
+        submitting={editingPrescriptionId ? createPrescriptionVersion.isPending : createPrescription.isPending}
         onSubmit={handleSubmit}
+        {...(editingPrescriptionId
+          ? { submitLabel: "Save New Version", submittingLabel: "Saving…" }
+          : {})}
       />
 
       {overrideTarget && overrideDrug && (

@@ -9,6 +9,8 @@ interface SignSubmitBarProps {
   blockingReason?: string;
   submitting?: boolean;
   onSubmit: () => void;
+  submitLabel?: string;
+  submittingLabel?: string;
 }
 
 export function SignSubmitBar({
@@ -17,6 +19,8 @@ export function SignSubmitBar({
   blockingReason,
   submitting,
   onSubmit,
+  submitLabel = "Sign & Submit Prescription",
+  submittingLabel = "Submitting…",
 }: SignSubmitBarProps) {
   return (
     <div className="sticky bottom-0 flex flex-col gap-3 border-t border-border bg-surface/95 px-6 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
@@ -36,7 +40,7 @@ export function SignSubmitBar({
       </div>
       <Button size="lg" onClick={onSubmit} disabled={!canSubmit || submitting}>
         <CheckCircle2 className="size-5" aria-hidden="true" />
-        {submitting ? "Submitting…" : "Sign & Submit Prescription"}
+        {submitting ? submittingLabel : submitLabel}
       </Button>
     </div>
   );
