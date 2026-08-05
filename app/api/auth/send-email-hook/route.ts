@@ -128,6 +128,11 @@ export async function POST(request: Request) {
   const { user, email_data: emailData } = verified;
   const { subject, html } = buildHtml(user, emailData, supabaseUrl);
 
+  // RESEND_FROM_ADDRESS falls back to Resend's own shared sandbox sender,
+  // which only delivers to the Resend account's own verified email address —
+  // fine for local/early testing, but real applicants need a verified domain
+  // in Resend and this env var set to an address on it, e.g.
+  // "MediGuard <noreply@yourdomain>".
   const resendRes = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -135,7 +140,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "MediGuard <onboarding@resend.dev>",
+      from: process.env.RESEND_FROM_ADDRESS ?? "MediGuard <onboarding@resend.dev>",
       to: [user.email],
       subject,
       html,
