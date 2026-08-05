@@ -76,7 +76,7 @@ export default function UiKitPage() {
         </div>
 
         <h3 className="pt-2 text-xs font-semibold uppercase tracking-wide text-subtle">
-          Verdict basis — same "caution" verdict, three real reasons behind it
+          Verdict basis — same &ldquo;caution&rdquo; verdict, three real reasons behind it
         </h3>
         <div className="flex flex-wrap items-center gap-4">
           <div className="space-y-1">

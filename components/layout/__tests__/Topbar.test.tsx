@@ -1,16 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Topbar } from "../Topbar";
 
+const replaceMock = vi.fn();
+const logoutMock = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: replaceMock }),
 }));
 
 vi.mock("@/lib/auth/useAuth", () => ({
   useAuth: () => ({
     user: { name: "Ama Owusu", title: "MD" },
     role: "prescriber",
-    logout: vi.fn(),
+    logout: logoutMock,
   }),
 }));
 
@@ -22,7 +25,11 @@ vi.mock("@/lib/query/hooks/useOutbox", () => ({
   usePendingOutbox: () => ({ data: [] }),
 }));
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  replaceMock.mockClear();
+  logoutMock.mockClear();
+});
 
 // Regression test: the hamburger and sign-out buttons used to be well under
 // the ~44px touch-target guideline (p-2/size-9), on the one shell rendered
@@ -44,5 +51,27 @@ describe("Topbar touch targets", () => {
     render(<Topbar onMenuClick={vi.fn()} />);
     const name = screen.getByText("Ama Owusu");
     expect(name.className).not.toMatch(/\bhidden\b/);
+  });
+});
+
+// Regression coverage for the systemwide auth audit: confirms the sign-out
+// control actually signs out (not just that it exists/is sized correctly).
+describe("Topbar sign-out behavior", () => {
+  it("calls logout() and navigates to /login when clicked", () => {
+    render(<Topbar onMenuClick={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+
+    expect(logoutMock).toHaveBeenCalledTimes(1);
+    expect(replaceMock).toHaveBeenCalledWith("/login");
+  });
+
+  it("opens the mobile nav when the hamburger is clicked", () => {
+    const onMenuClick = vi.fn();
+    render(<Topbar onMenuClick={onMenuClick} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /open navigation menu/i }));
+
+    expect(onMenuClick).toHaveBeenCalledTimes(1);
   });
 });

@@ -49,7 +49,6 @@ export function VerdictMark({ verdict, flags = [], size = "badge", showLabel = t
   let effectiveShowLabel = showLabel;
   if (!showLabel && !iconOnlyAllowed) {
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
       console.warn(
         `VerdictMark: showLabel=false was ignored for verdict="${verdict}" at size="${size}" — the ${shape} shape isn't reliably legible icon-only below "seal" size (confirmed via colorblindness simulation). Text is mandatory here; this isn't a convention to remember per call site, it's enforced in the component.`
       );
