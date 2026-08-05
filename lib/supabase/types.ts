@@ -145,6 +145,14 @@ export type PatientCheckRow = {
 
 export type PatientCheckRpcRow = PatientCheckRow;
 
+/** Row shape of patient_feedback_reports (0024) — the "report an issue" flow's real, shared table. */
+export type PatientFeedbackReportRow = {
+  id: string;
+  patient_check_id: string | null;
+  message: string;
+  created_at: string;
+};
+
 export type CheckPaymentStatus = "pending" | "success" | "failed";
 
 export type SelfCheckAccountRow = {
@@ -383,6 +391,12 @@ export type Database = {
         Update: Partial<SelfCheckAccountRow>;
         Relationships: [];
       };
+      patient_feedback_reports: {
+        Row: PatientFeedbackReportRow;
+        Insert: Partial<PatientFeedbackReportRow> & Pick<PatientFeedbackReportRow, "message">;
+        Update: Partial<PatientFeedbackReportRow>;
+        Relationships: [];
+      };
       check_payments: {
         Row: CheckPaymentRow;
         Insert: Partial<CheckPaymentRow> &
@@ -487,6 +501,10 @@ export type Database = {
       get_payment_status: {
         Args: { p_reference: string };
         Returns: { status: CheckPaymentStatus }[];
+      };
+      create_patient_feedback_report: {
+        Args: { p_patient_check_id: string | null; p_message: string };
+        Returns: PatientFeedbackReportRow;
       };
       get_my_subscription_status: {
         Args: Record<string, never>;

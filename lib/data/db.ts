@@ -12,7 +12,6 @@ import type {
   OverrideLog,
   Patient,
   PatientCheck,
-  PatientFeedbackReport,
   PatientProfile,
   PharmacistAction,
   PharmacySettings,
@@ -41,7 +40,6 @@ export class MediGuardDB extends Dexie {
   outbox!: Table<OutboxItem, number>;
   patientChecks!: Table<PatientCheck, string>;
   patientProfile!: Table<PatientProfile, string>;
-  patientFeedbackReports!: Table<PatientFeedbackReport, string>;
   accounts!: Table<Account, string>;
   accessRequests!: Table<AccessRequest, string>;
   meta!: Table<{ id: string; version: string }, string>;
@@ -120,6 +118,19 @@ export class MediGuardDB extends Dexie {
       dispenseRecords: null,
       foodInteractionRules: "id, drug_id",
       alcoholInteractionRules: "id, drug_id",
+    });
+    // patientFeedbackReports moved to Supabase (supabase/migrations/0024_
+    // patient_feedback_reports.sql) — a patient's report never reached the
+    // admin audit-log page from per-browser IndexedDB, since the two were
+    // always separate databases.
+    this.version(11).stores({
+      ...v7Stores,
+      integrationConfig: null,
+      batches: null,
+      dispenseRecords: null,
+      foodInteractionRules: "id, drug_id",
+      alcoholInteractionRules: "id, drug_id",
+      patientFeedbackReports: null,
     });
   }
 }
