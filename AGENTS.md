@@ -22,6 +22,17 @@ select * from institutions where name like 'ZZTEST_%';
 select * from self_check_accounts where phone like '+233244000%';
 ```
 
+## Migration convention: rewriting an existing RLS policy
+
+`drop policy ... create policy` on a table that already has a policy of that name is not a clean slate — it is a full replacement of every condition the old one enforced, RLS included. Postgres won't warn you if the new `with check`/`using` clause quietly satisfies only your own change's requirement and drops something unrelated a prior migration fixed.
+
+This has happened three times in this project, each time because the migration doing the rewrite was working on something unrelated to the condition it silently dropped:
+1. **Pharmacist visibility** — a rogue, never-migration-tracked policy set on `patients`/`prescriptions` re-opened a cross-tenant leak `0004`'s ownership scoping was supposed to close (fixed by `0008`).
+2. **Subscription enforcement** — `0006` added an active-subscription requirement to `patients_insert_own`/`prescriptions_insert_own`; `0012`, rewriting the same two policies to add institution scoping, dropped the subscription condition entirely without that being its stated purpose (fixed by `0022`).
+3. **Version-chain ownership** — `0017` fixed a shadowing bug in `prescriptions_insert_own`'s `original_prescription_id` check; `0022`, rewriting the same policy again to restore #2's subscription condition, dropped `0017`'s fix in the process (fixed by `0025`).
+
+**Before shipping any migration that does `drop policy` + `create policy` on a table with an existing policy of that name**: read the *current live* policy first (`select pg_get_expr(polwithcheck, polrelid) from pg_policy ...` — not just the most recent migration file, since live state has already been shown to drift from migration text at least once this project independently of this exact issue), list every condition it enforces, and confirm each one that should still apply is explicitly present in the new version — ANDed in, not assumed implicit. If a condition is being deliberately removed, say so in the migration's own comment, the same way every other intentional behavior change in this project's migrations is documented. Don't rely on catching the drop by accident a fourth time.
+
 ## Known architectural limitations
 
 Real, deliberately-deferred gaps — each also marked `KNOWN GAP, TRACKED FOLLOW-UP` at its actual code location. Read before assuming a related feature is fully covered.
