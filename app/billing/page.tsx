@@ -47,31 +47,39 @@ export default function BillingPage() {
   const { role, hasHydrated } = useAuth();
   const product = role ? ROLE_PRODUCT[role] : undefined;
 
-  const [paying, setPaying] = useState(false);
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
 
-  const subscription = useSubscriptionStatus(product ?? null, paying);
-  const initiatePayment = useInitiateSubscriptionPayment();
-  // Distinct from `subscription` above: that only ever tells us "active" or
+  // Distinct from `subscription` below: that only ever tells us "active" or
   // not (the webhook never touches it on failure — 0006_subscriptions.sql),
   // so it alone can't tell "still pending" apart from "definitively failed."
   // This is what makes a declined/abandoned/reversed charge visible at all.
-  const paymentStatus = useSubscriptionPaymentStatus(paying ? paymentReference : null);
-  const paymentTimedOut = usePaymentTimeout(paying && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
+  const paymentStatus = useSubscriptionPaymentStatus(paymentReference);
+  // A payment is "in flight" from the moment it's initiated until we know it
+  // succeeded — derived every render, not tracked as its own state that has
+  // to be manually reset back to false once activation is observed. Once
+  // paymentStatus settles to "success" it stays "success" (a historical fact
+  // about that payment, independent of whatever the subscription does
+  // later), so this needs no reset step and nothing ever goes stale.
+  const isPaying = paymentReference !== null && paymentStatus.data?.status !== "success";
+  const subscription = useSubscriptionStatus(product ?? null, isPaying);
+  const initiatePayment = useInitiateSubscriptionPayment();
+  const paymentTimedOut = usePaymentTimeout(paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
   useEffect(() => {
     if (!hasHydrated) return;
     if (!role || !product) router.replace("/login");
   }, [hasHydrated, role, product, router]);
 
+  // Fires exactly once per activation: paymentReference is only set once a
+  // real payment was initiated, and isActive only transitions false -> true
+  // once per reference, so this effect's own dependencies don't repeat.
   useEffect(() => {
-    if (paying && subscription.data?.isActive) {
-      setPaying(false);
+    if (paymentReference && subscription.data?.isActive) {
       showToast({ title: "Subscription active", description: "You're all set.", variant: "success" });
     }
-  }, [paying, subscription.data?.isActive, showToast]);
+  }, [paymentReference, subscription.data?.isActive, showToast]);
 
   if (!hasHydrated || !role || !product) {
     return (
@@ -91,7 +99,6 @@ export default function BillingPage() {
       {
         onSuccess: (res) => {
           setPaymentReference(res.reference);
-          setPaying(true);
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },
         onError: (err: Error) => showToast({ title: "Couldn't start payment", description: err.message, variant: "error" }),
@@ -105,12 +112,11 @@ export default function BillingPage() {
   // brand-new reference from the server, so there's no risk of this stale
   // one being reused or confused with a later attempt.
   function resetToForm() {
-    setPaying(false);
     setPaymentReference(null);
   }
 
   const isActive = subscription.data?.isActive ?? false;
-  const paymentFailed = paying && paymentStatus.data?.status === "failed";
+  const paymentFailed = paymentReference !== null && paymentStatus.data?.status === "failed";
 
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
@@ -158,7 +164,7 @@ export default function BillingPage() {
                 Try again
               </Button>
             </div>
-          ) : paying ? (
+          ) : isPaying ? (
             <div className="space-y-3 text-center">
               <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
               <p className="text-sm text-secondary">Approve the payment request on your phone to activate.</p>
