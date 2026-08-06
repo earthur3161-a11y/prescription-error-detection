@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { DEFAULT_REGION, getFormularyBundle } from "../formulary";
+import { mergeCustomDrugs } from "../formulary/mergeCustomDrugs";
 import { screenDrugLine } from "../screening-engine";
 import { hashApiKey } from "./apiKeys";
 import { supabaseService } from "../supabase/serviceClient";
@@ -16,6 +17,7 @@ import type { EnforcementLevel } from "../types";
 import type {
   ActiveMedication,
   AllergyRecord,
+  Drug,
   Patient,
   PrescriptionDrugLine,
   Route,
@@ -131,9 +133,16 @@ export interface ScreenResult {
   drugName: string;
 }
 
-/** Runs the real screening engine over a validated request. Returns null when the drugId isn't in the formulary. */
-export function runScreen(request: ScreenRequest): ScreenResult | null {
-  const formulary = getFormularyBundle(DEFAULT_REGION);
+/**
+ * Runs the real screening engine over a validated request. Returns null when
+ * the drugId isn't in the formulary. `extraDrugs` layers admin-added custom
+ * drugs (0026_custom_drugs.sql) on top of the static base set — optional and
+ * defaulted to none so every existing caller/test is unaffected; a caller
+ * that cares fetches them once via getCustomDrugs() and passes them in,
+ * rather than this function doing its own Postgres round-trip per call.
+ */
+export function runScreen(request: ScreenRequest, extraDrugs: Drug[] = []): ScreenResult | null {
+  const formulary = mergeCustomDrugs(getFormularyBundle(DEFAULT_REGION), extraDrugs);
   const drug = formulary.drugs.find((d) => d.id === request.drug.drugId);
   if (!drug) return null;
 
@@ -242,4 +251,17 @@ export async function authorizeApiKey(request: Request): Promise<AuthResult> {
     mode: keyRow.mode,
     enforcementLevel: institution.enforcement_level,
   };
+}
+
+/**
+ * Fetches every admin-added custom drug (0026_custom_drugs.sql) for merging
+ * into a server-side screening call — see runScreen's extraDrugs param.
+ * Called once per request by each route handler, not once per screened
+ * line, so a multi-drug request doesn't do N redundant round-trips for the
+ * same small table.
+ */
+export async function getCustomDrugs(): Promise<Drug[]> {
+  const { data, error } = await supabaseService.from("custom_drugs").select("drug");
+  if (error) throw error;
+  return (data ?? []).map((row) => row.drug as Drug);
 }

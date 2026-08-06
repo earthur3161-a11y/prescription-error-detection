@@ -13,7 +13,15 @@ import { Badge } from "@/components/ui/Badge";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
 import { generateId } from "@/lib/utils/id";
+import { DEFAULT_REGION, getFormularyBundle } from "@/lib/formulary";
 import type { Drug, Route } from "@/lib/types";
+
+// The base Ghana STG/EML formulary is code-committed and immutable via this
+// page by design (see 0026_custom_drugs.sql's header) — this Set is how the
+// UI tells a base drug apart from an admin-added one, so the delete
+// affordance below only ever appears for something this page can actually
+// remove.
+const BASE_DRUG_IDS = new Set(getFormularyBundle(DEFAULT_REGION).drugs.map((d) => d.id));
 
 const ALL_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual", "subcutaneous"];
 
@@ -153,15 +161,20 @@ export default function AdminFormularyPage() {
                   {drug.onEssentialMedicinesList ? "On EML" : "Not on EML"}
                 </Badge>
                 <Badge tone="neutral">{drug.region_availability.join(", ")}</Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDeleteTarget(drug)}
-                  aria-label={`Remove ${drug.generic_name}`}
-                  className="px-2 text-subtle hover:text-blocked-fg"
-                >
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </Button>
+                {!BASE_DRUG_IDS.has(drug.id) && (
+                  <>
+                    <Badge tone="neutral">Admin-added</Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteTarget(drug)}
+                      aria-label={`Remove ${drug.generic_name}`}
+                      className="px-2 text-subtle hover:text-blocked-fg"
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </Button>
+                  </>
+                )}
               </div>
             </CardBody>
           </Card>

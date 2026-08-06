@@ -14,6 +14,7 @@ import {
   runScreen,
   type ScreenRequest,
 } from "./screenService";
+import type { Drug } from "../types";
 import type { Flag } from "../screening-engine/types";
 import type { Verdict } from "../screening-engine/types";
 
@@ -130,7 +131,7 @@ export function parseCdsRequest(body: unknown): CdsParseResult | null {
 
 // --- Card building ---
 
-export function buildCards(parsed: CdsParseResult): CdsCard[] {
+export function buildCards(parsed: CdsParseResult, extraDrugs: Drug[] = []): CdsCard[] {
   const cards: CdsCard[] = [];
 
   parsed.orders.forEach((order, index) => {
@@ -139,7 +140,7 @@ export function buildCards(parsed: CdsParseResult): CdsCard[] {
       drug: order,
       otherDrugs: parsed.orders.filter((_, i) => i !== index),
     };
-    const result = runScreen(request);
+    const result = runScreen(request, extraDrugs);
     if (!result) return;
 
     const { verdict, flags } = result.verdict;

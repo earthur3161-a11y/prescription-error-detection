@@ -302,6 +302,14 @@ export type SuperadminPatientCheckActivityRow = {
   pulled_into_prescription_id: string | null;
 };
 
+/** Row shape of custom_drugs (0026) — admin-added formulary entries, additive on top of the static Ghana base set. */
+export type CustomDrugRow = {
+  id: string;
+  drug: unknown;
+  owner_id: string;
+  created_at: string;
+};
+
 export type BatchStatusDb = "active" | "recalled";
 
 export type BatchRow = {
@@ -440,6 +448,12 @@ export type Database = {
         Row: InstitutionApiKeySuperadminRow;
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      custom_drugs: {
+        Row: CustomDrugRow;
+        Insert: Partial<CustomDrugRow> & Pick<CustomDrugRow, "id" | "drug" | "owner_id">;
+        Update: Partial<CustomDrugRow>;
         Relationships: [];
       };
       batches: {

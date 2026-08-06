@@ -19,6 +19,7 @@ export function useUpsertDrug() {
       invalidateFormulary(queryClient);
       showToast({ title: `${drug.generic_name} saved to formulary`, variant: "success" });
     },
+    onError: (err: Error) => showToast({ title: "Couldn't save this drug", description: err.message, variant: "error" }),
   });
 }
 
@@ -35,6 +36,7 @@ export function useBulkUpsertDrugs() {
         variant: "success",
       });
     },
+    onError: (err: Error) => showToast({ title: "Couldn't publish these drugs", description: err.message, variant: "error" }),
   });
 }
 
@@ -48,5 +50,6 @@ export function useDeleteDrug() {
       invalidateFormulary(queryClient);
       showToast({ title: "Drug removed from formulary", variant: "default" });
     },
+    onError: (err: Error) => showToast({ title: "Couldn't remove this drug", description: err.message, variant: "error" }),
   });
 }

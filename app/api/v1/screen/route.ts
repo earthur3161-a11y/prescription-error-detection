@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   authorizeApiKey,
+  getCustomDrugs,
   runScreen,
   screenRequestSchema,
 } from "@/lib/integration/screenService";
@@ -46,7 +47,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = runScreen(parsed.data);
+  const customDrugs = await getCustomDrugs();
+  const result = runScreen(parsed.data, customDrugs);
   if (!result) {
     return Response.json(
       { error: "unknown_drug", message: `drugId '${parsed.data.drug.drugId}' is not in the formulary.` },

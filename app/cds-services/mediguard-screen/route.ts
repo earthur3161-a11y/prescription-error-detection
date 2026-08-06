@@ -1,4 +1,4 @@
-import { authorizeApiKey } from "@/lib/integration/screenService";
+import { authorizeApiKey, getCustomDrugs } from "@/lib/integration/screenService";
 import { buildCards, parseCdsRequest } from "@/lib/integration/cdsHooks";
 
 /**
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const customDrugs = await getCustomDrugs();
   // CDS Hooks convention: an empty cards array means "no alerts".
-  return Response.json({ cards: buildCards(parsed) }, { status: 200 });
+  return Response.json({ cards: buildCards(parsed, customDrugs) }, { status: 200 });
 }
