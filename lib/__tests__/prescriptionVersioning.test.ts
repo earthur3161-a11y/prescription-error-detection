@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getFormularyBundle } from "../formulary";
+import { getBaseFormularyBundle } from "../formulary";
 import { screenDrugLine } from "../screening-engine";
 import {
   EDITABLE_PRESCRIPTION_STATUSES,
@@ -9,7 +9,7 @@ import {
   type PrescriptionDrugLine,
 } from "../types";
 
-const formulary = getFormularyBundle("GH");
+const formulary = getBaseFormularyBundle("GH");
 
 function makePrescription(overrides: Partial<Prescription> = {}): Prescription {
   return {

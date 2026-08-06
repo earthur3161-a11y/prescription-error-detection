@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mergeCustomDrugs } from "../mergeCustomDrugs";
-import { getFormularyBundle } from "../index";
+import { getBaseFormularyBundle } from "../index";
 import type { Drug } from "../../types";
 
 function makeCustomDrug(overrides: Partial<Drug> = {}): Drug {
@@ -19,7 +19,7 @@ function makeCustomDrug(overrides: Partial<Drug> = {}): Drug {
 
 describe("mergeCustomDrugs", () => {
   it("appends a custom drug to the base formulary's drug list, leaving the base list itself untouched", () => {
-    const base = getFormularyBundle("GH");
+    const base = getBaseFormularyBundle("GH");
     const baseCount = base.drugs.length;
     const custom = makeCustomDrug();
 
@@ -32,7 +32,7 @@ describe("mergeCustomDrugs", () => {
   });
 
   it("never mutates the base drugs array or its other rule arrays", () => {
-    const base = getFormularyBundle("GH");
+    const base = getBaseFormularyBundle("GH");
     const merged = mergeCustomDrugs(base, [makeCustomDrug()]);
 
     expect(merged.interactionRules).toBe(base.interactionRules);
@@ -42,7 +42,7 @@ describe("mergeCustomDrugs", () => {
   });
 
   it("excludes a custom drug not marked available in the requested region", () => {
-    const base = getFormularyBundle("GH");
+    const base = getBaseFormularyBundle("GH");
     const custom = makeCustomDrug({ region_availability: ["NG"] });
 
     const merged = mergeCustomDrugs(base, [custom]);
@@ -51,12 +51,12 @@ describe("mergeCustomDrugs", () => {
   });
 
   it("returns the exact same base object (no-op) when there are no custom drugs", () => {
-    const base = getFormularyBundle("GH");
+    const base = getBaseFormularyBundle("GH");
     expect(mergeCustomDrugs(base, [])).toBe(base);
   });
 
   it("merges multiple custom drugs at once", () => {
-    const base = getFormularyBundle("GH");
+    const base = getBaseFormularyBundle("GH");
     const a = makeCustomDrug({ id: "drug_zztest_a", generic_name: "ZZTEST A" });
     const b = makeCustomDrug({ id: "drug_zztest_b", generic_name: "ZZTEST B" });
 

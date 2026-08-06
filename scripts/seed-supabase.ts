@@ -16,7 +16,7 @@
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { Database, ProfileRole } from "../lib/supabase/types";
-import { DEFAULT_REGION, getFormularyBundle } from "../lib/formulary";
+import { DEFAULT_REGION, getBaseFormularyBundle } from "../lib/formulary";
 import { screenDrugLine } from "../lib/screening-engine";
 import { seedPatients } from "../lib/data/seed/patients";
 import { buildSeedBatches } from "../lib/data/seed/pharmacyInventory";
@@ -220,7 +220,7 @@ function screenLine(
   patient: Patient | null,
   line: PrescriptionDrugLine,
   otherLines: PrescriptionDrugLine[],
-  formulary: ReturnType<typeof getFormularyBundle>
+  formulary: ReturnType<typeof getBaseFormularyBundle>
 ) {
   return screenDrugLine({ patient, drugLine: line, otherLines, formulary });
 }
@@ -250,7 +250,7 @@ async function seedClinicalData(): Promise<void> {
   }
   const institutionId = await resolveInstitutionId("Korle Bu Teaching Hospital");
 
-  const formulary = getFormularyBundle(DEFAULT_REGION);
+  const formulary = getBaseFormularyBundle(DEFAULT_REGION);
 
   // Patients: fresh UUID per row, kept in a map so the scenarios below can
   // still refer to patients by the familiar seedPatients ids.
@@ -454,7 +454,7 @@ async function seedBatches(institutionId: string): Promise<void> {
     return;
   }
 
-  const formulary = getFormularyBundle(DEFAULT_REGION);
+  const formulary = getBaseFormularyBundle(DEFAULT_REGION);
   // owner_id stays null (system-seeded, not added by a specific pharmacist)
   // — same convention 0020's own backfill uses for pre-existing rows.
   const rows: BatchInsert[] = buildSeedBatches(formulary).map((b) => ({

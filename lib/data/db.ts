@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import { DEFAULT_REGION, getFormularyBundle } from "../formulary";
+import { DEFAULT_REGION, getBaseFormularyBundle } from "../formulary";
 import type {
   AccessRequest,
   Account,
@@ -153,7 +153,7 @@ let bootstrapPromise: Promise<void> | null = null;
  * static arrays directly, and is idempotent across reloads.
  */
 async function runBootstrap(): Promise<void> {
-      const formulary = getFormularyBundle(DEFAULT_REGION);
+      const formulary = getBaseFormularyBundle(DEFAULT_REGION);
 
       // Keep the static reference tables (drugs, interaction & allergy rules) in
       // sync with the bundled formulary. These are source-authoritative reference

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
 import { generateId } from "@/lib/utils/id";
-import { DEFAULT_REGION, getFormularyBundle } from "@/lib/formulary";
+import { DEFAULT_REGION, getBaseFormularyBundle } from "@/lib/formulary";
 import type { Drug, Route } from "@/lib/types";
 
 // The base Ghana STG/EML formulary is code-committed and immutable via this
@@ -21,7 +21,7 @@ import type { Drug, Route } from "@/lib/types";
 // UI tells a base drug apart from an admin-added one, so the delete
 // affordance below only ever appears for something this page can actually
 // remove.
-const BASE_DRUG_IDS = new Set(getFormularyBundle(DEFAULT_REGION).drugs.map((d) => d.id));
+const BASE_DRUG_IDS = new Set(getBaseFormularyBundle(DEFAULT_REGION).drugs.map((d) => d.id));
 
 const ALL_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual", "subcutaneous"];
 

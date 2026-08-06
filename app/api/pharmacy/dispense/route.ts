@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
-import { DEFAULT_REGION, getFormularyBundle } from "@/lib/formulary";
-import { mergeCustomDrugs } from "@/lib/formulary/mergeCustomDrugs";
-import { getCustomDrugs } from "@/lib/integration/screenService";
+import { getServerFormularyBundle } from "@/lib/integration/screenService";
 import { screenDrugLine } from "@/lib/screening-engine";
 import { isGenuineOverrideNote } from "@/lib/pharmacy/overrideValidation";
 import type { AllergyRecord, ActiveMedication, Patient, PrescriptionDrugLine } from "@/lib/types";
@@ -135,8 +133,7 @@ export async function POST(request: Request) {
   const patient = mapPatientRow(patientRow);
 
   // --- Re-screen, fresh, right now. This is the actual gate. ---
-  const customDrugs = await getCustomDrugs();
-  const formulary = mergeCustomDrugs(getFormularyBundle(DEFAULT_REGION), customDrugs);
+  const formulary = await getServerFormularyBundle();
   const drug = formulary.drugs.find((d) => d.id === line.drugId);
   if (!drug) {
     return Response.json({ error: "unknown_drug", message: `drugId '${line.drugId}' is not in the formulary.` }, { status: 422 });

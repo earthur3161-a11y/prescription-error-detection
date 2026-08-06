@@ -7,7 +7,7 @@
 // operations, now including live machine-to-machine integration (Operation 3).
 
 import { z } from "zod";
-import { DEFAULT_REGION, getFormularyBundle } from "../formulary";
+import { DEFAULT_REGION, getBaseFormularyBundle } from "../formulary";
 import { mergeCustomDrugs } from "../formulary/mergeCustomDrugs";
 import { screenDrugLine } from "../screening-engine";
 import { hashApiKey } from "./apiKeys";
@@ -18,6 +18,7 @@ import type {
   ActiveMedication,
   AllergyRecord,
   Drug,
+  FormularyBundle,
   Patient,
   PrescriptionDrugLine,
   Route,
@@ -142,7 +143,7 @@ export interface ScreenResult {
  * rather than this function doing its own Postgres round-trip per call.
  */
 export function runScreen(request: ScreenRequest, extraDrugs: Drug[] = []): ScreenResult | null {
-  const formulary = mergeCustomDrugs(getFormularyBundle(DEFAULT_REGION), extraDrugs);
+  const formulary = mergeCustomDrugs(getBaseFormularyBundle(DEFAULT_REGION), extraDrugs);
   const drug = formulary.drugs.find((d) => d.id === request.drug.drugId);
   if (!drug) return null;
 
@@ -264,4 +265,18 @@ export async function getCustomDrugs(): Promise<Drug[]> {
   const { data, error } = await supabaseService.from("custom_drugs").select("drug");
   if (error) throw error;
   return (data ?? []).map((row) => row.drug as Drug);
+}
+
+/**
+ * The single, canonical "give me a complete, real formulary" call for any
+ * server route that screens exactly once per request (unlike runScreen's
+ * multi-order CDS Hooks caller, which pre-fetches extraDrugs itself once and
+ * reuses them across several sync runScreen calls to avoid N+1 queries).
+ * Fetch + merge in one place, so a server-side screening path never has to
+ * remember to do both steps itself — see getBaseFormularyBundle's own
+ * comment for why that mattered.
+ */
+export async function getServerFormularyBundle(region: string = DEFAULT_REGION): Promise<FormularyBundle> {
+  const customDrugs = await getCustomDrugs();
+  return mergeCustomDrugs(getBaseFormularyBundle(region), customDrugs);
 }

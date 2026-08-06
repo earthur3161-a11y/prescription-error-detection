@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getFormularyBundle } from "../../formulary";
+import { getBaseFormularyBundle } from "../../formulary";
 import type { Patient, PrescriptionDrugLine } from "../../types";
 import { screenDrugLine } from "../orchestrator";
 import type { ScreeningInput } from "../types";
 
-const formulary = getFormularyBundle("GH");
+const formulary = getBaseFormularyBundle("GH");
 
 function makeLine(overrides: Partial<PrescriptionDrugLine> = {}): PrescriptionDrugLine {
   return {
