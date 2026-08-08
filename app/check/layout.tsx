@@ -22,6 +22,15 @@ export default function CheckLayout({ children }: { children: ReactNode }) {
             <span className="font-semibold text-foreground">MediGuard</span>
           </Link>
           <div className="flex items-center gap-3">
+            {/*
+              The brand mark above already links home, but a returning
+              patient — often mid-flow on a phone — doesn't reliably read a
+              logo tap as "go home." An explicit, textual link removes the
+              ambiguity.
+            */}
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-brand hover:underline">
+              Home
+            </Link>
             <Link href="/check/history" className="text-sm font-medium text-brand hover:underline">
               My checks
             </Link>

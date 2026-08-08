@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/lib/auth/useAuth";
-import { ROLE_HOME_ROUTE, ROLE_PRODUCT } from "@/lib/auth/roles";
+import { ROLE_HOME_ROUTE, ROLE_LABELS, ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useToastStore } from "@/lib/store/toast-store";
 import {
   useInitiateSubscriptionPayment,
@@ -44,7 +44,7 @@ const PRODUCT_PRICE_GHS: Record<SubscriptionProduct, string> = {
 export default function BillingPage() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.show);
-  const { role, hasHydrated, logout } = useAuth();
+  const { user, role, hasHydrated, logout } = useAuth();
   const product = role ? ROLE_PRODUCT[role] : undefined;
 
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
@@ -120,36 +120,42 @@ export default function BillingPage() {
 
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <div className="mb-6 flex flex-col items-center gap-1.5 text-sm font-medium">
-        {/*
-          A plain link, not a sign-out action: app/page.tsx knows to hold a
-          signed-in, unsubscribed professional on the public homepage instead
-          of bouncing them straight to ROLE_HOME_ROUTE (which SubscriptionGuard
-          would just send right back here) — see the comment there. That's
-          what makes a simple "/" href work without looping.
-        */}
-        <Link href="/" className="text-muted-foreground transition-colors hover:text-brand">
-          ← Return home
-        </Link>
-        {/*
-          Landing here doesn't always mean "I want to pay" — an already
-          signed-in-but-unsubscribed account reaches this page automatically
-          (SubscriptionGuard) with no chance to pick a different portal first.
-          Without this, that account has no way back to /login's chooser.
-        */}
-        <button
-          type="button"
-          onClick={() => {
-            logout();
-            router.replace("/login");
-          }}
-          className="text-muted-foreground transition-colors hover:text-brand"
-        >
-          Not the right portal? Sign out
-        </button>
-      </div>
+      {/*
+        A plain link, not a sign-out action: app/page.tsx knows to hold a
+        signed-in, unsubscribed professional on the public homepage instead
+        of bouncing them straight to ROLE_HOME_ROUTE (which SubscriptionGuard
+        would just send right back here) — see the comment there. That's
+        what makes a simple "/" href work without looping.
+      */}
+      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand">
+        ← Return home
+      </Link>
       <Card className="w-full max-w-md animate-fade-up shadow-md">
         <CardBody className="space-y-5">
+          {/*
+            Landing here doesn't always mean "I want to pay" — an already
+            signed-in-but-unsubscribed account reaches this page automatically
+            (SubscriptionGuard, arrived at via /login's own "already signed
+            in, skip the chooser" redirect) with no chance to pick a
+            different portal first. Put front and center, above the fold,
+            not a small link a returning user can miss — that's what a
+            reported "Health Professionals only shows one portal" bug traces
+            back to almost every time.
+          */}
+          <Notice tone="neutral">
+            Signed in as <span className="font-semibold">{user?.name}</span> — {ROLE_LABELS[role]}.{" "}
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                router.replace("/login");
+              }}
+              className="font-semibold underline underline-offset-2 hover:text-foreground"
+            >
+              Not you? Sign out
+            </button>
+          </Notice>
+
           <div className="text-center">
             <h1 className="text-xl font-semibold text-foreground">{PRODUCT_LABEL[product]} subscription</h1>
             <p className="mt-1 text-sm text-muted-foreground">
