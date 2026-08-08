@@ -15,7 +15,7 @@ export default function CheckLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 glass border-b border-border/60">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-          <Link href="/check" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <span className="grid size-8 place-items-center rounded-lg bg-brand">
               <ShieldCheck className="size-5 text-brand-foreground" aria-hidden="true" />
             </span>
