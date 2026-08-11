@@ -84,3 +84,29 @@ export async function createPatient(
   if (error || !data) throw error ?? new Error("Failed to create patient.");
   return mapRow(data);
 }
+
+/**
+ * patients_update_own (0004_multitenancy_foundation.sql) scopes this to rows
+ * this prescriber created — owner_id can't be changed here and isn't sent.
+ */
+export async function updatePatient(id: string, patient: Omit<Patient, "id" | "ownerId" | "institutionId">): Promise<Patient> {
+  const { data, error } = await supabase
+    .from("patients")
+    .update({
+      name: patient.name,
+      dob: patient.dob,
+      sex: patient.sex,
+      phone: patient.phone ?? null,
+      weight_kg: patient.weightKg,
+      renal_status: patient.renalStatus,
+      hepatic_status: patient.hepaticStatus,
+      allergies: patient.allergies,
+      active_medications: patient.activeMedications,
+      is_pregnant: patient.isPregnant ?? null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error || !data) throw error ?? new Error("Failed to update patient.");
+  return mapRow(data);
+}

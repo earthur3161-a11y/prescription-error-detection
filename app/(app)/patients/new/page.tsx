@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { NewPatientForm } from "@/components/patient/NewPatientForm";
+import { PatientForm } from "@/components/patient/PatientForm";
 
 export default function NewPatientPage() {
   return (
@@ -19,7 +19,7 @@ export default function NewPatientPage() {
         </p>
       </div>
 
-      <NewPatientForm />
+      <PatientForm />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, FilePlus2 } from "lucide-react";
+import { ArrowLeft, FilePlus2, Pencil } from "lucide-react";
 import { PatientCard } from "@/components/patient/PatientCard";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { useDispenseRecordsByPatient } from "@/lib/query/hooks/usePharmacy";
+import { useAuth } from "@/lib/auth/useAuth";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict } from "@/lib/screening-engine";
 
@@ -22,6 +23,7 @@ export default function PatientProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user } = useAuth();
   const { data: patient, isLoading } = usePatient(id);
   const { data: formulary } = useFormulary();
   const { data: prescriptions } = usePrescriptions({ patientId: id, currentOnly: true });
@@ -40,6 +42,11 @@ export default function PatientProfilePage({
     return <div className="mx-auto max-w-3xl p-8 text-center text-muted-foreground">Patient not found.</div>;
   }
 
+  // patients_update_own (0004_multitenancy_foundation.sql) scopes edits to
+  // the prescriber who created the record — hide the entry point rather
+  // than send someone to an edit page that will just refuse them.
+  const canEdit = !!user && patient.ownerId === user.id;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
       <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
@@ -49,6 +56,14 @@ export default function PatientProfilePage({
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PatientCard patient={patient} drugs={formulary.drugs} />
+        {canEdit && (
+          <Link href={`/patients/${patient.id}/edit`}>
+            <Button variant="secondary" size="sm">
+              <Pencil className="size-4" aria-hidden="true" />
+              Edit
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Link href={`/prescriptions/new?patientId=${patient.id}`}>

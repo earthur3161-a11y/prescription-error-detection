@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { useDrugSearchFuzzy, useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useCreatePatient } from "@/lib/query/hooks/useCreatePatient";
+import { useUpdatePatient } from "@/lib/query/hooks/useUpdatePatient";
 import { useAuth } from "@/lib/auth/useAuth";
 import type { AllergyRecord, AllergySeverity, Patient } from "@/lib/types";
 
@@ -68,22 +69,61 @@ const EMPTY_DRAFT: DraftPatient = {
   isPregnant: null,
 };
 
-export function NewPatientForm() {
+function draftFrom(patient: Patient): DraftPatient {
+  return {
+    name: patient.name,
+    dob: patient.dob,
+    sex: patient.sex,
+    phone: patient.phone ?? "",
+    weightKg: patient.weightKg,
+    renalStatus: patient.renalStatus,
+    hepaticStatus: patient.hepaticStatus,
+    allergies: patient.allergies,
+    activeMedications: patient.activeMedications,
+    isPregnant: patient.isPregnant ?? null,
+  };
+}
+
+function triFromList<T>(list: T[] | null): TriState {
+  if (list === null) return "unsure";
+  return list.length > 0 ? "yes" : "none";
+}
+
+function triFromBool(value: boolean | null | undefined): TriState {
+  if (value === null || value === undefined) return "unsure";
+  return value ? "yes" : "none";
+}
+
+function triFromStatus(status: Patient["renalStatus"]): TriState {
+  if (status === "unknown") return "unsure";
+  return status === "impaired" ? "yes" : "none";
+}
+
+interface PatientFormProps {
+  /** Present = editing this existing patient; absent = creating a new one. */
+  patient?: Patient;
+}
+
+export function PatientForm({ patient }: PatientFormProps) {
   const router = useRouter();
   const { user } = useAuth();
   const createPatient = useCreatePatient();
+  const updatePatient = useUpdatePatient();
   const { data: formulary } = useFormulary();
 
-  const [draft, setDraft] = useState<DraftPatient>(EMPTY_DRAFT);
-  const [allergyState, setAllergyState] = useState<TriState>("unsure");
+  const [draft, setDraft] = useState<DraftPatient>(() => (patient ? draftFrom(patient) : EMPTY_DRAFT));
+  const [allergyState, setAllergyState] = useState<TriState>(() => triFromList(patient?.allergies ?? null));
   const [allergenText, setAllergenText] = useState("");
   const [allergenSeverity, setAllergenSeverity] = useState<AllergySeverity>("moderate");
-  const [medsState, setMedsState] = useState<TriState>("unsure");
+  const [medsState, setMedsState] = useState<TriState>(() => triFromList(patient?.activeMedications ?? null));
   const [medQuery, setMedQuery] = useState("");
   const { data: medResults, isLoading: medsLoading } = useDrugSearchFuzzy(medQuery);
-  const [pregnancyState, setPregnancyState] = useState<TriState>("unsure");
-  const [renalState, setRenalState] = useState<TriState>("unsure");
-  const [hepaticState, setHepaticState] = useState<TriState>("unsure");
+  const [pregnancyState, setPregnancyState] = useState<TriState>(() => triFromBool(patient?.isPregnant));
+  const [renalState, setRenalState] = useState<TriState>(() => triFromStatus(patient?.renalStatus ?? "unknown"));
+  const [hepaticState, setHepaticState] = useState<TriState>(() => triFromStatus(patient?.hepaticStatus ?? "unknown"));
+
+  const isEditing = !!patient;
+  const saving = isEditing ? updatePatient.isPending : createPatient.isPending;
 
   function setAllergyTriState(v: string) {
     const state = v as TriState;
@@ -139,14 +179,19 @@ export function NewPatientForm() {
   const canSubmit = draft.name.trim().length > 0 && draft.dob.length > 0;
 
   function handleSubmit() {
-    if (!canSubmit || !user) return;
+    if (!canSubmit) return;
+    const payload = { ...draft, name: draft.name.trim(), phone: draft.phone?.trim() || undefined };
+    if (isEditing) {
+      updatePatient.mutate(
+        { id: patient.id, patient: payload },
+        { onSuccess: () => router.push(`/patients/${patient.id}`) }
+      );
+      return;
+    }
+    if (!user) return;
     createPatient.mutate(
-      {
-        patient: { ...draft, name: draft.name.trim(), phone: draft.phone?.trim() || undefined },
-        ownerId: user.id,
-        institutionId: user.institutionId,
-      },
-      { onSuccess: (patient) => router.push(`/patients/${patient.id}`) }
+      { patient: payload, ownerId: user.id, institutionId: user.institutionId },
+      { onSuccess: (created) => router.push(`/patients/${created.id}`) }
     );
   }
 
@@ -328,8 +373,8 @@ export function NewPatientForm() {
 
       <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border bg-surface/95 px-1 py-4 backdrop-blur">
         <p className="text-sm text-muted-foreground">{!canSubmit ? "Full name and date of birth are required." : " "}</p>
-        <Button size="lg" onClick={handleSubmit} disabled={!canSubmit || createPatient.isPending}>
-          {createPatient.isPending ? "Saving…" : "Save patient"}
+        <Button size="lg" onClick={handleSubmit} disabled={!canSubmit || saving}>
+          {saving ? "Saving…" : isEditing ? "Save changes" : "Save patient"}
         </Button>
       </div>
     </div>
