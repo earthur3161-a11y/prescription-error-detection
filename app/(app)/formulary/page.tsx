@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileUp, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -10,18 +10,17 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
+import { Notice } from "@/components/ui/Notice";
+import { useAuth } from "@/lib/auth/useAuth";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
-import { useAuth } from "@/lib/auth/useAuth";
 import { generateId } from "@/lib/utils/id";
 import { DEFAULT_REGION, getBaseFormularyBundle } from "@/lib/formulary";
 import type { Drug, Route } from "@/lib/types";
 
-// The base Ghana STG/EML formulary is code-committed and immutable via this
-// page by design (see 0026_custom_drugs.sql's header) — this Set is how the
-// UI tells a base drug apart from an admin-added one, so the delete
-// affordance below only ever appears for something this page can actually
-// remove.
+// Same base/custom distinction app/(app)/admin/formulary/page.tsx uses — the
+// delete affordance below must only ever appear for something this page
+// (or its RLS) can actually remove.
 const BASE_DRUG_IDS = new Set(getBaseFormularyBundle(DEFAULT_REGION).drugs.map((d) => d.id));
 
 const ALL_ROUTES: Route[] = ["oral", "IV", "IM", "topical", "inhaled", "rectal", "sublingual", "subcutaneous"];
@@ -50,7 +49,18 @@ function emptyDraft(): {
   };
 }
 
-export default function AdminFormularyPage() {
+/**
+ * Self-service formulary management for an independent prescriber/pharmacist
+ * (no institution — PortalSignupForm.tsx creates accounts with no
+ * institution field at all). Institution-affiliated staff share a formulary
+ * their Facility Admin manages instead (app/(app)/admin/formulary/page.tsx)
+ * — this page exists specifically for practitioners who have no admin of
+ * their own to do that for them. custom_drugs_insert_admin_or_independent
+ * (0028_custom_drugs_institution_boundary.sql) is the real enforcement; the
+ * role/institution check below is a friendly pre-check so an institution-
+ * affiliated visitor sees an explanation instead of a confusing empty form.
+ */
+export default function MyFormularyPage() {
   const { user } = useAuth();
   const { data: formulary, isLoading } = useFormulary();
   const upsertDrug = useUpsertDrug();
@@ -60,6 +70,26 @@ export default function AdminFormularyPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft());
   const [deleteTarget, setDeleteTarget] = useState<Drug | null>(null);
+
+  const isIndependentClinician = !!user && (user.role === "prescriber" || user.role === "pharmacist") && !user.institutionId;
+
+  if (user && !isIndependentClinician) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold text-foreground">My Formulary</h1>
+        <Notice tone="neutral">
+          {user.role === "admin"
+            ? "Your facility's formulary is shared across your institution — manage it from Formulary Management instead."
+            : "Your facility's formulary is managed by your institution's Facility Admin, and applies to your account automatically."}
+        </Notice>
+        {user.role === "admin" && (
+          <Link href="/admin/formulary">
+            <Button variant="secondary">Go to Formulary Management</Button>
+          </Link>
+        )}
+      </div>
+    );
+  }
 
   const drugs = (formulary?.drugs ?? [])
     .filter((d) => d.generic_name.toLowerCase().includes(query.toLowerCase()))
@@ -92,7 +122,7 @@ export default function AdminFormularyPage() {
     };
 
     upsertDrug.mutate(
-      { drug, institutionId: user?.institutionId ?? null },
+      { drug, institutionId: null },
       {
         onSuccess: () => {
           setModalOpen(false);
@@ -106,26 +136,23 @@ export default function AdminFormularyPage() {
     <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Formulary Management</h1>
+          <h1 className="text-2xl font-semibold text-foreground">My Formulary</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {formulary
-              ? `${formulary.drugs.length} medicines in the database used by the screening engine. EML status is a tag, not a filter.`
-              : "Manage the drug list used by the screening engine."}
+              ? `${formulary.drugs.length} medicines available for your screening — the shared Ghana STG/EML base list, plus anything you've added below.`
+              : "The base medicines list, plus anything you've added yourself."}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/admin/formulary/import">
-            <Button variant="secondary">
-              <FileUp className="size-5" aria-hidden="true" />
-              Bulk import
-            </Button>
-          </Link>
-          <Button onClick={() => setModalOpen(true)}>
-            <Plus className="size-5" aria-hidden="true" />
-            Add Drug
-          </Button>
-        </div>
+        <Button onClick={() => setModalOpen(true)}>
+          <Plus className="size-5" aria-hidden="true" />
+          Add Drug
+        </Button>
       </div>
+
+      <Notice tone="brand">
+        Medicines you add here are visible only in your own screening — not shared with any other
+        practitioner or institution on MediGuard.
+      </Notice>
 
       <Input
         placeholder="Search formulary…"
@@ -165,10 +192,9 @@ export default function AdminFormularyPage() {
                 <Badge tone={drug.onEssentialMedicinesList ? "safe" : "caution"}>
                   {drug.onEssentialMedicinesList ? "On EML" : "Not on EML"}
                 </Badge>
-                <Badge tone="neutral">{drug.region_availability.join(", ")}</Badge>
                 {!BASE_DRUG_IDS.has(drug.id) && (
                   <>
-                    <Badge tone="neutral">Admin-added</Badge>
+                    <Badge tone="neutral">Added by you</Badge>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -189,7 +215,7 @@ export default function AdminFormularyPage() {
       <Modal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        title="Add drug to formulary"
+        title="Add drug to your formulary"
         footer={
           <>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
@@ -291,7 +317,7 @@ export default function AdminFormularyPage() {
       <Modal
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Remove drug from formulary"
+        title="Remove drug from your formulary"
         footer={
           <>
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
@@ -312,7 +338,7 @@ export default function AdminFormularyPage() {
       >
         <p className="text-sm text-secondary">
           Remove <span className="font-medium text-foreground">{deleteTarget?.generic_name}</span> from
-          the formulary? It will no longer be screenable until re-added.
+          your formulary? It will no longer be screenable until re-added.
         </p>
       </Modal>
     </div>

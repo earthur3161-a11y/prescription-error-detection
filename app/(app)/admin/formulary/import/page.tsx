@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Notice } from "@/components/ui/Notice";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useBulkUpsertDrugs } from "@/lib/query/hooks/useDrugMutations";
+import { useAuth } from "@/lib/auth/useAuth";
 import { parseDrugCsv, CSV_TEMPLATE_EXAMPLE, type DrugImportResult } from "@/lib/formulary/csvImport";
 
 export default function FormularyImportPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { data: formulary } = useFormulary();
   const bulkUpsert = useBulkUpsertDrugs();
 
@@ -40,7 +42,10 @@ export default function FormularyImportPage() {
 
   function handlePublish() {
     if (!result || result.toPublish.length === 0) return;
-    bulkUpsert.mutate(result.toPublish, { onSuccess: () => setPublished(true) });
+    bulkUpsert.mutate(
+      { drugs: result.toPublish, institutionId: user?.institutionId ?? null },
+      { onSuccess: () => setPublished(true) }
+    );
   }
 
   function downloadTemplate() {

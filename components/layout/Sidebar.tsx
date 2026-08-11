@@ -11,6 +11,7 @@ import {
   FileText,
   LayoutDashboard,
   Package,
+  Pill,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -60,12 +61,24 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
 
 interface SidebarProps {
   role: UserRole;
+  /** null/undefined = independent practitioner, no institution. */
+  institutionId?: string | null;
   onNavigate?: () => void;
 }
 
-export function Sidebar({ role, onNavigate }: SidebarProps) {
+const MY_FORMULARY_ITEM: NavItem = { href: "/formulary", label: "My Formulary", icon: Pill };
+
+export function Sidebar({ role, institutionId, onNavigate }: SidebarProps) {
   const pathname = usePathname();
-  const items = NAV_BY_ROLE[role];
+  // Institution-affiliated prescriber/pharmacist share their Facility
+  // Admin's formulary (app/(app)/admin/formulary/page.tsx) automatically —
+  // this entry is only actionable for an independent one, who has no admin
+  // of their own to manage it for them (0028_custom_drugs_institution_
+  // boundary.sql).
+  const isIndependentClinician = (role === "prescriber" || role === "pharmacist") && !institutionId;
+  const items = isIndependentClinician
+    ? [...NAV_BY_ROLE[role].slice(0, -1), MY_FORMULARY_ITEM, NAV_BY_ROLE[role].at(-1)!]
+    : NAV_BY_ROLE[role];
 
   return (
     <nav aria-label="Main navigation" className="flex h-full flex-col bg-surface">

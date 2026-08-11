@@ -99,21 +99,26 @@ export async function getDrugById(id: string): Promise<Drug | null> {
  * only ever land in custom_drugs (0026) — the 144+ base Ghana STG/EML drugs
  * in lib/formulary/ghana/ are code-committed and immutable via this path,
  * by design.
+ *
+ * institutionId must be the caller's own JWT claim (null for an independent
+ * prescriber/pharmacist) — custom_drugs_insert_admin_or_independent
+ * (0028_custom_drugs_institution_boundary.sql) rejects any other value, same
+ * spoofing protection createPatient already relies on for institution_id.
  */
-export async function upsertDrug(drug: Drug): Promise<Drug> {
+export async function upsertDrug(drug: Drug, institutionId: string | null): Promise<Drug> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw userError ?? new Error("Not signed in.");
   const { error } = await supabase
     .from("custom_drugs")
-    .insert({ id: drug.id, drug, owner_id: userData.user.id });
+    .insert({ id: drug.id, drug, owner_id: userData.user.id, institution_id: institutionId });
   if (error) throw error;
   return drug;
 }
 
-export async function bulkUpsertDrugs(drugs: Drug[]): Promise<number> {
+export async function bulkUpsertDrugs(drugs: Drug[], institutionId: string | null): Promise<number> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw userError ?? new Error("Not signed in.");
-  const rows = drugs.map((drug) => ({ id: drug.id, drug, owner_id: userData.user.id }));
+  const rows = drugs.map((drug) => ({ id: drug.id, drug, owner_id: userData.user.id, institution_id: institutionId }));
   const { error } = await supabase.from("custom_drugs").insert(rows);
   if (error) throw error;
   return drugs.length;

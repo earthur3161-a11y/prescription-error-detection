@@ -12,7 +12,7 @@ import { PROFESSIONAL_ROLES } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils/cn";
 
 function Shell({ children }: { children: ReactNode }) {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -23,7 +23,7 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <div className="hidden w-64 shrink-0 border-r border-border md:block">
-        <Sidebar role={role} />
+        <Sidebar role={role} institutionId={user?.institutionId} />
       </div>
 
       {/*
@@ -60,7 +60,7 @@ function Shell({ children }: { children: ReactNode }) {
           >
             <X className="size-5" />
           </button>
-          <Sidebar role={role} onNavigate={() => setMobileNavOpen(false)} />
+          <Sidebar role={role} institutionId={user?.institutionId} onNavigate={() => setMobileNavOpen(false)} />
         </div>
       </div>
 

@@ -133,7 +133,7 @@ export async function POST(request: Request) {
   const patient = mapPatientRow(patientRow);
 
   // --- Re-screen, fresh, right now. This is the actual gate. ---
-  const formulary = await getServerFormularyBundle();
+  const formulary = await getServerFormularyBundle({ ownerId: pharmacistId, institutionId: callerInstitutionId });
   const drug = formulary.drugs.find((d) => d.id === line.drugId);
   if (!drug) {
     return Response.json({ error: "unknown_drug", message: `drugId '${line.drugId}' is not in the formulary.` }, { status: 422 });

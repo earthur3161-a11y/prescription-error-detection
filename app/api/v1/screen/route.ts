@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const customDrugs = await getCustomDrugs();
+  const customDrugs = await getCustomDrugs({ institutionId: auth.institutionId ?? null });
   const result = runScreen(parsed.data, customDrugs);
   if (!result) {
     return Response.json(

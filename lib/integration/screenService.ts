@@ -255,16 +255,45 @@ export async function authorizeApiKey(request: Request): Promise<AuthResult> {
 }
 
 /**
- * Fetches every admin-added custom drug (0026_custom_drugs.sql) for merging
- * into a server-side screening call — see runScreen's extraDrugs param.
- * Called once per request by each route handler, not once per screened
- * line, so a multi-drug request doesn't do N redundant round-trips for the
- * same small table.
+ * Who a server-side custom-drug read is on behalf of — required, not
+ * optional: supabaseService bypasses RLS entirely, so unlike the client read
+ * path (drugRepository.ts, scoped automatically by
+ * custom_drugs_select_own_or_institution, 0028_custom_drugs_institution_
+ * boundary.sql) there is no database-level fallback here. An omitted scope
+ * would have to mean either "everyone's drugs" (the platform-wide leak 0028
+ * closed) or "no one's" — making it required forces every call site to say
+ * which explicitly, rather than one of those happening by accident.
+ *
+ * institutionId: an institution API key's own institution (v1/screen,
+ * CDS Hooks) or a signed-in staff member's institutionId claim (dispense).
+ * ownerId: only meaningful for a signed-in individual (dispense) — an
+ * institution API key has no single "owner" to match against.
  */
-export async function getCustomDrugs(): Promise<Drug[]> {
-  const { data, error } = await supabaseService.from("custom_drugs").select("drug");
+export interface CustomDrugScope {
+  ownerId?: string;
+  institutionId: string | null;
+}
+
+/**
+ * Fetches admin-added / independent-practitioner-added custom drugs
+ * (0026_custom_drugs.sql, institution-scoped by 0028) for merging into a
+ * server-side screening call — see runScreen's extraDrugs param. Called once
+ * per request by each route handler, not once per screened line, so a
+ * multi-drug request doesn't do N redundant round-trips for the same small
+ * table. Filtered in code, not by RLS (see CustomDrugScope) to exactly the
+ * same visibility rule 0028 enforces for the client read path: the scope's
+ * own drugs, plus same-institution drugs when institutionId is set.
+ */
+export async function getCustomDrugs(scope: CustomDrugScope): Promise<Drug[]> {
+  const { data, error } = await supabaseService.from("custom_drugs").select("drug, owner_id, institution_id");
   if (error) throw error;
-  return (data ?? []).map((row) => row.drug as Drug);
+  return (data ?? [])
+    .filter(
+      (row) =>
+        (!!scope.ownerId && row.owner_id === scope.ownerId) ||
+        (row.institution_id !== null && row.institution_id === scope.institutionId)
+    )
+    .map((row) => row.drug as Drug);
 }
 
 /**
@@ -276,7 +305,7 @@ export async function getCustomDrugs(): Promise<Drug[]> {
  * remember to do both steps itself — see getBaseFormularyBundle's own
  * comment for why that mattered.
  */
-export async function getServerFormularyBundle(region: string = DEFAULT_REGION): Promise<FormularyBundle> {
-  const customDrugs = await getCustomDrugs();
+export async function getServerFormularyBundle(scope: CustomDrugScope, region: string = DEFAULT_REGION): Promise<FormularyBundle> {
+  const customDrugs = await getCustomDrugs(scope);
   return mergeCustomDrugs(getBaseFormularyBundle(region), customDrugs);
 }

@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const customDrugs = await getCustomDrugs();
+  const customDrugs = await getCustomDrugs({ institutionId: auth.institutionId ?? null });
   // CDS Hooks convention: an empty cards array means "no alerts".
   return Response.json({ cards: buildCards(parsed, customDrugs) }, { status: 200 });
 }

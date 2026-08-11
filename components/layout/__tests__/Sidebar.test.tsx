@@ -46,4 +46,29 @@ describe("Sidebar", () => {
     screen.getByRole("link", { name: /mediguard/i }).click();
     expect(onNavigate).toHaveBeenCalledTimes(1);
   });
+
+  it.each<UserRole>(["prescriber", "pharmacist"])(
+    "shows My Formulary for an independent %s (no institutionId — they have no Facility Admin to manage one for them)",
+    (role) => {
+      render(<Sidebar role={role} institutionId={null} />);
+      expect(screen.getByRole("link", { name: "My Formulary" })).toHaveAttribute("href", "/formulary");
+    }
+  );
+
+  it.each<UserRole>(["prescriber", "pharmacist"])(
+    "hides My Formulary for an institution-affiliated %s (their Facility Admin manages it instead)",
+    (role) => {
+      render(<Sidebar role={role} institutionId="inst_123" />);
+      expect(screen.queryByRole("link", { name: "My Formulary" })).not.toBeInTheDocument();
+    }
+  );
+
+  it("never shows My Formulary for admin, institution or not", () => {
+    const { unmount } = render(<Sidebar role="admin" institutionId={null} />);
+    expect(screen.queryByRole("link", { name: "My Formulary" })).not.toBeInTheDocument();
+    unmount();
+
+    render(<Sidebar role="admin" institutionId="inst_123" />);
+    expect(screen.queryByRole("link", { name: "My Formulary" })).not.toBeInTheDocument();
+  });
 });

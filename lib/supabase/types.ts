@@ -307,6 +307,7 @@ export type CustomDrugRow = {
   id: string;
   drug: unknown;
   owner_id: string;
+  institution_id: string | null;
   created_at: string;
 };
 
