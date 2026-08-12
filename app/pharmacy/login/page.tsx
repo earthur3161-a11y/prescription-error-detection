@@ -12,7 +12,7 @@ export default function PharmacyLoginPage() {
         portalName: "Pharmacy Portal",
         tagline: "Verify prescriptions, screen for conflicts, and dispense safely.",
         icon: ClipboardCheck,
-        accentClass: "bg-teal-100",
+        accentClass: "bg-brand-teal/10",
         iconClass: "text-brand-teal",
       }}
     />

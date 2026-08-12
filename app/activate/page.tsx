@@ -5,8 +5,10 @@ import Link from "next/link";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { supabase } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/cn";
 import type { AccountRole } from "@/lib/types";
 
 const LOGIN_ROUTE: Partial<Record<AccountRole, string>> = {
@@ -116,7 +118,7 @@ export default function ActivateAccountPage() {
         <ShieldCheck className="size-7 text-brand" aria-hidden="true" />
         <span className="text-xl font-semibold text-foreground">MediGuard</span>
       </Link>
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md animate-fade-up">
         <CardBody className="space-y-5">
           {status === "checking" ? (
             <div className="flex justify-center py-6">
@@ -164,6 +166,14 @@ export default function ActivateAccountPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                  <p
+                    className={cn(
+                      "mt-1 text-xs transition-colors duration-200",
+                      password.length >= 8 ? "text-safe-fg" : "text-subtle"
+                    )}
+                  >
+                    {password.length >= 8 ? "✓ " : ""}At least 8 characters.
+                  </p>
                 </div>
                 <div>
                   <label htmlFor="pw2" className="mb-1.5 block text-sm font-medium text-secondary">
@@ -176,11 +186,21 @@ export default function ActivateAccountPage() {
                     onChange={(e) => setConfirm(e.target.value)}
                     required
                   />
+                  {confirm.length > 0 && (
+                    <p
+                      className={cn(
+                        "mt-1 text-xs transition-colors duration-200",
+                        confirm === password ? "text-safe-fg" : "text-caution-fg"
+                      )}
+                    >
+                      {confirm === password ? "✓ Passwords match" : "Passwords don't match yet"}
+                    </p>
+                  )}
                 </div>
                 {error && (
-                  <p role="alert" className="rounded-lg bg-blocked-bg px-3 py-2 text-sm text-blocked-fg">
+                  <Notice tone="blocked" role="alert">
                     {error}
-                  </p>
+                  </Notice>
                 )}
                 <Button type="submit" className="w-full" disabled={pending}>
                   {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}

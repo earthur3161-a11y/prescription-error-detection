@@ -12,7 +12,7 @@ export default function PharmacySignupPage() {
         tagline: "Verify drugs for conflicts before dispensing, on your own account.",
         loginHref: "/pharmacy/login",
         icon: ClipboardCheck,
-        accentClass: "bg-teal-100",
+        accentClass: "bg-brand-teal/10",
         iconClass: "text-brand-teal",
       }}
     />

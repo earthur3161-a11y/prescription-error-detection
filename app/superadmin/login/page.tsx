@@ -11,8 +11,8 @@ export default function SuperAdminLoginPage() {
         portalName: "MediGuard Operations",
         tagline: "Internal super-admin — review access requests and provision facility accounts.",
         icon: ShieldAlert,
-        accentClass: "bg-slate-800",
-        iconClass: "text-white",
+        accentClass: "bg-brand-subtle",
+        iconClass: "text-brand",
       }}
     />
   );

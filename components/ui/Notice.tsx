@@ -10,6 +10,8 @@ interface NoticeProps {
   title?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** e.g. "alert" for a validation/submit error, so it's announced immediately rather than only on next tab stop. Omitted by default — most Notice usages are informational, not an interruption worth announcing. */
+  role?: string;
 }
 
 const toneClasses: Record<NoticeTone, string> = {
@@ -31,10 +33,10 @@ const toneIcons: Record<NoticeTone, LucideIcon> = {
 };
 
 /** Shared inline banner for coverage disclosures, status notices, and alerts. */
-export function Notice({ tone = "neutral", icon, title, children, className }: NoticeProps) {
+export function Notice({ tone = "neutral", icon, title, children, className, role }: NoticeProps) {
   const Icon = icon ?? toneIcons[tone];
   return (
-    <div className={cn("flex items-start gap-3 rounded-xl border px-4 py-3", toneClasses[tone], className)}>
+    <div role={role} className={cn("flex items-start gap-3 rounded-xl border px-4 py-3 animate-fade-up", toneClasses[tone], className)}>
       <Icon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
       <div className="text-sm">
         {title && <p className="font-semibold">{title}</p>}

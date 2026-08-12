@@ -22,7 +22,7 @@ const PORTALS = [
     name: "Pharmacy",
     description: "Verify and dispense safely.",
     icon: ClipboardCheck,
-    accent: "bg-teal-100",
+    accent: "bg-brand-teal/10",
     iconClass: "text-brand-teal",
   },
   {
@@ -30,8 +30,8 @@ const PORTALS = [
     name: "Facility Admin",
     description: "Oversight, formulary, reporting.",
     icon: Building2,
-    accent: "bg-indigo-100",
-    iconClass: "text-indigo-600",
+    accent: "bg-brand-subtle",
+    iconClass: "text-brand",
   },
 ];
 
@@ -58,12 +58,12 @@ export default function LoginChooserPage() {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {PORTALS.map((portal) => {
             const Icon = portal.icon;
             return (
               <Link key={portal.href} href={portal.href}>
-                <Card className="transition-shadow hover:shadow-md">
+                <Card interactive>
                   <CardBody className="flex items-center gap-4">
                     <div className={`flex size-11 items-center justify-center rounded-xl ${portal.accent}`}>
                       <Icon className={`size-6 ${portal.iconClass}`} aria-hidden="true" />
@@ -72,7 +72,7 @@ export default function LoginChooserPage() {
                       <p className="font-medium text-foreground">{portal.name}</p>
                       <p className="text-sm text-muted-foreground">{portal.description}</p>
                     </div>
-                    <span aria-hidden="true" className="text-slate-300">
+                    <span aria-hidden="true" className="text-subtle">
                       →
                     </span>
                   </CardBody>

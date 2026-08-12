@@ -7,7 +7,9 @@ import { Loader2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Notice } from "@/components/ui/Notice";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import { authenticate } from "@/lib/data/repositories/accountRepository";
@@ -77,8 +79,8 @@ export function PortalSignupForm({ config }: { config: PortalSignupConfig }) {
   }
 
   return (
-    <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
+      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-brand">
         ← MediGuard home
       </Link>
       <Card className="w-full max-w-md animate-fade-up shadow-md">
@@ -122,13 +124,20 @@ export function PortalSignupForm({ config }: { config: PortalSignupConfig }) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <p className="mt-1 text-xs text-subtle">At least 8 characters.</p>
+              <p
+                className={cn(
+                  "mt-1 text-xs transition-colors duration-200",
+                  password.length >= 8 ? "text-safe-fg" : "text-subtle"
+                )}
+              >
+                {password.length >= 8 ? "✓ " : ""}At least 8 characters.
+              </p>
             </div>
 
             {error && (
-              <p role="alert" className="rounded-lg bg-blocked-bg px-3 py-2 text-sm text-blocked-fg">
+              <Notice tone="blocked" role="alert">
                 {error}
-              </p>
+              </Notice>
             )}
 
             <Button type="submit" className="w-full" disabled={pending}>

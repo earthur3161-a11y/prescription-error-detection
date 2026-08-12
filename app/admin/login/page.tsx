@@ -12,8 +12,8 @@ export default function AdminLoginPage() {
         portalName: "Facility Admin Portal",
         tagline: "Integrate MediGuard's screening into your own systems, and oversee formulary and reporting.",
         icon: Building2,
-        accentClass: "bg-indigo-100",
-        iconClass: "text-indigo-600",
+        accentClass: "bg-brand-subtle",
+        iconClass: "text-brand",
       }}
     />
   );

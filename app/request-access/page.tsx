@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import {
   useAccessRequestStatus,
@@ -47,7 +48,7 @@ function RequestAccessForm() {
 
   if (submittedEmail) {
     return (
-      <div className="space-y-3 text-center">
+      <div className="animate-fade-up space-y-3 text-center">
         <Clock className="mx-auto size-10 text-caution-fg" aria-hidden="true" />
         <p className="font-medium text-foreground">Your request is under review</p>
         <p className="text-sm text-muted-foreground">
@@ -102,6 +103,7 @@ function RequestAccessForm() {
         </div>
       </div>
       <Button type="submit" className="w-full" disabled={createRequest.isPending}>
+        {createRequest.isPending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
         Submit request
       </Button>
     </form>
@@ -139,26 +141,19 @@ function CheckStatus() {
       )}
 
       {request && request.status === "pending" && (
-        <div className="flex items-start gap-2.5 rounded-lg bg-caution-bg px-4 py-3 text-sm text-caution-fg">
-          <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <Notice tone="caution" icon={Clock}>
           Your request is under review. We&rsquo;ll email you an invite link once approved.
-        </div>
+        </Notice>
       )}
       {request && request.status === "rejected" && (
-        <div className="rounded-lg bg-blocked-bg px-4 py-3 text-sm text-blocked-fg">
-          <p className="flex items-center gap-2 font-medium">
-            <XCircle className="size-4" aria-hidden="true" /> Request not approved
-          </p>
-          {request.rejectionReason && <p className="mt-1">{request.rejectionReason}</p>}
-        </div>
+        <Notice tone="blocked" icon={XCircle} title="Request not approved">
+          {request.rejectionReason}
+        </Notice>
       )}
       {request && request.status === "approved" && (
-        <div className="space-y-1 rounded-lg bg-safe-bg px-4 py-3 text-sm text-safe-fg">
-          <p className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="size-4" aria-hidden="true" /> Approved
-          </p>
-          <p>Check your email for a secure invite link to set your password and activate your account.</p>
-        </div>
+        <Notice tone="safe" icon={CheckCircle2} title="Approved">
+          Check your email for a secure invite link to set your password and activate your account.
+        </Notice>
       )}
     </div>
   );
@@ -173,18 +168,18 @@ export default function RequestAccessPage() {
         <ShieldCheck className="size-7 text-brand" aria-hidden="true" />
         <span className="text-xl font-semibold text-foreground">MediGuard</span>
       </Link>
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg animate-fade-up">
         <CardBody className="space-y-5">
           <div className="flex rounded-lg bg-muted p-1 text-sm font-medium">
             <button
               onClick={() => setTab("request")}
-              className={`flex-1 rounded-md py-1.5 transition-colors ${tab === "request" ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"}`}
+              className={`flex-1 rounded-md py-1.5 transition-colors duration-200 ${tab === "request" ? "bg-surface text-foreground shadow-soft" : "text-muted-foreground"}`}
             >
               Request access
             </button>
             <button
               onClick={() => setTab("status")}
-              className={`flex-1 rounded-md py-1.5 transition-colors ${tab === "status" ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground"}`}
+              className={`flex-1 rounded-md py-1.5 transition-colors duration-200 ${tab === "status" ? "bg-surface text-foreground shadow-soft" : "text-muted-foreground"}`}
             >
               Check status
             </button>
