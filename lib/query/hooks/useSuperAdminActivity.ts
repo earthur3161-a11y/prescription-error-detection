@@ -67,7 +67,14 @@ export function useSuperAdminActivity() {
     apiKeys,
   ];
   const isLoading = queries.some((q) => q.isLoading);
+  const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
+  // Most recent successful fetch across all ten sources — this hook has no
+  // single query of its own to read dataUpdatedAt from. No new fetching
+  // behavior: refetch() below just triggers the same ten queries a manual
+  // remount already would, exposed as a button instead of requiring one.
+  const dataUpdatedAt = Math.max(...queries.map((q) => q.dataUpdatedAt));
+  const refetch = () => Promise.all(queries.map((q) => q.refetch()));
 
   const events = useMemo(
     () =>
@@ -97,5 +104,5 @@ export function useSuperAdminActivity() {
     ]
   );
 
-  return { events, isLoading, error };
+  return { events, isLoading, isFetching, error, dataUpdatedAt, refetch };
 }

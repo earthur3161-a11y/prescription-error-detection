@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity, AlertTriangle, Info, ShieldCheck, XCircle, type LucideIcon } from "lucide-react";
+import { Activity, AlertTriangle, Info, RefreshCw, ShieldCheck, XCircle, type LucideIcon } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Notice } from "@/components/ui/Notice";
 import { useSuperAdminActivity } from "@/lib/query/hooks/useSuperAdminActivity";
+import { useDataUpdatedPulse } from "@/lib/hooks/useDataUpdatedPulse";
 import { TONE_TEXT_CLASS } from "@/lib/design/verdictVisuals";
 import {
   CATEGORY_LABEL,
@@ -60,7 +62,8 @@ function EventRow({ event }: { event: SuperadminActivityEvent }) {
 }
 
 export default function SuperAdminActivityPage() {
-  const { events, isLoading, error } = useSuperAdminActivity();
+  const { events, isLoading, isFetching, error, dataUpdatedAt, refetch } = useSuperAdminActivity();
+  const justUpdated = useDataUpdatedPulse(dataUpdatedAt);
   const [category, setCategory] = useState<SuperadminActivityCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState("");
@@ -90,16 +93,34 @@ export default function SuperAdminActivityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-          <Activity className="size-6 text-brand" aria-hidden="true" />
-          Activity
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Every business and administrative action across all roles — never drug names, diagnoses,
-          allergy details, or override reasons. Clinical detail stays governed by each role&rsquo;s own
-          access controls.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+            <Activity className="size-6 text-brand" aria-hidden="true" />
+            Activity
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every business and administrative action across all roles — never drug names, diagnoses,
+            allergy details, or override reasons. Clinical detail stays governed by each role&rsquo;s own
+            access controls.
+          </p>
+        </div>
+        {/*
+          This feed has no automatic polling (refetchOnWindowFocus is off
+          app-wide) — a manual trigger for the same refetch a remount would
+          do anyway, not new background-fetching behavior. The pulse below
+          is the "this just changed" cue Goal 2 asked for on real-time-ish
+          surfaces, scoped to only fire on a refresh the admin asked for.
+        */}
+        <div className="text-right">
+          <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+            <RefreshCw className={isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden="true" />
+            Refresh
+          </Button>
+          {dataUpdatedAt > 0 && (
+            <p className="mt-1 text-xs text-subtle">Updated {formatDateTime(new Date(dataUpdatedAt).toISOString())}</p>
+          )}
+        </div>
       </div>
 
       <Notice tone="neutral" title="Not shown here">
@@ -156,7 +177,7 @@ export default function SuperAdminActivityPage() {
       )}
 
       {!isLoading && groups.length > 0 && (
-        <div className="stagger space-y-5">
+        <div className={cn("stagger space-y-5 rounded-2xl", justUpdated && "animate-data-pulse")}>
           {groups.map(([day, dayEvents]) => (
             <div key={day}>
               <p className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-subtle">

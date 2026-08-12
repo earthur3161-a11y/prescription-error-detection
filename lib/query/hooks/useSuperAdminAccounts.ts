@@ -22,7 +22,10 @@ export function useSuperAdminAccounts() {
   });
 
   const isLoading = staff.isLoading || patients.isLoading || subscriptions.isLoading;
+  const isFetching = staff.isFetching || patients.isFetching || subscriptions.isFetching;
   const error = staff.error ?? patients.error ?? subscriptions.error;
+  const dataUpdatedAt = Math.max(staff.dataUpdatedAt, patients.dataUpdatedAt, subscriptions.dataUpdatedAt);
+  const refetch = () => Promise.all([staff.refetch(), patients.refetch(), subscriptions.refetch()]);
 
   const accounts = useMemo(
     () =>
@@ -34,5 +37,5 @@ export function useSuperAdminAccounts() {
     [staff.data, patients.data, subscriptions.data]
   );
 
-  return { accounts, isLoading, error };
+  return { accounts, isLoading, isFetching, error, dataUpdatedAt, refetch };
 }

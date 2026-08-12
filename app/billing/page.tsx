@@ -163,12 +163,23 @@ export default function BillingPage() {
             </p>
           </div>
 
+          {/*
+            Each branch below is keyed and carries animate-scale-in — without
+            an explicit key, React can leave a structurally-similar branch
+            mounted across a state change (e.g. isPaying -> paymentFailed are
+            both "space-y-*, text-center") and the CSS animation, which only
+            plays on mount, silently never replays. The polling that drives
+            these transitions (useSubscriptionStatus/useSubscriptionPaymentStatus,
+            both refetch every 3s while in flight) is exactly the kind of
+            background update that used to hard-cut from one branch to the
+            next with zero transition.
+          */}
           {subscription.isLoading ? (
-            <div className="flex justify-center py-4">
+            <div key="loading" className="flex justify-center py-4">
               <Loader2 className="size-5 animate-spin text-subtle" aria-hidden="true" />
             </div>
           ) : isActive ? (
-            <div className="space-y-4">
+            <div key="active" className="animate-scale-in space-y-4">
               <Notice tone="safe" icon={ShieldCheck}>
                 Active until {subscription.data?.periodEnd ? new Date(subscription.data.periodEnd).toLocaleDateString() : "—"}.
               </Notice>
@@ -177,7 +188,7 @@ export default function BillingPage() {
               </Button>
             </div>
           ) : paymentFailed ? (
-            <div className="space-y-4 text-center">
+            <div key="failed" className="animate-scale-in space-y-4 text-center">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Payment failed</h2>
                 <p className="mt-1 text-sm text-secondary">
@@ -189,7 +200,7 @@ export default function BillingPage() {
               </Button>
             </div>
           ) : isPaying ? (
-            <div className="space-y-3 text-center">
+            <div key="paying" className="animate-scale-in space-y-3 text-center">
               <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
               <p className="text-sm text-secondary">Approve the payment request on your phone to activate.</p>
               {paymentTimedOut && <p className="text-sm text-caution-fg">Didn&rsquo;t get the prompt?</p>}
@@ -198,7 +209,7 @@ export default function BillingPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div key="form" className="animate-scale-in space-y-3">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-secondary">Mobile Money number</label>
                 <Input

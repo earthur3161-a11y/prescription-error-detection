@@ -1,16 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Users } from "lucide-react";
+import { RefreshCw, Users } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Notice } from "@/components/ui/Notice";
 import { useSuperAdminAccounts } from "@/lib/query/hooks/useSuperAdminAccounts";
+import { useDataUpdatedPulse } from "@/lib/hooks/useDataUpdatedPulse";
 import { filterSuperadminAccounts, SUPERADMIN_ROLE_LABEL, type SuperadminAccountRole } from "@/lib/superadmin/accounts";
 import { formatDateTime } from "@/lib/utils/date";
+import { cn } from "@/lib/utils/cn";
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
@@ -24,7 +27,8 @@ function StatCard({ label, value }: { label: string; value: number }) {
 }
 
 export default function SuperAdminAccountsPage() {
-  const { accounts, isLoading, error } = useSuperAdminAccounts();
+  const { accounts, isLoading, isFetching, error, dataUpdatedAt, refetch } = useSuperAdminAccounts();
+  const justUpdated = useDataUpdatedPulse(dataUpdatedAt);
   const [role, setRole] = useState<SuperadminAccountRole | "all">("all");
   const [query, setQuery] = useState("");
 
@@ -42,14 +46,25 @@ export default function SuperAdminAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
-          <Users className="size-6 text-brand" aria-hidden="true" />
-          Accounts
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Every account in the system — account metadata only, no clinical data.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+            <Users className="size-6 text-brand" aria-hidden="true" />
+            Accounts
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every account in the system — account metadata only, no clinical data.
+          </p>
+        </div>
+        <div className="text-right">
+          <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+            <RefreshCw className={isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden="true" />
+            Refresh
+          </Button>
+          {dataUpdatedAt > 0 && (
+            <p className="mt-1 text-xs text-subtle">Updated {formatDateTime(new Date(dataUpdatedAt).toISOString())}</p>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -99,7 +114,7 @@ export default function SuperAdminAccountsPage() {
       )}
 
       {!isLoading && filtered.length > 0 && (
-        <Card>
+        <Card className={cn(justUpdated && "animate-data-pulse")}>
           <ul className="stagger divide-y divide-border">
             {filtered.map((account) => (
               <li key={`${account.role}:${account.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
