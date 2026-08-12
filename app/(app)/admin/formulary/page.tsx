@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
+import { Notice } from "@/components/ui/Notice";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -59,6 +60,7 @@ export default function AdminFormularyPage() {
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft());
+  const [addError, setAddError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Drug | null>(null);
 
   const drugs = (formulary?.drugs ?? [])
@@ -66,10 +68,14 @@ export default function AdminFormularyPage() {
     .sort((a, b) => a.generic_name.localeCompare(b.generic_name));
 
   function handleAddDrug() {
+    setAddError(null);
     const min = Number(draft.minMgPerDose);
     const max = Number(draft.maxMgPerDose);
     const maxDay = Number(draft.maxMgPerDay);
-    if (!draft.generic_name.trim() || !draft.drugClass.trim() || !min || !max || !maxDay) return;
+    if (!draft.generic_name.trim() || !draft.drugClass.trim() || !min || !max || !maxDay) {
+      setAddError("Fill in generic name, therapeutic class, and all three dose fields before saving.");
+      return;
+    }
 
     const drug: Drug = {
       id: generateId("drug"),
@@ -120,7 +126,12 @@ export default function AdminFormularyPage() {
               Bulk import
             </Button>
           </Link>
-          <Button onClick={() => setModalOpen(true)}>
+          <Button
+            onClick={() => {
+              setAddError(null);
+              setModalOpen(true);
+            }}
+          >
             <Plus className="size-5" aria-hidden="true" />
             Add Drug
           </Button>
@@ -142,7 +153,7 @@ export default function AdminFormularyPage() {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="stagger space-y-3">
         {drugs.map((drug) => (
           <Card key={drug.id}>
             <CardBody className="flex flex-wrap items-center justify-between gap-3">
@@ -202,6 +213,13 @@ export default function AdminFormularyPage() {
         }
       >
         <div className="grid gap-3 sm:grid-cols-2">
+          {addError && (
+            <div className="sm:col-span-2">
+              <Notice tone="blocked" role="alert">
+                {addError}
+              </Notice>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Generic name *</label>
             <Input

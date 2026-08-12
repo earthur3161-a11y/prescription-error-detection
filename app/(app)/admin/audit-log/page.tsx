@@ -7,7 +7,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, StatCardSkeleton } from "@/components/ui/Skeleton";
 import { useOverrideLogs } from "@/lib/query/hooks/useOverrideLogs";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -46,9 +46,10 @@ export default function AdminAuditLogPage() {
   const { data: logs, isLoading } = useOverrideLogs(
     userFilter === "all" ? {} : { userId: userFilter }
   );
-  const { data: prescriptions } = usePrescriptions();
+  const { data: prescriptions, isLoading: prescriptionsLoading } = usePrescriptions();
   const { data: patients } = usePatients();
-  const { data: formulary } = useFormulary();
+  const { data: formulary, isLoading: formularyLoading } = useFormulary();
+  const statsLoading = prescriptionsLoading || formularyLoading;
   const { data: feedbackReports } = usePatientFeedbackReports();
   const { data: profiles } = useProfiles();
   // Only this institution's staff — the underlying override_logs rows are now
@@ -146,45 +147,53 @@ export default function AdminAuditLogPage() {
         </Button>
       </div>
 
-      <div className="stagger grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardBody>
-            <p className="text-xs font-semibold uppercase tracking-wide text-subtle">EML compliance</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{emlStats.percent}%</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {emlStats.nonEmlCount} of {emlStats.total} prescriptions include a non-EML drug
-            </p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Most common flags</p>
-            <ul className="mt-1.5 space-y-1 text-sm text-secondary">
-              {topFlagTypes.length === 0 && <li className="text-subtle">No flags yet.</li>}
-              {topFlagTypes.map(([type, count]) => (
-                <li key={type} className="flex justify-between">
-                  <span>{FLAG_TYPE_LABELS[type] ?? type}</span>
-                  <span className="font-medium tabular-nums">{count}</span>
-                </li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Most-overridden drugs</p>
-            <ul className="mt-1.5 space-y-1 text-sm text-secondary">
-              {topOverriddenDrugs.length === 0 && <li className="text-subtle">No overrides yet.</li>}
-              {topOverriddenDrugs.map(([drugId, count]) => (
-                <li key={drugId} className="flex justify-between">
-                  <span>{drugNameById.get(drugId) ?? drugId}</span>
-                  <span className="font-medium tabular-nums">{count}</span>
-                </li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-      </div>
+      {statsLoading ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+      ) : (
+        <div className="stagger grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardBody>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">EML compliance</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{emlStats.percent}%</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {emlStats.nonEmlCount} of {emlStats.total} prescriptions include a non-EML drug
+              </p>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Most common flags</p>
+              <ul className="mt-1.5 space-y-1 text-sm text-secondary">
+                {topFlagTypes.length === 0 && <li className="text-subtle">No flags yet.</li>}
+                {topFlagTypes.map(([type, count]) => (
+                  <li key={type} className="flex justify-between">
+                    <span>{FLAG_TYPE_LABELS[type] ?? type}</span>
+                    <span className="font-medium tabular-nums">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Most-overridden drugs</p>
+              <ul className="mt-1.5 space-y-1 text-sm text-secondary">
+                {topOverriddenDrugs.length === 0 && <li className="text-subtle">No overrides yet.</li>}
+                {topOverriddenDrugs.map(([drugId, count]) => (
+                  <li key={drugId} className="flex justify-between">
+                    <span>{drugNameById.get(drugId) ?? drugId}</span>
+                    <span className="font-medium tabular-nums">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardBody>
+          </Card>
+        </div>
+      )}
 
       {feedbackReports && feedbackReports.length > 0 && (
         <Card>

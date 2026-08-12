@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Plus, ShieldAlert, XCircle } from "lucide-react";
+import { Check, Copy, Loader2, Plus, ShieldAlert, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -25,7 +25,7 @@ function JustMintedKeyNotice({ rawKey, onDismiss }: { rawKey: string; onDismiss:
     <Notice tone="caution">
       <div className="space-y-2">
         <p className="font-semibold">Copy this key now — it won&rsquo;t be shown again.</p>
-        <code className="block break-all rounded-lg bg-surface px-3 py-2 text-sm text-foreground">{rawKey}</code>
+        <code className="block break-all rounded-lg bg-surface px-3 py-2 font-mono text-sm text-foreground">{rawKey}</code>
         <div className="flex gap-2">
           <Button
             size="sm"
@@ -131,11 +131,19 @@ export default function IntegrationDashboardPage() {
             <h2 className="font-semibold text-foreground">API keys</h2>
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" onClick={() => handleMint("sandbox")} disabled={mintKey.isPending}>
-                <Plus className="size-4" aria-hidden="true" />
+                {mintKey.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Plus className="size-4" aria-hidden="true" />
+                )}
                 Sandbox key
               </Button>
               <Button size="sm" onClick={() => handleMint("live")} disabled={mintKey.isPending}>
-                <Plus className="size-4" aria-hidden="true" />
+                {mintKey.isPending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Plus className="size-4" aria-hidden="true" />
+                )}
                 Live key
               </Button>
             </div>
@@ -151,7 +159,7 @@ export default function IntegrationDashboardPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <Badge tone={key.mode === "live" ? "brand" : "neutral"}>{key.mode}</Badge>
-                    <code className="text-sm text-muted-foreground">{key.keyPrefix}…</code>
+                    <code className="font-mono text-sm text-muted-foreground">{key.keyPrefix}…</code>
                   </div>
                   <p className="mt-1 text-xs text-subtle">
                     Created {formatDateTime(key.createdAt)}

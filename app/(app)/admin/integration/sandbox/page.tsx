@@ -162,7 +162,11 @@ export default function IntegrationSandboxPage() {
                 <Badge tone={status >= 200 && status < 300 ? "safe" : "blocked"}>HTTP {status}</Badge>
               )}
             </div>
-            {error && <p className="text-sm text-blocked-fg">{error}</p>}
+            {error && (
+              <Notice tone="blocked" role="alert">
+                {error}
+              </Notice>
+            )}
             {!error && !result && (
               <p className="text-sm text-subtle">Run a test to see the response here.</p>
             )}
@@ -172,7 +176,7 @@ export default function IntegrationSandboxPage() {
                   verdict={result.verdict}
                   flags={Array.isArray(result.flags) ? (result.flags as Flag[]) : []}
                 />
-                <pre className="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 text-xs text-slate-100">
+                <pre className="overflow-x-auto rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-foreground">
                   {JSON.stringify(result, null, 2)}
                 </pre>
               </div>

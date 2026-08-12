@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileUp, Upload } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileUp, Loader2, Upload } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -147,7 +147,7 @@ export default function FormularyImportPage() {
                 <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-blocked-fg">
                   <AlertTriangle className="size-4" aria-hidden="true" /> Errors (not imported)
                 </p>
-                <ul className="space-y-1 text-sm text-secondary">
+                <ul className="stagger space-y-1 text-sm text-secondary">
                   {result.errors.map((e, i) => (
                     <li key={i}>
                       Row {e.row}: {e.message}
@@ -160,7 +160,7 @@ export default function FormularyImportPage() {
             {result.duplicates.length > 0 && (
               <div>
                 <p className="mb-1.5 text-sm font-medium text-secondary">Duplicates skipped</p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="stagger flex flex-wrap gap-1.5">
                   {result.duplicates.map((d, i) => (
                     <Badge key={i} tone="neutral" title={d.reason}>
                       {d.generic_name}
@@ -182,7 +182,7 @@ export default function FormularyImportPage() {
                         <th className="px-3 py-2">EML</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody className="stagger divide-y divide-border">
                       {result.toPublish.map((d) => (
                         <tr key={d.id}>
                           <td className="px-3 py-2 font-medium text-foreground">{d.generic_name}</td>
@@ -210,8 +210,14 @@ export default function FormularyImportPage() {
                 onClick={handlePublish}
                 disabled={result.toPublish.length === 0 || bulkUpsert.isPending}
               >
-                <CheckCircle2 className="size-5" aria-hidden="true" />
-                Publish {result.toPublish.length} drug{result.toPublish.length === 1 ? "" : "s"}
+                {bulkUpsert.isPending ? (
+                  <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 className="size-5" aria-hidden="true" />
+                )}
+                {bulkUpsert.isPending
+                  ? "Publishing…"
+                  : `Publish ${result.toPublish.length} drug${result.toPublish.length === 1 ? "" : "s"}`}
               </Button>
             )}
           </CardBody>

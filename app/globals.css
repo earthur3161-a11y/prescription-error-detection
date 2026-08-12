@@ -225,6 +225,15 @@
   h1, h2, h3, h4 {
     letter-spacing: -0.02em;
   }
+  /* IBM Plex Mono everywhere code/precision-bearing text appears, matching
+     the font stack's own stated intent — "anywhere precision should
+     visually read as precision." A handful of call sites already added
+     font-mono explicitly; this makes it the default so an inline <code>
+     or <pre> never falls back to the browser's generic monospace by
+     omission (as several were before this rule existed). */
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+  }
   ::selection {
     background: rgb(37 99 235 / 0.22);
   }

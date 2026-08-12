@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Download, Info, ShieldCheck, XCircle, type LucideIcon } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -19,6 +19,7 @@ import {
   type AuditCategory,
   type AuditChannel,
   type AuditEvent,
+  type AuditTone,
 } from "@/lib/compliance/auditEvents";
 import { formatDateTime } from "@/lib/utils/date";
 
@@ -27,6 +28,28 @@ const CHANNEL_TONE: Record<AuditChannel, "safe" | "caution" | "blocked" | "brand
   pharmacy: "brand",
   physician: "caution",
   system: "neutral",
+};
+
+// This is the app's canonical compliance/audit record — the one place a
+// color-only status signal least belongs (see lib/design/verdictVisuals.ts's
+// own rule: color alone never carries this distinction). AuditTone has its
+// own five values (not the four-state verdict palette — "info" here means
+// a routine non-clinical log entry, not "unverified"), so this pairs each
+// one with a real icon rather than reusing VerdictMark's clinical shapes,
+// which would misrepresent non-clinical events as safety verdicts.
+const TONE_ICON: Record<AuditTone, LucideIcon> = {
+  safe: ShieldCheck,
+  caution: AlertTriangle,
+  blocked: XCircle,
+  info: Info,
+  neutral: Info,
+};
+const TONE_ICON_CLASS: Record<AuditTone, string> = {
+  safe: "text-safe-fg",
+  caution: "text-caution-fg",
+  blocked: "text-blocked-fg",
+  info: "text-brand",
+  neutral: "text-muted-foreground",
 };
 
 function downloadCsv(rows: string[][], filename: string) {
@@ -53,23 +76,10 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint?:
 }
 
 function EventRow({ event }: { event: AuditEvent }) {
+  const ToneIcon = TONE_ICON[event.tone];
   return (
     <li className="flex gap-3 px-4 py-3">
-      <span
-        aria-hidden="true"
-        className={
-          "mt-1.5 size-2.5 shrink-0 rounded-full " +
-          (event.tone === "blocked"
-            ? "bg-blocked-fg"
-            : event.tone === "caution"
-              ? "bg-caution-fg"
-              : event.tone === "safe"
-                ? "bg-safe-fg"
-                : event.tone === "info"
-                  ? "bg-brand"
-                  : "bg-muted-foreground")
-        }
-      />
+      <ToneIcon className={`mt-0.5 size-4 shrink-0 ${TONE_ICON_CLASS[event.tone]}`} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium text-foreground">{event.action}</span>
@@ -210,7 +220,7 @@ export default function CompliancePage() {
       )}
 
       {!isLoading && groups.length > 0 && (
-        <div className="space-y-5">
+        <div className="stagger space-y-5">
           {groups.map(([day, dayEvents]) => (
             <div key={day}>
               <p className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-subtle">

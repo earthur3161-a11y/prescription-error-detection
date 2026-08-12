@@ -6,7 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 
 function CodeBlock({ children }: { children: string }) {
   return (
-    <pre className="overflow-x-auto rounded-lg bg-slate-900 px-4 py-3 text-xs leading-relaxed text-slate-100">
+    <pre className="overflow-x-auto rounded-lg border border-border bg-surface-2 px-4 py-3 text-xs leading-relaxed text-foreground">
       {children.trim()}
     </pre>
   );
