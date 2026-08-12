@@ -79,4 +79,35 @@ export const ghanaAllergyRules: AllergyRule[] = [
     referenceSource:
       "FDA clarithromycin label, Contraindications, verbatim: \"Clarithromycin tablets are contraindicated in patients with a known hypersensitivity to clarithromycin, erythromycin, or any of the macrolide antibacterial drugs\" — an explicit, class-wide cross-hypersensitivity statement (via openFDA).",
   },
+  // Two further classes below, found by the same audit that expanded
+  // interactionRules.ts. Sourced the same way — a real, explicit, class-wide
+  // FDA cross-sensitivity statement, not an inference. Several other
+  // candidates considered (Statins, Opioids, aromatic Anticonvulsants) were
+  // deliberately NOT added: their FDA labels state drug-specific
+  // hypersensitivity contraindications, not a class-wide cross-reactivity
+  // statement the way Aminoglycoside/Tetracycline/Cephalosporin/Macrolide do
+  // above, and the Anticonvulsant class in this formulary also contains
+  // chemically unrelated drugs (valproate, lamotrigine, ethosuximide) that
+  // the one real cross-reactivity statement found (aromatic anticonvulsants
+  // only: carbamazepine/phenytoin/phenobarbital/primidone) does not cover —
+  // adding it under the broad "Anticonvulsant" class would incorrectly flag
+  // those unrelated drugs, so it was left out rather than forced.
+  {
+    id: "alg_aminoglycoside",
+    allergen: "Aminoglycosides",
+    related_drug_classes: ["Aminoglycoside"],
+    severity: "severe",
+    reaction: "an allergic reaction to this class of antibiotics — known to have cross-sensitivity across the group",
+    referenceSource:
+      "FDA gentamicin label, Contraindications, verbatim: \"Hypersensitivity to gentamicin is a contraindication to its use. A history of hypersensitivity or serious toxic reactions to other aminoglycosides may contraindicate use of gentamicin because of the known cross-sensitivity of patients to drugs in this class\" (via openFDA).",
+  },
+  {
+    id: "alg_tetracycline",
+    allergen: "Tetracyclines",
+    related_drug_classes: ["Tetracycline"],
+    severity: "severe",
+    reaction: "an allergic reaction to this class of antibiotics",
+    referenceSource:
+      "FDA doxycycline label, Contraindications, verbatim: \"This drug is contraindicated in persons who have shown hypersensitivity to any of the tetracyclines\" — an explicit, class-wide cross-hypersensitivity statement (via openFDA).",
+  },
 ];

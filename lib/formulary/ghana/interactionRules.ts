@@ -367,4 +367,277 @@ export const ghanaInteractionRules: InteractionRule[] = [
     referenceSource:
       "FDA glyburide label (glyburide is the US name for glibenclamide): \"Hypoglycemia may be difficult to recognize...in people who are taking beta-adrenergic blocking drugs\"; beta adrenergic blocking agents separately listed among drugs requiring close observation for hypoglycemia when combined with glyburide (via openFDA).",
   },
+  // The pairs below fill a second coverage gap, found the same way as the
+  // carbamazepine/tramadol/morphine batch above: the formulary grew (SSRIs,
+  // lithium, further anticonvulsants, verapamil, clopidogrel, tetracyclines)
+  // without a matching pass over their interactions. Same sourcing standard —
+  // direct FDA label quotes via openFDA, no inference — with one scope note:
+  // several entries below cite one drug's label describing a named
+  // serotonergic/interacting-drug list (e.g. fluoxetine's label naming
+  // "tramadol" and "tricyclic antidepressants" under Serotonergic Agents) the
+  // same way int_tramadol_diazepam etc. above already treat a single label's
+  // named-class mention as sufficient — not "confirmed bidirectionally," but
+  // not an inference either, since the interacting drug is named explicitly.
+  {
+    id: "int_fluoxetine_tramadol",
+    drug_a: "drug_fluoxetine",
+    drug_b: "drug_tramadol",
+    severity: "major",
+    description:
+      "Combining an SSRI with tramadol raises the risk of serotonin syndrome, and separately lowers the seizure threshold, compounding tramadol's own seizure risk.",
+    referenceSource:
+      "FDA fluoxetine label, Warnings and Precautions (Serotonergic Agents): tramadol explicitly named among drugs that may interact with fluoxetine to increase serotonin syndrome risk, alongside \"triptans, tricyclic antidepressants, fentanyl, lithium...tryptophan, buspirone, amphetamines, and St. John's Wort\" (via openFDA).",
+  },
+  {
+    id: "int_fluoxetine_warfarin",
+    drug_a: "drug_fluoxetine",
+    drug_b: "drug_warfarin",
+    severity: "major",
+    description: "SSRIs can potentiate warfarin's anticoagulant effect and independently raise bleeding risk — monitor INR closely.",
+    referenceSource:
+      "FDA fluoxetine label, Warnings and Precautions (Abnormal Bleeding), verbatim: \"Concomitant use of aspirin, nonsteroidal anti-inflammatory drugs, warfarin, and other anti-coagulants may add to this risk\" of bleeding (via openFDA).",
+  },
+  {
+    id: "int_fluoxetine_aspirin",
+    drug_a: "drug_fluoxetine",
+    drug_b: "drug_aspirin",
+    severity: "moderate",
+    description: "SSRIs combined with NSAIDs/aspirin increase the risk of gastrointestinal and other bleeding.",
+    referenceSource:
+      "FDA fluoxetine label, Warnings and Precautions (Abnormal Bleeding), verbatim: \"Concomitant use of aspirin, nonsteroidal anti-inflammatory drugs, warfarin, and other anti-coagulants may add to this risk\" of bleeding (via openFDA).",
+  },
+  {
+    id: "int_fluoxetine_amitriptyline",
+    drug_a: "drug_fluoxetine",
+    drug_b: "drug_amitriptyline",
+    severity: "major",
+    description:
+      "Fluoxetine inhibits tricyclic antidepressant metabolism, raising amitriptyline plasma levels, and separately increases serotonin syndrome risk when the two are combined.",
+    referenceSource:
+      "FDA fluoxetine label: \"Dosage of a TCA may need to be reduced, and plasma TCA concentrations may need to be monitored temporarily when fluoxetine is coadministered\"; tricyclic antidepressants separately named under Serotonergic Agents (via openFDA).",
+  },
+  {
+    id: "int_sertraline_tramadol",
+    drug_a: "drug_sertraline",
+    drug_b: "drug_tramadol",
+    severity: "major",
+    description:
+      "Combining an SSRI with tramadol raises the risk of serotonin syndrome, and separately lowers the seizure threshold, compounding tramadol's own seizure risk.",
+    referenceSource:
+      "FDA sertraline hydrochloride label, Drug Interactions (Serotonergic Drugs): tramadol explicitly named among drugs that increase serotonin syndrome risk when combined with sertraline (via openFDA).",
+  },
+  {
+    id: "int_sertraline_warfarin",
+    drug_a: "drug_sertraline",
+    drug_b: "drug_warfarin",
+    severity: "major",
+    description: "SSRIs can potentiate warfarin's anticoagulant effect and independently raise bleeding risk — monitor INR closely.",
+    referenceSource:
+      "FDA sertraline hydrochloride label, Drug Interactions: a clinical study comparing prothrombin time with concomitant sertraline vs. placebo found \"a mean increase in prothrombin time of 8% relative to baseline for sertraline hydrochloride compared to a 1% decrease for placebo\"; the label advises prothrombin time \"should be carefully monitored when sertraline hydrochloride therapy is initiated or stopped\" (via openFDA).",
+  },
+  {
+    id: "int_citalopram_tramadol",
+    drug_a: "drug_citalopram",
+    drug_b: "drug_tramadol",
+    severity: "major",
+    description:
+      "Combining an SSRI with tramadol raises the risk of serotonin syndrome, and separately lowers the seizure threshold, compounding tramadol's own seizure risk.",
+    referenceSource:
+      "FDA citalopram label, Drug Interactions: \"Concomitant use of citalopram and other serotonergic drugs (including...opioids...) increases the risk of serotonin syndrome\", with tramadol specifically listed among the named serotonergic opioids (via openFDA).",
+  },
+  {
+    id: "int_citalopram_warfarin",
+    drug_a: "drug_citalopram",
+    drug_b: "drug_warfarin",
+    severity: "major",
+    description: "SSRIs can potentiate warfarin's anticoagulant effect and independently raise bleeding risk — monitor INR closely.",
+    referenceSource:
+      "FDA citalopram label, Drug Interactions, verbatim: \"For patients taking warfarin, carefully monitor the international normalized ratio\"; also \"Concomitant use of citalopram and an antiplatelet or anticoagulant may potentiate the risk of bleeding\" (via openFDA).",
+  },
+  {
+    id: "int_lithium_hydrochlorothiazide",
+    drug_a: "drug_lithium",
+    drug_b: "drug_hydrochlorothiazide",
+    severity: "major",
+    description:
+      "Thiazide diuretics reduce lithium's renal clearance, raising serum lithium concentrations and the risk of lithium toxicity — a narrow-therapeutic-index drug.",
+    referenceSource:
+      "Confirmed on both sides: FDA lithium carbonate label, Drug Interactions, verbatim: \"Diuretic-induced sodium loss may reduce lithium clearance and increase serum lithium concentrations\"; FDA lisinopril/hydrochlorothiazide combination label separately states \"Lithium - should not generally be given with diuretics. Diuretic agents reduce the renal clearance of lithium and add a high risk of lithium toxicity\" (via openFDA).",
+  },
+  {
+    id: "int_lithium_bendroflumethiazide",
+    drug_a: "drug_lithium",
+    drug_b: "drug_bendroflumethiazide",
+    severity: "major",
+    description:
+      "Thiazide diuretics reduce lithium's renal clearance, raising serum lithium concentrations and the risk of lithium toxicity — a narrow-therapeutic-index drug.",
+    referenceSource:
+      "FDA lithium carbonate label, Drug Interactions, verbatim: \"Diuretic-induced sodium loss may reduce lithium clearance and increase serum lithium concentrations\" — a class-wide statement about diuretics, of which bendroflumethiazide is a thiazide member (via openFDA).",
+  },
+  {
+    id: "int_lithium_furosemide",
+    drug_a: "drug_lithium",
+    drug_b: "drug_furosemide",
+    severity: "major",
+    description:
+      "Diuretic-induced sodium loss reduces lithium's renal clearance, raising serum lithium concentrations and the risk of lithium toxicity — a narrow-therapeutic-index drug.",
+    referenceSource:
+      "FDA lithium carbonate label, Drug Interactions, verbatim: \"Diuretic-induced sodium loss may reduce lithium clearance and increase serum lithium concentrations\", listing \"diuretics\" generally as a class requiring frequent lithium-level monitoring (via openFDA).",
+  },
+  {
+    id: "int_lithium_lisinopril",
+    drug_a: "drug_lithium",
+    drug_b: "drug_lisinopril",
+    severity: "major",
+    description:
+      "ACE inhibitors reduce lithium's renal clearance, raising serum lithium concentrations and the risk of lithium toxicity — a narrow-therapeutic-index drug.",
+    referenceSource:
+      "Confirmed on both sides: FDA lithium carbonate label lists \"Renin-Angiotensin System Antagonists\" as increasing steady-state serum lithium concentrations; FDA lisinopril label separately states \"Lithium toxicity has been reported in patients receiving lithium concomitantly with drugs which cause elimination of sodium, including ACE inhibitors\", recommending frequent serum lithium monitoring (via openFDA).",
+  },
+  {
+    id: "int_lithium_enalapril",
+    drug_a: "drug_lithium",
+    drug_b: "drug_enalapril",
+    severity: "major",
+    description:
+      "ACE inhibitors reduce lithium's renal clearance, raising serum lithium concentrations and the risk of lithium toxicity — a narrow-therapeutic-index drug.",
+    referenceSource:
+      "FDA lithium carbonate label, Drug Interactions: \"Renin-Angiotensin System Antagonists\" (a class that includes ACE inhibitors such as enalapril) listed as increasing steady-state serum lithium concentrations, with a recommendation to monitor serum lithium levels frequently (via openFDA).",
+  },
+  {
+    id: "int_lithium_ibuprofen",
+    drug_a: "drug_lithium",
+    drug_b: "drug_ibuprofen",
+    severity: "major",
+    description:
+      "NSAIDs reduce renal lithium clearance, raising serum lithium concentrations and the risk of lithium toxicity — a narrow-therapeutic-index drug.",
+    referenceSource:
+      "FDA lithium carbonate label, Drug Interactions, verbatim: \"NSAID decrease renal blood flow, resulting in decreased renal clearance and increased serum lithium concentrations\" (via openFDA).",
+  },
+  {
+    id: "int_phenytoin_warfarin",
+    drug_a: "drug_phenytoin",
+    drug_b: "drug_warfarin",
+    severity: "moderate",
+    description:
+      "Phenytoin can unpredictably increase or decrease warfarin's anticoagulant effect — monitor INR closely whenever either drug is started, stopped, or dose-adjusted.",
+    referenceSource:
+      "FDA phenytoin label, Drug Interactions, verbatim: \"Increased and decreased PT/INR responses have been reported when phenytoin is coadministered with warfarin\" (via openFDA).",
+  },
+  {
+    id: "int_phenytoin_doxycycline",
+    drug_a: "drug_phenytoin",
+    drug_b: "drug_doxycycline",
+    severity: "moderate",
+    description: "Phenytoin induces metabolism of doxycycline, potentially reducing antibiotic efficacy and risking treatment failure.",
+    referenceSource:
+      "FDA doxycycline label, Drug Interactions, verbatim: \"Barbiturates, carbamazepine, and phenytoin decrease the half-life of doxycycline\" (via openFDA).",
+  },
+  {
+    id: "int_lamotrigine_sodium_valproate",
+    drug_a: "drug_lamotrigine",
+    drug_b: "drug_sodium_valproate",
+    severity: "severe",
+    description:
+      "Valproate markedly inhibits lamotrigine metabolism, raising lamotrigine levels and substantially increasing the risk of serious, potentially life-threatening skin rash (including Stevens-Johnson syndrome) unless the lamotrigine dose is reduced accordingly.",
+    referenceSource:
+      "FDA lamotrigine label, Boxed Warning, names \"coadministration of lamotrigine with valproate\" as a factor that increases serious-rash risk; Drug Interactions section states \"Valproate has been shown to inhibit glucuronidation and decrease the apparent clearance of lamotrigine\", such that \"the dosage of lamotrigine in the presence of valproate is less than half of that required in its absence\" (via openFDA).",
+  },
+  {
+    id: "int_verapamil_atenolol",
+    drug_a: "drug_verapamil",
+    drug_b: "drug_atenolol",
+    severity: "major",
+    description:
+      "Combining verapamil with a beta-blocker has additive effects on heart rate, AV conduction, and cardiac contractility, risking serious bradycardia or heart block.",
+    referenceSource:
+      "FDA verapamil label, Drug Interactions, verbatim: \"Concomitant therapy with beta-adrenergic blockers and verapamil may result in additive negative effects on heart rate, atrioventricular conduction and/or cardiac contractility\"; combined therapy \"should usually be avoided in patients with atrioventricular conduction abnormalities and those with depressed left ventricular function\" (via openFDA).",
+  },
+  {
+    id: "int_verapamil_bisoprolol",
+    drug_a: "drug_verapamil",
+    drug_b: "drug_bisoprolol",
+    severity: "major",
+    description:
+      "Combining verapamil with a beta-blocker has additive effects on heart rate, AV conduction, and cardiac contractility, risking serious bradycardia or heart block.",
+    referenceSource:
+      "FDA verapamil label, Drug Interactions, verbatim: \"Concomitant therapy with beta-adrenergic blockers and verapamil may result in additive negative effects on heart rate, atrioventricular conduction and/or cardiac contractility\" (via openFDA).",
+  },
+  {
+    id: "int_verapamil_metoprolol",
+    drug_a: "drug_verapamil",
+    drug_b: "drug_metoprolol",
+    severity: "major",
+    description:
+      "Combining verapamil with a beta-blocker has additive effects on heart rate, AV conduction, and cardiac contractility, risking serious bradycardia or heart block.",
+    referenceSource:
+      "FDA verapamil label, Drug Interactions, verbatim: \"Concomitant therapy with beta-adrenergic blockers and verapamil may result in additive negative effects on heart rate, atrioventricular conduction and/or cardiac contractility\" (via openFDA).",
+  },
+  {
+    id: "int_verapamil_digoxin",
+    drug_a: "drug_verapamil",
+    drug_b: "drug_digoxin",
+    severity: "major",
+    description: "Verapamil can raise digoxin plasma levels substantially, risking digoxin toxicity in a narrow-therapeutic-index drug.",
+    referenceSource:
+      "FDA verapamil label, Drug Interactions, verbatim: \"chronic verapamil treatment can increase serum digoxin levels by 50% to 75% during the first week of therapy, and this can result in digitalis toxicity\"; maintenance/digitalization doses \"should be reduced when verapamil is administered\" (via openFDA).",
+  },
+  {
+    id: "int_verapamil_simvastatin",
+    drug_a: "drug_verapamil",
+    drug_b: "drug_simvastatin",
+    severity: "moderate",
+    description: "Verapamil inhibits simvastatin metabolism (CYP3A4), raising the risk of myopathy — the simvastatin dose should be capped.",
+    referenceSource:
+      "FDA verapamil label, Drug Interactions, verbatim: \"Limit the dose of simvastatin in patients on verapamil to 10 mg daily\"; combined use of CYP3A4-substrate statins with verapamil \"has been associated with reports of myopathy/rhabdomyolysis\" (via openFDA).",
+  },
+  {
+    id: "int_clopidogrel_omeprazole",
+    drug_a: "drug_clopidogrel",
+    drug_b: "drug_omeprazole",
+    severity: "major",
+    description:
+      "Omeprazole inhibits the CYP2C19-mediated activation of clopidogrel, significantly reducing its antiplatelet effect — use a different acid-suppressing agent where possible.",
+    referenceSource:
+      "FDA clopidogrel label, Drug Interactions, verbatim: \"Avoid concomitant use of clopidogrel with omeprazole or esomeprazole\", since \"omeprazole was shown to reduce significantly the antiplatelet activity of clopidogrel when given concomitantly or 12 hours apart\"; the label notes \"dexlansoprazole, lansoprazole, and pantoprazole had less effect\" (via openFDA).",
+  },
+  {
+    id: "int_doxycycline_ferrous_sulfate",
+    drug_a: "drug_doxycycline",
+    drug_b: "drug_ferrous_sulfate",
+    severity: "moderate",
+    description:
+      "Iron salts bind tetracyclines in the gut and reduce their absorption, risking treatment failure. Manageable by spacing doses several hours apart.",
+    referenceSource:
+      "FDA doxycycline label, Drug Interactions, verbatim: \"Absorption of tetracyclines is impaired by antacids containing aluminum, calcium, or magnesium, and iron-containing preparations\" (via openFDA).",
+  },
+  {
+    id: "int_doxycycline_ferrous_fumarate",
+    drug_a: "drug_doxycycline",
+    drug_b: "drug_ferrous_fumarate",
+    severity: "moderate",
+    description:
+      "Iron salts bind tetracyclines in the gut and reduce their absorption, risking treatment failure. Manageable by spacing doses several hours apart.",
+    referenceSource:
+      "FDA doxycycline label, Drug Interactions, verbatim: \"Absorption of tetracyclines is impaired by antacids containing aluminum, calcium, or magnesium, and iron-containing preparations\" (via openFDA).",
+  },
+  {
+    id: "int_tetracycline_ferrous_sulfate",
+    drug_a: "drug_tetracycline",
+    drug_b: "drug_ferrous_sulfate",
+    severity: "moderate",
+    description:
+      "Iron salts bind tetracyclines in the gut and reduce their absorption, risking treatment failure. Manageable by spacing doses several hours apart.",
+    referenceSource:
+      "FDA doxycycline label, Drug Interactions, verbatim: \"Absorption of tetracyclines is impaired by...iron-containing preparations\" — a class-wide tetracycline statement, applied here to tetracycline itself (via openFDA).",
+  },
+  {
+    id: "int_doxycycline_warfarin",
+    drug_a: "drug_doxycycline",
+    drug_b: "drug_warfarin",
+    severity: "moderate",
+    description: "Tetracyclines can depress plasma prothrombin activity, potentiating warfarin's anticoagulant effect — monitor INR and anticoagulant dose.",
+    referenceSource:
+      "FDA doxycycline label, Drug Interactions, verbatim: \"Because tetracyclines have been shown to depress plasma prothrombin activity, patients who are on anticoagulant therapy may require downward adjustment of their anticoagulant dosage\" (via openFDA).",
+  },
 ];
