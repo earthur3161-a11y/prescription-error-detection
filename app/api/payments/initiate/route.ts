@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 import type { Database } from "@/lib/supabase/types";
+import { toE164Gh } from "@/lib/utils/phone";
 
 type CheckPaymentInsert = Database["public"]["Tables"]["check_payments"]["Insert"];
 
@@ -41,7 +42,11 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  const { phone, provider } = parsed.data;
+  // Normalized the same way the OTP routes do — must match the exact string
+  // self_check_accounts is keyed on for get_check_quota below to find the
+  // row, and Paystack's mobile_money charge needs E.164 to route correctly.
+  const phone = toE164Gh(parsed.data.phone);
+  const { provider } = parsed.data;
 
   const { data: quotaRows, error: quotaError } = await supabaseService.rpc("get_check_quota", { p_phone: phone });
   if (quotaError) {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 import { isOtpDemoModeAllowed } from "@/lib/utils/otpDemoMode";
 import { otpCodeMatches } from "@/lib/utils/otpCode";
+import { toE164Gh } from "@/lib/utils/phone";
 
 const bodySchema = z.object({ phone: z.string().min(6), code: z.string().min(3).max(10) });
 
@@ -30,7 +31,11 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: "invalid_request", message: "A phone number and code are required." }, { status: 422 });
   }
-  const { phone, code } = parsed.data;
+  // Normalized the same way app/api/otp/send/route.ts does — must produce
+  // the identical string for the self_check_accounts lookup below to ever
+  // find the row send() wrote.
+  const phone = toE164Gh(parsed.data.phone);
+  const { code } = parsed.data;
 
   // Same simulated-verification convention already used by the seeded demo
   // logins' MFA step — any code that passes the schema above is accepted.

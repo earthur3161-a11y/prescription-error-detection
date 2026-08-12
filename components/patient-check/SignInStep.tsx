@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useSendOtp, useVerifyOtp } from "@/lib/query/hooks/usePhoneVerification";
-import { isValidGhPhone } from "@/lib/utils/phone";
+import { isValidGhPhone, toE164Gh } from "@/lib/utils/phone";
 
 type SubStep = "phone" | "otp";
 
@@ -36,7 +36,11 @@ export function SignInStep({ onSignedIn }: SignInStepProps) {
       showToast({ title: "Enter a valid Ghana phone number", variant: "error" });
       return;
     }
-    const phone = phoneInput.trim();
+    // Normalized once here, at the single point a phone number enters this
+    // flow — onSignedIn threads this exact string through every downstream
+    // quota/payment/patient_checks lookup, so this is the only place that
+    // needs to get it right for the whole flow to stay consistent.
+    const phone = toE164Gh(phoneInput.trim());
     setConfirmedPhone(phone);
     setSubStep("otp");
     sendOtp.mutate(phone, {

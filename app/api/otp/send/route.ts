@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 import { isOtpDemoModeAllowed } from "@/lib/utils/otpDemoMode";
 import { generateOtpCode, hashOtpCode } from "@/lib/utils/otpCode";
+import { toE164Gh } from "@/lib/utils/phone";
 
 // Deliberately NOT validated at module scope — same reasoning as
 // send-email-hook: a build-time throw here would fail the entire Vercel
@@ -26,7 +27,10 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: "invalid_request", message: "A valid phone number is required." }, { status: 422 });
   }
-  const phone = parsed.data.phone;
+  // Normalized defensively even though SignInStep already does this — this
+  // route is independently callable, and Africa's Talking's `to` field
+  // below needs E.164 for real delivery, not whatever shape a caller sent.
+  const phone = toE164Gh(parsed.data.phone);
 
   // Same simulated-verification convention already used by the seeded demo
   // logins' MFA step (components/auth/PortalLoginForm.tsx), but hardened

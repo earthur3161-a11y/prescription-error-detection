@@ -48,6 +48,27 @@ describe("POST /api/otp/verify — demo mode", () => {
 });
 
 describe("POST /api/otp/verify — self-hosted code checking", () => {
+  // Regression coverage: send() and verify() must normalize identically, or
+  // a code hashed/stored under "+233244123456" (what send() writes) could
+  // never be found again if verify() looked it up under "0244123456" (what
+  // a client might resubmit) instead.
+  it("normalizes a locally-formatted phone the same way send() does, so the lookup still finds the account", async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        otp_code_hash: hashOtpCode(PHONE, "123456"),
+        otp_expires_at: new Date(Date.now() + 60_000).toISOString(),
+        otp_verify_attempts: 0,
+      },
+      error: null,
+    });
+
+    const res = await POST(req({ phone: "0244123456", code: "123456" }));
+
+    expect(await res.json()).toEqual({ verified: true });
+    expect(eqAfterSelectMock).toHaveBeenCalledWith("phone", PHONE);
+  });
+
+
   it("returns verified:false when no code was ever sent to this phone", async () => {
     maybeSingleMock.mockResolvedValue({ data: null, error: null });
 

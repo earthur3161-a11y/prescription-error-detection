@@ -39,8 +39,22 @@ describe("SignInStep", () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(sendOtpMock).toHaveBeenCalledWith("0244123456", expect.anything());
+    expect(sendOtpMock).toHaveBeenCalledWith("+233244123456", expect.anything());
     expect(screen.getByLabelText(/verification code/i)).toBeInTheDocument();
+  });
+
+  // Regression coverage: this used to send whatever the patient literally
+  // typed (commonly 0XXXXXXXXX) straight through to both the SMS API and
+  // every phone-keyed DB lookup — Africa's Talking's API requires E.164 for
+  // real delivery, so a locally-formatted number could fail to actually
+  // reach a real patient's phone even though the API call itself "succeeded".
+  it("normalizes a locally-formatted phone number to E.164 before it ever leaves this component", () => {
+    render(<SignInStep onSignedIn={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "055 724 1928" } });
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(sendOtpMock).toHaveBeenCalledWith("+233557241928", expect.anything());
   });
 
   // Regression coverage: this message used to be driven by
@@ -56,7 +70,7 @@ describe("SignInStep", () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(screen.getByText("Sent to 0244123456.")).toBeInTheDocument();
+    expect(screen.getByText("Sent to +233244123456.")).toBeInTheDocument();
     expect(screen.queryByText(/simulated in this demo/i)).not.toBeInTheDocument();
   });
 
@@ -78,7 +92,7 @@ describe("SignInStep", () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: "0244123456" } });
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(onSignedIn).toHaveBeenCalledWith("0244123456");
+    expect(onSignedIn).toHaveBeenCalledWith("+233244123456");
   });
 
   it("calls onSignedIn with the confirmed phone once the OTP verifies", async () => {
@@ -91,7 +105,7 @@ describe("SignInStep", () => {
     fireEvent.change(screen.getByLabelText(/verification code/i), { target: { value: "123456" } });
     fireEvent.click(screen.getByRole("button", { name: /^verify$/i }));
 
-    await waitFor(() => expect(onSignedIn).toHaveBeenCalledWith("0244123456"));
+    await waitFor(() => expect(onSignedIn).toHaveBeenCalledWith("+233244123456"));
   });
 
   it("does not call onSignedIn when the code is wrong", () => {
