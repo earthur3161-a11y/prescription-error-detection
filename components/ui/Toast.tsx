@@ -34,7 +34,8 @@ export function ToastViewport() {
             key={toast.id}
             role="status"
             className={cn(
-              "flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg animate-fade-up",
+              "flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg",
+              toast.leaving ? "animate-fade-out" : "animate-fade-up",
               classes
             )}
           >

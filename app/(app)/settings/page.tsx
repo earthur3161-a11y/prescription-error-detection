@@ -4,6 +4,7 @@ import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { ListRowSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import { useProfiles } from "@/lib/query/hooks/useProfiles";
@@ -16,7 +17,7 @@ export default function SettingsPage() {
   const toggleSimulateOffline = useOfflineStore((s) => s.toggleSimulateOffline);
   const { data: pending } = usePendingOutbox();
   const syncOutbox = useSyncOutbox();
-  const { data: profiles } = useProfiles();
+  const { data: profiles, isLoading: profilesLoading } = useProfiles();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -114,14 +115,18 @@ export default function SettingsPage() {
       <Card>
         <CardBody className="space-y-3">
           <h2 className="font-semibold text-foreground">Users</h2>
-          <ul className="stagger divide-y divide-border">
-            {[...(profiles?.values() ?? [])].map((p) => (
-              <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="text-foreground">{p.name}</span>
-                <Badge tone="neutral">{ROLE_LABELS[p.role]}</Badge>
-              </li>
-            ))}
-          </ul>
+          {profilesLoading ? (
+            <ListRowSkeleton />
+          ) : (
+            <ul className="stagger divide-y divide-border">
+              {[...(profiles?.values() ?? [])].map((p) => (
+                <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-foreground">{p.name}</span>
+                  <Badge tone="neutral">{ROLE_LABELS[p.role]}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardBody>
       </Card>
     </div>

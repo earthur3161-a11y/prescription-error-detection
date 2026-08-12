@@ -185,9 +185,28 @@
   --radius-xl: 0.875rem;
   --radius-2xl: 1.125rem;
 
+  /* ---------------------------------------------------------------------
+     Motion system — four tiers, timing chosen once here rather than
+     per call site. Every tier already existed in practice (Button/Card/
+     Input's hover-press duration-200, the mobile drawer's duration-300,
+     these entrance tokens); this makes the convention explicit and adds
+     the one tier that was missing: a matching exit for entrances that
+     have one (Modal, Toast). Enter slower/decelerate, exit faster/
+     accelerate — the standard convention, not arbitrary per-token choices.
+       - Micro (150-200ms, ease-out): hover/focus/press/color transitions.
+         Not tokenized — Tailwind's duration-200 on Button/Card/Input.
+       - Structural (250-300ms): drawer slides, tab switches, modal
+         geometry. Not tokenized — duration-300 at each call site.
+       - Entrance (200-500ms, cubic-bezier(0.16,1,0.3,1) "decelerate"):
+         fade-up/fade-in/scale-in below.
+       - Exit (150ms, cubic-bezier(0.4,0,1,1) "accelerate"): fade-out/
+         scale-out below — mirrors fade-in/scale-in, faster and reversed.
+  --------------------------------------------------------------------- */
   --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-fade-in: fade-in 0.4s ease-out both;
   --animate-scale-in: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-out: fade-out 0.15s cubic-bezier(0.4, 0, 1, 1) both;
+  --animate-scale-out: scale-out 0.15s cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 @layer base {
@@ -265,6 +284,8 @@
   .animate-fade-up { animation: var(--animate-fade-up); }
   .animate-fade-in { animation: var(--animate-fade-in); }
   .animate-scale-in { animation: var(--animate-scale-in); }
+  .animate-fade-out { animation: var(--animate-fade-out); }
+  .animate-scale-out { animation: var(--animate-scale-out); }
 
   /* Stagger helpers for lists/grids */
   .stagger > * { animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -288,6 +309,14 @@
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes scale-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.96); }
+}
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
@@ -297,6 +326,8 @@
   .animate-fade-up,
   .animate-fade-in,
   .animate-scale-in,
+  .animate-fade-out,
+  .animate-scale-out,
   .stagger > * {
     animation: none !important;
   }
