@@ -98,10 +98,20 @@ export function SignInStep({ onSignedIn }: SignInStepProps) {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-foreground">Enter the code we texted you</h2>
+        {/*
+          Reads demoMode off the actual send response, not
+          NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS directly — that flag is also on for
+          the real production deployment (it separately gates the seeded
+          professional demo logins there), but lib/utils/otpDemoMode.ts's
+          isOtpDemoModeAllowed() additionally requires VERCEL_ENV !==
+          "production" before the OTP bypass activates. Checking the raw flag
+          here showed "enter any digits" to real patients on production, who
+          then correctly got "Incorrect code" back for doing exactly that —
+          this component has to reflect what the server actually did, not
+          re-derive its own guess at the same gate.
+        */}
         <p className="mt-1 text-sm text-secondary">
-          {process.env.NEXT_PUBLIC_ENABLE_DEV_ACCOUNTS === "true"
-            ? "Simulated in this demo — enter any digits."
-            : `Sent to ${confirmedPhone}.`}
+          {sendOtp.data?.demoMode ? "Simulated in this demo — enter any digits." : `Sent to ${confirmedPhone}.`}
         </p>
       </div>
       <Input

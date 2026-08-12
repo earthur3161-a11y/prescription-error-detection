@@ -1,4 +1,4 @@
-export async function sendOtp(phone: string): Promise<{ sent?: boolean; alreadyVerified?: boolean }> {
+export async function sendOtp(phone: string): Promise<{ sent?: boolean; alreadyVerified?: boolean; demoMode?: boolean }> {
   const res = await fetch("/api/otp/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
