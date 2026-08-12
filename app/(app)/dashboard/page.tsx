@@ -6,11 +6,18 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { VerdictMark } from "@/components/ui/VerdictMark";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Kpi } from "@/components/analytics/Kpi";
+import { StackedDailyChart } from "@/components/analytics/AnalyticsCharts";
 import { useAuth } from "@/lib/auth/useAuth";
 import { usePatients } from "@/lib/query/hooks/usePatients";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
+import { useReportingDailyTrend, useReportingSummary } from "@/lib/query/hooks/useReporting";
+import { computeReportingRates, toDailyPoints } from "@/lib/analytics/reportingMetrics";
+import { presetToRange } from "@/components/analytics/ReportingRangeSelect";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict } from "@/lib/screening-engine/overallVerdict";
+
+const SNAPSHOT_RANGE = presetToRange("7");
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -19,6 +26,20 @@ export default function DashboardPage() {
     prescriberId: user?.id,
     currentOnly: true,
   });
+  const summary = useReportingSummary(SNAPSHOT_RANGE);
+  const dailyTrend = useReportingDailyTrend(SNAPSHOT_RANGE);
+
+  const snapshotLoading = summary.isLoading || dailyTrend.isLoading;
+  const s = summary.data ?? {
+    totalPrescriptions: 0,
+    totalLines: 0,
+    safeLines: 0,
+    cautionLines: 0,
+    blockedLines: 0,
+    overrideCount: 0,
+  };
+  const rates = computeReportingRates(s);
+  const daily = toDailyPoints(dailyTrend.data ?? []);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
@@ -37,6 +58,49 @@ export default function DashboardPage() {
             New Prescription
           </Button>
         </Link>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-foreground">Last 7 days</h2>
+          <Link href="/reports" className="text-sm font-medium text-brand hover:underline">
+            View full reports
+          </Link>
+        </div>
+
+        {snapshotLoading ? (
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            <Skeleton className="h-48 w-full" />
+          </div>
+        ) : (
+          <>
+            <div className="stagger grid gap-4 sm:grid-cols-3">
+              <Kpi label="Prescriptions" value={String(s.totalPrescriptions)} sub={`${s.totalLines} drug lines`} />
+              <Kpi
+                label="Flagged rate"
+                value={`${Math.round(rates.flaggedRate * 100)}%`}
+                sub="caution or blocked"
+                tone={rates.flaggedRate > 0.5 ? "caution" : "default"}
+              />
+              <Kpi
+                label="Overrides"
+                value={String(s.overrideCount)}
+                sub={rates.overrideRate > 0 ? `${Math.round(rates.overrideRate * 100)}% of flagged` : "none logged"}
+                tone={rates.overrideRate > 0.5 ? "blocked" : "default"}
+              />
+            </div>
+            <Card>
+              <CardBody>
+                <StackedDailyChart data={daily} />
+              </CardBody>
+            </Card>
+          </>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

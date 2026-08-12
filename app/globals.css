@@ -213,6 +213,12 @@
   --animate-fade-out: fade-out 0.15s cubic-bezier(0.4, 0, 1, 1) both;
   --animate-scale-out: scale-out 0.15s cubic-bezier(0.4, 0, 1, 1) both;
   --animate-data-pulse: data-pulse 0.8s ease-out both;
+  /* Entrance tier, chart-specific: bars growing in from their baseline
+     rather than fading/scaling in place — transform only (scaleY/scaleX),
+     never touches the inline height/width % a bar's real value is encoded
+     in, so the two compose correctly instead of fighting. */
+  --animate-grow-up: grow-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-grow-right: grow-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @layer base {
@@ -302,6 +308,8 @@
   .animate-fade-out { animation: var(--animate-fade-out); }
   .animate-scale-out { animation: var(--animate-scale-out); }
   .animate-data-pulse { animation: var(--animate-data-pulse); }
+  .animate-grow-up { animation: var(--animate-grow-up); }
+  .animate-grow-right { animation: var(--animate-grow-right); }
 
   /* Stagger helpers for lists/grids */
   .stagger > * { animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -337,6 +345,14 @@
   0% { background-color: var(--brand-subtle); }
   100% { background-color: transparent; }
 }
+@keyframes grow-up {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes grow-right {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
@@ -349,6 +365,8 @@
   .animate-fade-out,
   .animate-scale-out,
   .animate-data-pulse,
+  .animate-grow-up,
+  .animate-grow-right,
   .stagger > * {
     animation: none !important;
   }

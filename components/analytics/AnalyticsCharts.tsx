@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { DailyPoint, LabeledCount } from "@/lib/analytics/facilityMetrics";
 
 // The actual verdict-palette CSS custom properties (globals.css), not
@@ -16,12 +17,41 @@ export const CHART_COLORS = {
   brand: "var(--brand)",
 } as const;
 
+// Every bar's own entrance is staggered by index — capped so a long list
+// (e.g. 90 days of daily bars) doesn't leave the last bar waiting a
+// visibly long time to animate in; beyond the cap they all settle
+// together, which reads as "the chart arrived," not "bars are still
+// trickling in."
+const MAX_STAGGER_MS = 400;
+function staggerDelay(index: number, stepMs = 15): string {
+  return `${Math.min(index * stepMs, MAX_STAGGER_MS)}ms`;
+}
+
 function formatDayLabel(date: string): string {
   return new Date(date + "T00:00:00Z").toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   });
+}
+
+/**
+ * Small styled tooltip, replacing the browser's native `title` attribute
+ * (slow to appear, unstyled, inconsistent across browsers) with something
+ * that matches the rest of the design system — same border/shadow/radius
+ * language as Card, revealed on hover/focus via group-* utilities rather
+ * than JS-driven positioning, since every chart here has a simple, fixed
+ * layout a pure-CSS tooltip can anchor to correctly.
+ */
+function ChartTooltip({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max max-w-[14rem] -translate-x-1/2 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+    >
+      {children}
+    </div>
+  );
 }
 
 /** A single horizontal stacked bar (e.g. overall verdict mix) with a legend. */
@@ -33,14 +63,22 @@ export function SegmentBar({
   const total = segments.reduce((s, seg) => s + seg.value, 0);
   return (
     <div className="space-y-3">
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label="Distribution">
+      <div
+        className="flex h-3 w-full origin-left animate-grow-right overflow-hidden rounded-full bg-muted"
+        role="img"
+        aria-label="Distribution"
+      >
         {total > 0 &&
           segments.map((seg) => (
             <div
               key={seg.label}
+              className="group relative"
               style={{ width: `${(seg.value / total) * 100}%`, backgroundColor: seg.color }}
-              title={`${seg.label}: ${seg.value}`}
-            />
+            >
+              <ChartTooltip>
+                {seg.label}: {seg.value} ({Math.round((seg.value / total) * 100)}%)
+              </ChartTooltip>
+            </div>
           ))}
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
@@ -73,18 +111,23 @@ export function BarList({
   const max = Math.max(...items.map((i) => i.count), 1);
   return (
     <ul className="space-y-2.5">
-      {items.map((item) => (
-        <li key={item.key} className="flex items-center gap-3">
-          <span className="w-40 shrink-0 truncate text-sm text-secondary" title={item.label}>
-            {item.label}
-          </span>
+      {items.map((item, i) => (
+        <li key={item.key} className="group relative flex items-center gap-3">
+          <span className="w-40 shrink-0 truncate text-sm text-secondary">{item.label}</span>
           <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full"
-              style={{ width: `${(item.count / max) * 100}%`, backgroundColor: color }}
+              className="h-full origin-left animate-grow-right rounded-full"
+              style={{
+                width: `${(item.count / max) * 100}%`,
+                backgroundColor: color,
+                animationDelay: staggerDelay(i),
+              }}
             />
           </div>
           <span className="w-8 shrink-0 text-right text-sm font-medium tabular-nums text-foreground">{item.count}</span>
+          <ChartTooltip>
+            {item.label}: {item.count}
+          </ChartTooltip>
         </li>
       ))}
     </ul>
@@ -101,27 +144,38 @@ export function StackedDailyChart({ data }: { data: DailyPoint[] }) {
   return (
     <div>
       <div className="flex h-44 items-end gap-1" role="img" aria-label="Daily screening volume by verdict">
-        {data.map((d) => {
+        {data.map((d, i) => {
           const total = d.safe + d.caution + d.blocked;
           const pct = (n: number) => (n / maxTotal) * 100;
           return (
             <div
               key={d.date}
-              className="flex h-full flex-1 flex-col justify-end"
-              title={`${formatDayLabel(d.date)} — ${total} screening${total === 1 ? "" : "s"} (safe ${d.safe}, caution ${d.caution}, blocked ${d.blocked})`}
+              className="group relative flex h-full flex-1 flex-col justify-end"
             >
-              {d.blocked > 0 && (
-                <div style={{ height: `${pct(d.blocked)}%`, backgroundColor: CHART_COLORS.blocked }} />
-              )}
-              {d.caution > 0 && (
-                <div style={{ height: `${pct(d.caution)}%`, backgroundColor: CHART_COLORS.caution }} />
-              )}
-              {d.safe > 0 && (
-                <div
-                  className="rounded-t-sm"
-                  style={{ height: `${pct(d.safe)}%`, backgroundColor: CHART_COLORS.safe }}
-                />
-              )}
+              <div
+                className="flex origin-bottom animate-grow-up flex-col justify-end"
+                style={{ height: "100%", animationDelay: staggerDelay(i) }}
+              >
+                {d.blocked > 0 && (
+                  <div style={{ height: `${pct(d.blocked)}%`, backgroundColor: CHART_COLORS.blocked }} />
+                )}
+                {d.caution > 0 && (
+                  <div style={{ height: `${pct(d.caution)}%`, backgroundColor: CHART_COLORS.caution }} />
+                )}
+                {d.safe > 0 && (
+                  <div
+                    className="rounded-t-sm"
+                    style={{ height: `${pct(d.safe)}%`, backgroundColor: CHART_COLORS.safe }}
+                  />
+                )}
+              </div>
+              <ChartTooltip>
+                <p className="font-medium">{formatDayLabel(d.date)}</p>
+                <p className="text-muted-foreground">
+                  {total} screening{total === 1 ? "" : "s"}
+                  {total > 0 && ` — safe ${d.safe}, caution ${d.caution}, blocked ${d.blocked}`}
+                </p>
+              </ChartTooltip>
             </div>
           );
         })}

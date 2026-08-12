@@ -19,41 +19,12 @@ import {
   toTopFlaggedDrugs,
 } from "@/lib/analytics/reportingMetrics";
 import { BarList, CHART_COLORS, SegmentBar, StackedDailyChart } from "@/components/analytics/AnalyticsCharts";
+import { Kpi } from "@/components/analytics/Kpi";
 import {
   presetToRange,
   ReportingRangeSelect,
   type ReportingRangePreset,
 } from "@/components/analytics/ReportingRangeSelect";
-
-function Kpi({
-  label,
-  value,
-  sub,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  tone?: "default" | "safe" | "caution" | "blocked";
-}) {
-  const valueClass =
-    tone === "safe"
-      ? "text-safe-fg"
-      : tone === "caution"
-        ? "text-caution-fg"
-        : tone === "blocked"
-          ? "text-blocked-fg"
-          : "text-foreground";
-  return (
-    <Card>
-      <CardBody>
-        <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className={`mt-1 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
-        {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
-      </CardBody>
-    </Card>
-  );
-}
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -158,7 +129,7 @@ export default function MyReportsPage() {
         <StackedDailyChart data={daily} />
       </SectionCard>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="stagger grid gap-6 lg:grid-cols-2">
         <SectionCard title="Overall verdict mix">
           <SegmentBar
             segments={[

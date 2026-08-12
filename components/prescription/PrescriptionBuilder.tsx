@@ -6,6 +6,7 @@ import { DrugSearchAdd } from "@/components/prescription/DrugSearchAdd";
 import { DrugLineList } from "@/components/prescription/DrugLineList";
 import { SignSubmitBar } from "@/components/prescription/SignSubmitBar";
 import { OverrideModal } from "@/components/prescription/OverrideModal";
+import { PrescriptionReasonSection } from "@/components/prescription/PrescriptionReasonSection";
 import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePatient } from "@/lib/query/hooks/usePatient";
@@ -228,6 +229,9 @@ export function PrescriptionBuilder({
           </div>
         ) : (
           <>
+            {patient && (
+              <PrescriptionReasonSection patient={patient} editable={patient.ownerId === prescriberId} />
+            )}
             {formulary && <ScreeningCoverageNotice formulary={formulary} />}
             <DrugSearchAdd key={patientId} onAdd={handleAddDrug} autoFocus={!!patientId} />
             <DrugLineList

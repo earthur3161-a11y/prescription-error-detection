@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const toggleSimulateOffline = useOfflineStore((s) => s.toggleSimulateOffline);
   const { data: pending } = usePendingOutbox();
   const syncOutbox = useSyncOutbox();
-  const { data: profiles, isLoading: profilesLoading } = useProfiles();
+  const { data: profiles, isLoading: profilesLoading } = useProfiles(user?.role !== "prescriber");
 
   return (
     <div className="stagger mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -105,23 +105,25 @@ export default function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
-        <CardBody className="space-y-3">
-          <h2 className="font-semibold text-foreground">Users</h2>
-          {profilesLoading ? (
-            <ListRowSkeleton />
-          ) : (
-            <ul className="stagger divide-y divide-border">
-              {[...(profiles?.values() ?? [])].map((p) => (
-                <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-foreground">{p.name}</span>
-                  <Badge tone="neutral">{ROLE_LABELS[p.role]}</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
+      {user?.role !== "prescriber" && (
+        <Card>
+          <CardBody className="space-y-3">
+            <h2 className="font-semibold text-foreground">Users</h2>
+            {profilesLoading ? (
+              <ListRowSkeleton />
+            ) : (
+              <ul className="stagger divide-y divide-border">
+                {[...(profiles?.values() ?? [])].map((p) => (
+                  <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-foreground">{p.name}</span>
+                    <Badge tone="neutral">{ROLE_LABELS[p.role]}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }

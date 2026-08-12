@@ -10,13 +10,14 @@ import type { Profile } from "../../types";
  * loop — a per-row useProfile(id) hook would be both a Rules-of-Hooks
  * violation and an N+1 query storm there, so this is the only safe shape.
  */
-export function useProfiles() {
+export function useProfiles(enabled = true) {
   return useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
       const profiles = await listProfiles();
       return new Map(profiles.map((p) => [p.id, p]));
     },
+    enabled,
   });
 }
 
