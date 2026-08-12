@@ -162,7 +162,7 @@ function WidgetInner() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-transparent p-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-soft">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <ShieldCheck className="size-4 text-brand" aria-hidden="true" />
           MediGuard screening
@@ -192,7 +192,11 @@ function WidgetInner() {
         )}
 
         {state.status === "result" && (
-          <div className="space-y-2">
+          // Keyed so a second screening (a host re-posting as the prescriber
+          // adjusts the order) replays this as a fresh reveal rather than a
+          // silent content swap — this card's verdict is the entire point of
+          // the widget.
+          <div key={`${state.drugName}:${state.verdict}`} className="animate-scale-in space-y-2">
             <p className="text-sm font-medium text-foreground">{state.drugName}</p>
             <VerdictMark verdict={state.verdict} flags={state.flags} />
             {state.flags.length > 0 && (
@@ -208,7 +212,7 @@ function WidgetInner() {
               <button
                 type="button"
                 onClick={() => setShowAllFlags(true)}
-                className="text-xs font-medium text-brand hover:underline"
+                className="text-xs font-medium text-brand transition-transform duration-200 hover:underline active:scale-[0.98]"
               >
                 Show {state.flags.length - VISIBLE_FLAGS_COLLAPSED} more
               </button>

@@ -7,8 +7,10 @@ import { VerdictMark } from "@/components/ui/VerdictMark";
 import { FlagSeverityChip } from "@/components/ui/FlagSeverityChip";
 import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, FindingsPanelSkeleton, ListRowSkeleton, StatCardSkeleton } from "@/components/ui/Skeleton";
+import { Switch } from "@/components/ui/Switch";
 import { Modal } from "@/components/ui/Modal";
 import { Combobox } from "@/components/ui/Combobox";
 import { useToastStore } from "@/lib/store/toast-store";
@@ -38,10 +40,11 @@ const REAL_BLOCKED: Flag[] = [flag({ severity: "severe", message: "Severe intera
 export default function UiKitPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [switchOn, setSwitchOn] = useState(false);
   const showToast = useToastStore((s) => s.show);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10 p-8">
+    <div className="stagger mx-auto max-w-4xl space-y-10 p-8">
       <h1 className="text-2xl font-semibold text-foreground">Design System Preview</h1>
 
       <section className="space-y-3">
@@ -109,7 +112,28 @@ export default function UiKitPage() {
         <div className="flex flex-wrap gap-3">
           <Badge tone="neutral">Neutral</Badge>
           <Badge tone="brand">Brand</Badge>
+          <Badge tone="safe">Safe</Badge>
+          <Badge tone="caution">Caution</Badge>
+          <Badge tone="blocked">Blocked</Badge>
+          <Badge tone="unknown">Unknown</Badge>
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notices</h2>
+        <div className="space-y-2">
+          <Notice tone="neutral">Neutral notice — general information.</Notice>
+          <Notice tone="brand">Brand notice — a MediGuard-specific callout.</Notice>
+          <Notice tone="safe">Safe notice — confirmed, no action needed.</Notice>
+          <Notice tone="caution" title="Caution notice">With an optional title, like this one.</Notice>
+          <Notice tone="blocked" role="alert">Blocked notice — used for errors, with role=&quot;alert&quot; so it&rsquo;s announced immediately.</Notice>
+          <Notice tone="unknown">Unknown notice — data is missing, not confirmed either way.</Notice>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Switch</h2>
+        <Switch checked={switchOn} onCheckedChange={setSwitchOn} aria-label="Demo switch" />
       </section>
 
       <section className="space-y-3">
@@ -154,11 +178,26 @@ export default function UiKitPage() {
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Skeleton</h2>
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Skeleton — shape-matched to the content it precedes, not a generic gray box
+        </h2>
         <div className="max-w-sm space-y-2">
+          <p className="text-xs text-subtle">Bare primitive</p>
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
+        </div>
+        <div className="max-w-sm space-y-2">
+          <p className="text-xs text-subtle">ListRowSkeleton</p>
+          <ListRowSkeleton count={2} />
+        </div>
+        <div className="max-w-sm space-y-2">
+          <p className="text-xs text-subtle">StatCardSkeleton</p>
+          <StatCardSkeleton />
+        </div>
+        <div className="max-w-sm space-y-2">
+          <p className="text-xs text-subtle">FindingsPanelSkeleton</p>
+          <FindingsPanelSkeleton />
         </div>
       </section>
 
