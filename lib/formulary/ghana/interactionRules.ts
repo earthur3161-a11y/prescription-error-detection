@@ -640,4 +640,31 @@ export const ghanaInteractionRules: InteractionRule[] = [
     referenceSource:
       "FDA doxycycline label, Drug Interactions, verbatim: \"Because tetracyclines have been shown to depress plasma prothrombin activity, patients who are on anticoagulant therapy may require downward adjustment of their anticoagulant dosage\" (via openFDA).",
   },
+  // Paracetamol had zero interaction rules of any kind despite being the
+  // single most commonly co-prescribed drug in this formulary — found while
+  // investigating a report that it only ever showed its one alcohol-interaction
+  // flag and nothing else. That wasn't a check-logic bug (checkAlcoholInteraction
+  // and checkIndication both already run correctly for it); the drug-drug
+  // interaction data for it was simply never written. Same sourcing pass as
+  // above — direct FDA label quotes via openFDA where confirmable.
+  {
+    id: "int_carbamazepine_paracetamol",
+    drug_a: "drug_carbamazepine",
+    drug_b: "drug_paracetamol",
+    severity: "minor",
+    description:
+      "Carbamazepine induces hepatic metabolism of paracetamol, potentially reducing its analgesic/antipyretic effect at standard doses.",
+    referenceSource:
+      "FDA carbamazepine label, Drug Interactions: carbamazepine \"causes, or would be expected to cause, decreased levels of the following drugs\", with acetaminophen (paracetamol) explicitly named in that list (via openFDA).",
+  },
+  {
+    id: "int_warfarin_paracetamol",
+    drug_a: "drug_warfarin",
+    drug_b: "drug_paracetamol",
+    severity: "moderate",
+    description:
+      "Regular or high-dose paracetamol use (not occasional single doses) can potentiate warfarin's anticoagulant effect and raise INR — monitor INR more closely with sustained concomitant use.",
+    referenceSource:
+      "NOT CONFIRMED against the current FDA warfarin label — a full-text search of its Drug Interactions section (via openFDA) found no mention of acetaminophen/paracetamol at all. Kept here because this is a well-established interaction in international clinical guidance (e.g. the British National Formulary lists paracetamol among drugs that enhance the anticoagulant effect of coumarins with regular use) — flagging the sourcing gap explicitly rather than either fabricating an FDA citation or silently dropping a real, clinically-recognized risk.",
+  },
 ];

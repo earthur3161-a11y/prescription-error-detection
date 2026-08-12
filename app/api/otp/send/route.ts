@@ -90,6 +90,23 @@ export async function POST(request: Request) {
   // their free, no-real-delivery sandbox environment during development —
   // not a separate flag, the username value itself selects the endpoint.
   const isSandbox = username === "sandbox";
+
+  // A misconfigured AFRICASTALKING_USERNAME left as "sandbox" on the real
+  // production deployment is a dangerous silent failure: the sandbox API
+  // returns the exact same "Success" shape as live delivery, so this route
+  // would keep telling real patients { sent: true } while no SMS ever
+  // reaches their phone — indistinguishable from working, from both the
+  // patient's and this route's own point of view, without this check.
+  // Refusing loudly here (same not_configured shape callers already handle)
+  // is the only way this failure mode surfaces instead of running silently.
+  if (isSandbox && process.env.VERCEL_ENV === "production") {
+    console.error("[otp/send] AFRICASTALKING_USERNAME is \"sandbox\" on a production deployment — refusing to fake-send.");
+    return Response.json(
+      { error: "not_configured", message: "Phone verification is not fully configured yet." },
+      { status: 500 }
+    );
+  }
+
   const smsRes = await fetch(
     isSandbox
       ? "https://api.sandbox.africastalking.com/version1/messaging"

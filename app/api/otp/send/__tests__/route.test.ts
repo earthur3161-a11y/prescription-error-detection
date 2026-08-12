@@ -103,6 +103,33 @@ describe("POST /api/otp/send", () => {
     );
   });
 
+  // Regression coverage: a real, previously-live bug — AFRICASTALKING_USERNAME
+  // left as "sandbox" on the actual production deployment silently never
+  // delivers real SMS (sandbox returns the same "Success" shape as live),
+  // so every real patient got { sent: true } for a code that never arrived.
+  it("refuses to fake-send when sandbox credentials are left on a real production deployment", async () => {
+    process.env.VERCEL_ENV = "production";
+
+    const res = await POST(req({ phone: "+233244123456" }));
+
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("not_configured");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still sends normally in production once real (non-sandbox) credentials are configured", async () => {
+    process.env.VERCEL_ENV = "production";
+    process.env.AFRICASTALKING_USERNAME = "mediguard-prod";
+
+    const res = await POST(req({ phone: "+233244123456" }));
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.africastalking.com/version1/messaging",
+      expect.anything()
+    );
+  });
+
   it("uses the live endpoint when username isn't literally 'sandbox'", async () => {
     process.env.AFRICASTALKING_USERNAME = "mediguard-prod";
 
