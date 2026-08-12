@@ -100,7 +100,7 @@ export default function SuperAdminAccountsPage() {
 
       {!isLoading && filtered.length > 0 && (
         <Card>
-          <ul className="divide-y divide-border">
+          <ul className="stagger divide-y divide-border">
             {filtered.map((account) => (
               <li key={`${account.role}:${account.id}`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">

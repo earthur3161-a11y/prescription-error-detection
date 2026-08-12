@@ -90,6 +90,7 @@ function SuperAdminDashboard() {
 
       <section>
         <h2 className="mb-3 font-semibold text-foreground">Reviewed</h2>
+        {isLoading && <Skeleton className="h-24 w-full" />}
         {!isLoading && reviewed.length === 0 && (
           <p className="py-6 text-center text-sm text-muted-foreground">Nothing reviewed yet.</p>
         )}

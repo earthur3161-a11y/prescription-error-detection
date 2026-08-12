@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity } from "lucide-react";
+import { Activity, AlertTriangle, Info, ShieldCheck, XCircle, type LucideIcon } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Notice } from "@/components/ui/Notice";
 import { useSuperAdminActivity } from "@/lib/query/hooks/useSuperAdminActivity";
+import { TONE_TEXT_CLASS } from "@/lib/design/verdictVisuals";
 import {
   CATEGORY_LABEL,
   filterSuperadminActivity,
@@ -16,12 +17,19 @@ import {
   type SuperadminActivityEvent,
 } from "@/lib/superadmin/activity";
 import { formatDateTime } from "@/lib/utils/date";
+import { cn } from "@/lib/utils/cn";
 
-const TONE_DOT: Record<SuperadminActivityEvent["tone"], string> = {
-  neutral: "bg-muted-foreground",
-  safe: "bg-safe-fg",
-  caution: "bg-caution-fg",
-  blocked: "bg-blocked-fg",
+// Same tone→icon pairing Notice.tsx already established for these exact
+// four tones — reused, not reinvented, so "neutral/safe/caution/blocked"
+// means the same shape+color combination everywhere it appears, not just
+// where a clinical verdict happens to be involved. A bare color dot was
+// color-only, which is exactly what the design system's shape rule (see
+// lib/design/verdictVisuals.ts) exists to prevent.
+const TONE_ICON: Record<SuperadminActivityEvent["tone"], LucideIcon> = {
+  neutral: Info,
+  safe: ShieldCheck,
+  caution: AlertTriangle,
+  blocked: XCircle,
 };
 
 const CATEGORY_BADGE_TONE: Record<SuperadminActivityCategory, "brand" | "safe" | "caution" | "neutral"> = {
@@ -33,9 +41,10 @@ const CATEGORY_BADGE_TONE: Record<SuperadminActivityCategory, "brand" | "safe" |
 };
 
 function EventRow({ event }: { event: SuperadminActivityEvent }) {
+  const ToneIcon = TONE_ICON[event.tone];
   return (
     <li className="flex gap-3 px-4 py-3">
-      <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${TONE_DOT[event.tone]}`} />
+      <ToneIcon className={cn("mt-0.5 size-4 shrink-0", TONE_TEXT_CLASS[event.tone])} aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium text-foreground">{event.action}</span>
@@ -147,7 +156,7 @@ export default function SuperAdminActivityPage() {
       )}
 
       {!isLoading && groups.length > 0 && (
-        <div className="space-y-5">
+        <div className="stagger space-y-5">
           {groups.map(([day, dayEvents]) => (
             <div key={day}>
               <p className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-subtle">

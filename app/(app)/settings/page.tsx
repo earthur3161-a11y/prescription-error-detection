@@ -5,6 +5,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ListRowSkeleton } from "@/components/ui/Skeleton";
+import { Switch } from "@/components/ui/Switch";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import { useProfiles } from "@/lib/query/hooks/useProfiles";
@@ -20,7 +21,7 @@ export default function SettingsPage() {
   const { data: profiles, isLoading: profilesLoading } = useProfiles();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <div className="stagger mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">Facility information and offline sync status.</p>
@@ -77,20 +78,12 @@ export default function SettingsPage() {
                 For demo purposes — forces the app to queue writes instead of syncing immediately.
               </p>
             </div>
-            <button
-              role="switch"
-              aria-checked={simulateOffline}
-              onClick={toggleSimulateOffline}
-              className={`relative h-7 w-12 rounded-full transition-colors ${
-                simulateOffline ? "bg-caution-fg" : "bg-slate-300"
-              }`}
-            >
-              <span
-                className={`absolute top-1 size-5 rounded-full bg-surface transition-transform ${
-                  simulateOffline ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
+            <Switch
+              checked={simulateOffline}
+              onCheckedChange={toggleSimulateOffline}
+              tone="caution"
+              aria-label="Simulate offline mode"
+            />
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
