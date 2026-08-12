@@ -47,6 +47,8 @@ export const patientSchema = z
     isPregnant: z.boolean().nullable().optional(),
     allergies: z.array(allergySchema).nullable().optional(),
     activeMedications: z.array(activeMedSchema).nullable().optional(),
+    /** Feeds checkIndication (lib/screening-engine/checks/indicationCheck.ts) — omitted/empty is "not reported," never treated as "confirmed no condition." Values outside PATIENT_CONDITIONS just won't match any drug class and no-op, same as an unmapped condition from the app's own UI. */
+    reportedConditions: z.array(z.string()).nullable().optional(),
   })
   .nullable();
 
@@ -126,6 +128,7 @@ function toPatient(input: PatientInput): Patient | null {
     isPregnant: input.isPregnant ?? null,
     allergies,
     activeMedications,
+    reportedConditions: input.reportedConditions ?? undefined,
   };
 }
 

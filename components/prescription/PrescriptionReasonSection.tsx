@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ClipboardList } from "lucide-react";
 import { ChipToggleGroup } from "@/components/ui/ChipToggleGroup";
 import { useUpdatePatient } from "@/lib/query/hooks/useUpdatePatient";
@@ -31,12 +32,32 @@ interface PrescriptionReasonSectionProps {
  * state) so it's on file for every future prescription too, not just this
  * one — matches how the self-check flow treats it as a stable profile
  * attribute rather than a one-off form field.
+ *
+ * Chip selection is tracked in local state and updated the instant a chip
+ * is clicked, rather than reading `patient.reportedConditions` straight off
+ * the query cache — the save round-trips to Supabase before that prop
+ * updates, so without this a click visibly did nothing until the mutation
+ * resolved (and reverted back to "unselected" if it failed). Reset from the
+ * server value whenever a *different* patient's record loads (the `patient.id
+ * !== loadedPatientId` check below, adjusted during render per
+ * https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+ * rather than in a useEffect) — a failed save for the *current* patient is
+ * reverted explicitly in handleChange's onError instead, since a successful
+ * one already leaves `selected` matching what was just persisted.
  */
 export function PrescriptionReasonSection({ patient, editable }: PrescriptionReasonSectionProps) {
   const updatePatient = useUpdatePatient();
   const showToast = useToastStore((s) => s.show);
+  const [loadedPatientId, setLoadedPatientId] = useState(patient.id);
+  const [selected, setSelected] = useState<string[]>(patient.reportedConditions ?? []);
+
+  if (patient.id !== loadedPatientId) {
+    setLoadedPatientId(patient.id);
+    setSelected(patient.reportedConditions ?? []);
+  }
 
   function handleChange(values: string[]) {
+    setSelected(values);
     updatePatient.mutate(
       {
         id: patient.id,
@@ -55,8 +76,10 @@ export function PrescriptionReasonSection({ patient, editable }: PrescriptionRea
         },
       },
       {
-        onError: (err: Error) =>
-          showToast({ title: "Couldn't save reason", description: err.message, variant: "error" }),
+        onError: (err: Error) => {
+          setSelected(patient.reportedConditions ?? []);
+          showToast({ title: "Couldn't save reason", description: err.message, variant: "error" });
+        },
       }
     );
   }
@@ -87,7 +110,7 @@ export function PrescriptionReasonSection({ patient, editable }: PrescriptionRea
         type="multiple"
         size="sm"
         options={CONDITION_OPTIONS}
-        values={patient.reportedConditions ?? []}
+        values={selected}
         onChange={handleChange}
       />
     </div>

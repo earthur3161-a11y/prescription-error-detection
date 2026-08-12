@@ -60,7 +60,7 @@ export default function MyReportsPage() {
     return (
       <div className="mx-auto max-w-5xl space-y-4 p-6 sm:p-8">
         <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
@@ -103,7 +103,7 @@ export default function MyReportsPage() {
         <ReportingRangeSelect value={preset} onChange={setPreset} />
       </div>
 
-      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Kpi label="Prescriptions" value={String(s.totalPrescriptions)} sub={`${s.totalLines} drug lines`} />
         <Kpi
           label="Flagged rate"

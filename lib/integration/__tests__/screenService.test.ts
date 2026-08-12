@@ -58,4 +58,25 @@ describe("runScreen / toPatient", () => {
     expect(result).not.toBeNull();
     expect(result!.verdict.flags.some((f) => f.code === "PATIENT_NOT_SELECTED")).toBe(true);
   });
+
+  // Regression coverage: reportedConditions was entirely absent from this
+  // schema, so an external EHR sending a patient's stated reason for
+  // treatment had no way to reach checkIndication at all — this API path
+  // silently never checked a drug against the patient's condition, even
+  // though the exact same engine check already did for the in-app portals.
+  it("passes reportedConditions through to the engine, so an external caller's patient also gets indication-checked", () => {
+    const result = runScreen(
+      buildRequest({
+        patient: { dob: "1990-01-01", renalStatus: "normal", hepaticStatus: "normal", reportedConditions: ["Diabetes"] },
+      })
+    );
+    expect(result).not.toBeNull();
+    expect(result!.verdict.flags.some((f) => f.code === "INDICATION_MISMATCH")).toBe(true);
+  });
+
+  it("an omitted reportedConditions never triggers an indication mismatch (absence is not a mismatch)", () => {
+    const result = runScreen(buildRequest({ patient: { dob: "1990-01-01", renalStatus: "normal", hepaticStatus: "normal" } }));
+    expect(result).not.toBeNull();
+    expect(result!.verdict.flags.some((f) => f.code === "INDICATION_MISMATCH")).toBe(false);
+  });
 });

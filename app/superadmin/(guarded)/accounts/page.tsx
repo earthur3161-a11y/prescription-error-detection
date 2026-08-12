@@ -9,22 +9,12 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Notice } from "@/components/ui/Notice";
+import { Kpi } from "@/components/analytics/Kpi";
 import { useSuperAdminAccounts } from "@/lib/query/hooks/useSuperAdminAccounts";
 import { useDataUpdatedPulse } from "@/lib/hooks/useDataUpdatedPulse";
 import { filterSuperadminAccounts, SUPERADMIN_ROLE_LABEL, type SuperadminAccountRole } from "@/lib/superadmin/accounts";
 import { formatDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <Card>
-      <CardBody>
-        <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
-      </CardBody>
-    </Card>
-  );
-}
 
 export default function SuperAdminAccountsPage() {
   const { accounts, isLoading, isFetching, error, dataUpdatedAt, refetch } = useSuperAdminAccounts();
@@ -73,11 +63,11 @@ export default function SuperAdminAccountsPage() {
         </Notice>
       )}
 
-      <div className="stagger grid gap-4 sm:grid-cols-4">
-        <StatCard label={SUPERADMIN_ROLE_LABEL.prescriber} value={counts.prescriber} />
-        <StatCard label={SUPERADMIN_ROLE_LABEL.pharmacist} value={counts.pharmacist} />
-        <StatCard label={SUPERADMIN_ROLE_LABEL.admin} value={counts.admin} />
-        <StatCard label={SUPERADMIN_ROLE_LABEL.patient} value={counts.patient} />
+      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <Kpi label={SUPERADMIN_ROLE_LABEL.prescriber} value={String(counts.prescriber)} />
+        <Kpi label={SUPERADMIN_ROLE_LABEL.pharmacist} value={String(counts.pharmacist)} />
+        <Kpi label={SUPERADMIN_ROLE_LABEL.admin} value={String(counts.admin)} />
+        <Kpi label={SUPERADMIN_ROLE_LABEL.patient} value={String(counts.patient)} />
       </div>
 
       <Card>

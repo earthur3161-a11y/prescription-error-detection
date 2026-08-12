@@ -66,6 +66,13 @@ export type PatientRow = {
   allergies: unknown | null;
   active_medications: unknown | null;
   is_pregnant: boolean | null;
+  // null/absent = no reason on file yet; [] would mean "confirmed no reason"
+  // but the app never actually writes that — an empty selection and "not
+  // asked" are the same "don't flag on indication" state to the engine (see
+  // checkIndication's own early-return), so there's no observable difference
+  // between the two at this column. Nullable at the DB level (existing rows
+  // predate this column) — see patientRepository.ts.
+  reported_conditions: unknown | null;
   created_at: string;
   // Nullable at the DB level (existing rows predate this column) but always
   // set by the app on every insert — see patientRepository.createPatient().

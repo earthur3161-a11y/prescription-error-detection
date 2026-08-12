@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Kpi } from "@/components/analytics/Kpi";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuditEvents } from "@/lib/query/hooks/useAuditEvents";
 import {
@@ -61,18 +62,6 @@ function downloadCsv(rows: string[][], filename: string) {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-function StatCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
-  return (
-    <Card>
-      <CardBody>
-        <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
-        {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
-      </CardBody>
-    </Card>
-  );
 }
 
 function EventRow({ event }: { event: AuditEvent }) {
@@ -164,11 +153,11 @@ export default function CompliancePage() {
         </Button>
       </div>
 
-      <div className="stagger grid gap-4 sm:grid-cols-4">
-        <StatCard label="Total events" value={events.length} hint="across all channels" />
-        <StatCard label="Checks" value={counts.checks} hint="screenings run" />
-        <StatCard label="Alerts" value={counts.alerts} hint="clinical alerts raised" />
-        <StatCard label="Decisions" value={counts.decisions} hint="human actions logged" />
+      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <Kpi label="Total events" value={String(events.length)} sub="across all channels" />
+        <Kpi label="Checks" value={String(counts.checks)} sub="screenings run" />
+        <Kpi label="Alerts" value={String(counts.alerts)} sub="clinical alerts raised" />
+        <Kpi label="Decisions" value={String(counts.decisions)} sub="human actions logged" />
       </div>
 
       <Card>

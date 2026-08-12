@@ -48,6 +48,18 @@ describe("PrescriptionReasonSection", () => {
     expect(screen.getByRole("button", { name: "Malaria" })).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("shows a chip as pressed the instant it's clicked, without waiting for the save to resolve", () => {
+    // Regression test: mutateMock never calls onSuccess/onError here (the
+    // network round-trip never resolves), so this only passes if the chip's
+    // pressed state comes from local optimistic state, not from
+    // patient.reportedConditions (which can't have changed yet).
+    render(<PrescriptionReasonSection patient={basePatient} editable />);
+    const malaria = screen.getByRole("button", { name: "Malaria" });
+    expect(malaria).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(malaria);
+    expect(malaria).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("persists the full updated condition list to the patient record on toggle, not just the new value", () => {
     render(<PrescriptionReasonSection patient={basePatient} editable />);
     fireEvent.click(screen.getByRole("button", { name: "Malaria" }));

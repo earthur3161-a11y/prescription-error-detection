@@ -15,6 +15,7 @@ function mapRow(row: PatientRow): Patient {
     allergies: row.allergies as AllergyRecord[] | null,
     activeMedications: row.active_medications as ActiveMedication[] | null,
     isPregnant: row.is_pregnant,
+    reportedConditions: (row.reported_conditions as string[] | null) ?? undefined,
     ownerId: row.owner_id ?? undefined,
     institutionId: row.institution_id,
   };
@@ -76,6 +77,7 @@ export async function createPatient(
       allergies: patient.allergies,
       active_medications: patient.activeMedications,
       is_pregnant: patient.isPregnant ?? null,
+      reported_conditions: patient.reportedConditions ?? null,
       owner_id: ownerId,
       institution_id: institutionId,
     })
@@ -103,6 +105,7 @@ export async function updatePatient(id: string, patient: Omit<Patient, "id" | "o
       allergies: patient.allergies,
       active_medications: patient.activeMedications,
       is_pregnant: patient.isPregnant ?? null,
+      reported_conditions: patient.reportedConditions ?? null,
     })
     .eq("id", id)
     .select()

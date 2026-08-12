@@ -56,7 +56,8 @@ export default function IntegrationDocsPage() {
     "dob": "1965-09-03",
     "weightKg": 82,
     "allergies": [{ "allergen": "Penicillin", "severity": "severe" }] | null,
-    "activeMedications": [{ "drugId": "drug_warfarin", "startedAt": "2024-06-01" }] | null
+    "activeMedications": [{ "drugId": "drug_warfarin", "startedAt": "2024-06-01" }] | null,
+    "reportedConditions": ["Diabetes"] | null
   },
   "drug": {
     "drugId": "drug_ciprofloxacin",
@@ -88,6 +89,14 @@ export default function IntegrationDocsPage() {
             <code>activeMedications</code> means &ldquo;not on file&rdquo; — MediGuard will never resolve
             these to Safe; treat a <code>caution</code> or <code>blocked</code> verdict as
             requiring human review either way.
+          </p>
+          <p className="text-sm text-secondary">
+            <code>reportedConditions</code> is the patient&rsquo;s stated reason(s) for treatment, from
+            MediGuard&rsquo;s own curated condition list (see the Physician Portal&rsquo;s
+            &ldquo;Reason for this prescription&rdquo; field) — send it whenever your system has it, so
+            the drug being screened is also checked against why the patient is being treated, not
+            just against their allergies and other medications. Omitted or empty is treated as
+            &ldquo;not reported,&rdquo; never as &ldquo;confirmed no condition.&rdquo;
           </p>
         </CardBody>
       </Card>

@@ -99,11 +99,11 @@ export default function PharmacyReportsPage() {
         </Button>
       </div>
 
-      <div className="stagger grid gap-3 sm:grid-cols-4">
-        <Card><CardBody className="text-center"><PackageCheck className="mx-auto size-5 text-safe-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.dispensed}</p><p className="text-xs text-muted-foreground">Dispensed</p></CardBody></Card>
-        <Card><CardBody className="text-center"><PauseCircle className="mx-auto size-5 text-caution-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.holds}</p><p className="text-xs text-muted-foreground">Holds / queries</p></CardBody></Card>
-        <Card><CardBody className="text-center"><XCircle className="mx-auto size-5 text-blocked-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.rejections}</p><p className="text-xs text-muted-foreground">Rejections</p></CardBody></Card>
-        <Card><CardBody className="text-center"><Stethoscope className="mx-auto size-5 text-brand" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.interventions}</p><p className="text-xs text-muted-foreground">Interventions</p></CardBody></Card>
+      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="min-w-0"><CardBody className="text-center"><PackageCheck className="mx-auto size-5 text-safe-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.dispensed}</p><p className="text-xs text-muted-foreground">Dispensed</p></CardBody></Card>
+        <Card className="min-w-0"><CardBody className="text-center"><PauseCircle className="mx-auto size-5 text-caution-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.holds}</p><p className="text-xs text-muted-foreground">Holds / queries</p></CardBody></Card>
+        <Card className="min-w-0"><CardBody className="text-center"><XCircle className="mx-auto size-5 text-blocked-fg" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.rejections}</p><p className="text-xs text-muted-foreground">Rejections</p></CardBody></Card>
+        <Card className="min-w-0"><CardBody className="text-center"><Stethoscope className="mx-auto size-5 text-brand" aria-hidden="true" /><p className="mt-1 text-2xl font-semibold text-foreground">{today.interventions}</p><p className="text-xs text-muted-foreground">Interventions</p></CardBody></Card>
       </div>
 
       <Card>

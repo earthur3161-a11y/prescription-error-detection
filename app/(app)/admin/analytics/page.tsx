@@ -26,41 +26,12 @@ import {
   SegmentBar,
   StackedDailyChart,
 } from "@/components/analytics/AnalyticsCharts";
+import { Kpi } from "@/components/analytics/Kpi";
 import {
   presetToRange,
   ReportingRangeSelect,
   type ReportingRangePreset,
 } from "@/components/analytics/ReportingRangeSelect";
-
-function Kpi({
-  label,
-  value,
-  sub,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  tone?: "default" | "safe" | "caution" | "blocked";
-}) {
-  const valueClass =
-    tone === "safe"
-      ? "text-safe-fg"
-      : tone === "caution"
-        ? "text-caution-fg"
-        : tone === "blocked"
-          ? "text-blocked-fg"
-          : "text-foreground";
-  return (
-    <Card>
-      <CardBody>
-        <p className="text-xs font-semibold uppercase tracking-wide text-subtle">{label}</p>
-        <p className={`mt-1 text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</p>
-        {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
-      </CardBody>
-    </Card>
-  );
-}
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -96,7 +67,7 @@ export default function AnalyticsPage() {
     return (
       <div className="mx-auto max-w-5xl space-y-4 p-6 sm:p-8">
         <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
@@ -144,7 +115,7 @@ export default function AnalyticsPage() {
         <ReportingRangeSelect value={preset} onChange={setPreset} />
       </div>
 
-      <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Kpi label="Prescriptions" value={String(s.totalPrescriptions)} sub={`${s.totalLines} drug lines`} />
         <Kpi
           label="Flagged rate"

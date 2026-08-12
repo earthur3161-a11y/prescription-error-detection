@@ -28,7 +28,12 @@ function FlagRow({ flag }: { flag: Flag }) {
   return (
     <li className="flex items-start gap-2.5 py-1.5">
       <FlagSeverityIcon severity={flag.severity} size={16} className="mt-0.5 shrink-0" />
-      <p className="text-sm text-secondary">{flag.message}</p>
+      <div>
+        <p className="text-sm text-secondary">{flag.message}</p>
+        {flag.referenceSource && (
+          <p className="mt-0.5 text-xs text-subtle">Source: {flag.referenceSource}</p>
+        )}
+      </div>
     </li>
   );
 }

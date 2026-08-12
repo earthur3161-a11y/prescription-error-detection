@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
         {snapshotLoading ? (
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
               <Skeleton className="h-24 w-full" />
@@ -79,7 +79,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="stagger grid gap-4 sm:grid-cols-3">
+            <div className="stagger grid grid-cols-3 gap-3 sm:gap-4">
               <Kpi label="Prescriptions" value={String(s.totalPrescriptions)} sub={`${s.totalLines} drug lines`} />
               <Kpi
                 label="Flagged rate"
