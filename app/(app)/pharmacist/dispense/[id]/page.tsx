@@ -296,7 +296,12 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
                           {c.verdictResult.flags.map((f, i) => (
                             <li key={i} className="flex items-start gap-2">
                               <FlagSeverityChip severity={f.severity} />
-                              <span className="text-secondary">{f.audience_variant.clinical}</span>
+                              <div>
+                                <span className="text-secondary">{f.audience_variant.clinical}</span>
+                                {f.referenceSource && (
+                                  <p className="mt-0.5 text-xs opacity-80">Source: {f.referenceSource}</p>
+                                )}
+                              </div>
                             </li>
                           ))}
                         </ul>

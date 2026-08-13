@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Kpi } from "@/components/analytics/Kpi";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useBatches, usePharmacySettings, useApplyStockAdjustment, useAddBatch } from "@/lib/query/hooks/usePharmacy";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -132,10 +133,10 @@ export default function InventoryPage() {
         </CardBody>
       </Card>
 
-      <div className="stagger grid gap-3 sm:grid-cols-3">
-        <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Low stock</p><p className="mt-1 text-2xl font-semibold text-caution-fg">{totals.lowStock}</p><p className="text-sm text-muted-foreground">drugs below threshold</p></CardBody></Card>
-        <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Near expiry</p><p className="mt-1 text-2xl font-semibold text-caution-fg">{totals.nearExpiry}</p><p className="text-sm text-muted-foreground">batches within {nearExpiryDays} days</p></CardBody></Card>
-        <Card><CardBody><p className="text-xs font-semibold uppercase tracking-wide text-subtle">Expired</p><p className="mt-1 text-2xl font-semibold text-blocked-fg">{totals.expired}</p><p className="text-sm text-muted-foreground">batches to remove</p></CardBody></Card>
+      <div className="stagger grid grid-cols-3 gap-3">
+        <Kpi label="Low stock" value={String(totals.lowStock)} sub="drugs below threshold" tone="caution" />
+        <Kpi label="Near expiry" value={String(totals.nearExpiry)} sub={`batches within ${nearExpiryDays} days`} tone="caution" />
+        <Kpi label="Expired" value={String(totals.expired)} sub="batches to remove" tone="blocked" />
       </div>
 
       <div className="relative">
