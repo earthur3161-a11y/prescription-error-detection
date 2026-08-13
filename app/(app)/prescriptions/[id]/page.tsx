@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Flag, PackageCheck, Pencil, XCircle } from "lucide-react";
+import { ArrowLeft, Flag, HelpCircle, PackageCheck, Pencil, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -19,11 +19,13 @@ import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useOverrideLogs } from "@/lib/query/hooks/useOverrideLogs";
 import { useUpdatePrescriptionStatus } from "@/lib/query/hooks/useUpdatePrescriptionStatus";
+import { usePharmacistActions, useAppendPharmacistAction } from "@/lib/query/hooks/usePharmacy";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict } from "@/lib/screening-engine";
 import { isPrescriptionEditable } from "@/lib/types";
+import { ACTION_LABEL } from "@/lib/pharmacy/actionLabels";
 
 export default function PrescriptionDetailPage({
   params,
@@ -38,11 +40,14 @@ export default function PrescriptionDetailPage({
   const { data: formulary } = useFormulary();
   const { data: overrideLogs } = useOverrideLogs({ prescriptionId: id });
   const { data: profiles } = useProfiles();
+  const { data: pharmacistActions } = usePharmacistActions(id);
   const updateStatus = useUpdatePrescriptionStatus();
+  const appendAction = useAppendPharmacistAction();
 
   const [flagModalOpen, setFlagModalOpen] = useState(false);
   const [flagNote, setFlagNote] = useState("");
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [clarificationReply, setClarificationReply] = useState("");
 
   if (isLoading || !formulary) {
     return (
@@ -69,6 +74,21 @@ export default function PrescriptionDetailPage({
   // only the original prescriber, only while still in an editable status.
   const canPrescriberEdit =
     role === "prescriber" && !!user && prescription.prescriberId === user.id && isPrescriptionEditable(prescription);
+
+  // A flat chronological thread, not paired 1:1 per question — a prescription
+  // can have more than one clarification/response over its life, and showing
+  // them in order (same convention as the Review page's own Action History)
+  // is simpler and more honest than a pairing heuristic that could silently
+  // mismatch a response to the wrong question.
+  const clarificationThread = (pharmacistActions ?? []).filter(
+    (a) => a.action === "request_clarification" || a.action === "prescriber_response"
+  );
+  const hasClarificationRequest = clarificationThread.some((a) => a.action === "request_clarification");
+  // Same ownership check as canPrescriberEdit, deliberately not gated on
+  // prescription status — a prescriber should still be able to reply to a
+  // past question even if the pharmacist has since moved the prescription on.
+  const canRespondToClarification =
+    role === "prescriber" && !!user && prescription.prescriberId === user.id && hasClarificationRequest;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
@@ -128,6 +148,65 @@ export default function PrescriptionDetailPage({
           )}
         </CardBody>
       </Card>
+
+      {clarificationThread.length > 0 && (
+        <Card>
+          <CardBody className="space-y-3">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-subtle">
+              <HelpCircle className="size-4" aria-hidden="true" />
+              Clarification requests
+            </h2>
+            <ul className="space-y-2.5">
+              {clarificationThread.map((a) => {
+                const drug = a.clarificationDrugId
+                  ? formulary.drugs.find((d) => d.id === a.clarificationDrugId)
+                  : undefined;
+                return (
+                  <li key={a.id} className="rounded-lg bg-surface-2 px-3 py-2.5 text-sm">
+                    <p className="font-medium text-foreground">
+                      {ACTION_LABEL[a.action]}
+                      {drug && <span className="font-normal text-muted-foreground"> — about {drug.generic_name}</span>}
+                    </p>
+                    {a.reason && <p className="mt-0.5 text-secondary">{a.reason}</p>}
+                    <p className="mt-0.5 text-xs text-subtle">{formatDateTime(a.timestamp)}</p>
+                  </li>
+                );
+              })}
+            </ul>
+            {canRespondToClarification && (
+              <div className="border-t border-border pt-3">
+                <label className="mb-1.5 block text-sm font-medium text-secondary">Your response</label>
+                <Textarea
+                  value={clarificationReply}
+                  onChange={(e) => setClarificationReply(e.target.value)}
+                  rows={3}
+                  placeholder="e.g. Confirmed — the intended frequency is twice daily, not three times."
+                />
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    size="sm"
+                    disabled={clarificationReply.trim().length === 0 || !user || appendAction.isPending}
+                    onClick={() => {
+                      if (!user) return;
+                      appendAction.mutate(
+                        {
+                          prescriptionId: id,
+                          pharmacistId: user.id,
+                          action: "prescriber_response",
+                          reason: clarificationReply.trim(),
+                        },
+                        { onSuccess: () => setClarificationReply("") }
+                      );
+                    }}
+                  >
+                    Send response
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       <ScreeningCoverageNotice formulary={formulary} />
 

@@ -132,6 +132,19 @@ export type OverrideLogRow = {
   timestamp: string;
 };
 
+export type PharmacistActionRow = {
+  id: string;
+  prescription_id: string;
+  // For a prescriber_response row, this is the responding PRESCRIBER's user
+  // id — the column name predates that row type. See 0030's own comment.
+  pharmacist_id: string;
+  action: "approve" | "dispense" | "reject" | "hold" | "request_clarification" | "record_intervention" | "prescriber_response";
+  reason: string | null;
+  clarification_drug_id: string | null;
+  intervention_outcome: string | null;
+  timestamp: string;
+};
+
 export type PatientCheckRow = {
   id: string;
   created_at: string;
@@ -392,6 +405,12 @@ export type Database = {
         Insert: Partial<OverrideLogRow> &
           Pick<OverrideLogRow, "id" | "prescription_id" | "drug_id" | "verdict_overridden" | "reason_code" | "reason_text" | "user_id" | "timestamp">;
         Update: Partial<OverrideLogRow>;
+        Relationships: [];
+      };
+      pharmacist_actions: {
+        Row: PharmacistActionRow;
+        Insert: Partial<PharmacistActionRow> & Pick<PharmacistActionRow, "id" | "prescription_id" | "pharmacist_id" | "action" | "timestamp">;
+        Update: Partial<PharmacistActionRow>;
         Relationships: [];
       };
       patient_checks: {

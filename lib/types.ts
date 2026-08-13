@@ -481,16 +481,19 @@ export type PharmacistActionType =
   | "reject"
   | "hold"
   | "request_clarification"
-  | "record_intervention";
+  | "record_intervention"
+  /** The prescriber's reply to a request_clarification — the only action type a prescriber, not a pharmacist, may write (enforced by RLS, see 0030_pharmacist_actions.sql). */
+  | "prescriber_response";
 
-/** Immutable log of every pharmacist decision on a prescription (audit trail + daily report source). */
+/** Immutable, server-side (Postgres) log of every pharmacist decision on a prescription (audit trail + daily report source + the prescriber-clarification loop). */
 export interface PharmacistAction {
   id: string;
   prescriptionId: string;
+  /** For a prescriber_response row, this is the responding PRESCRIBER's user id — the field name predates that row type (see 0030's own comment). */
   pharmacistId: string;
   action: PharmacistActionType;
   reason?: string;
-  /** For request_clarification: which drug and the structured question. */
+  /** For request_clarification and prescriber_response: which drug the question/answer is about. */
   clarificationDrugId?: string;
   /** For record_intervention: what the outcome was (e.g. "dose reduced", "substituted"). */
   interventionOutcome?: string;

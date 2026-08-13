@@ -43,6 +43,7 @@ const PHARMACIST_ACTION_LABEL: Record<PharmacistActionType, string> = {
   hold: "Held",
   request_clarification: "Clarification requested",
   record_intervention: "Intervention recorded",
+  prescriber_response: "Responded to clarification",
 };
 
 function emptyVerdicts(): Record<Verdict, number> {

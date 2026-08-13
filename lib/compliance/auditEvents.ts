@@ -56,6 +56,7 @@ const PHARMACIST_ACTION_LABEL: Record<PharmacistAction["action"], string> = {
   hold: "Prescription held",
   request_clarification: "Clarification requested",
   record_intervention: "Intervention recorded",
+  prescriber_response: "Prescriber responded",
 };
 
 const PHARMACIST_ACTION_TONE: Record<PharmacistAction["action"], AuditTone> = {
@@ -65,6 +66,7 @@ const PHARMACIST_ACTION_TONE: Record<PharmacistAction["action"], AuditTone> = {
   hold: "caution",
   request_clarification: "caution",
   record_intervention: "info",
+  prescriber_response: "info",
 };
 
 const OVERRIDE_REASON_LABEL: Record<string, string> = {

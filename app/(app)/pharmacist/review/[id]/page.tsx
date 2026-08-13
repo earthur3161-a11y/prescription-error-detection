@@ -29,16 +29,8 @@ import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict, screenDrugLine } from "@/lib/screening-engine";
 import { pharmacyStateOf } from "@/lib/pharmacy/status";
+import { ACTION_LABEL } from "@/lib/pharmacy/actionLabels";
 import type { PharmacistActionType } from "@/lib/types";
-
-const ACTION_LABEL: Record<PharmacistActionType, string> = {
-  approve: "Approved",
-  dispense: "Dispensed",
-  reject: "Rejected",
-  hold: "Held",
-  request_clarification: "Requested clarification",
-  record_intervention: "Recorded intervention",
-};
 
 export default function PharmacistReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

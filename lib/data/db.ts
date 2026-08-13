@@ -13,7 +13,6 @@ import type {
   Patient,
   PatientCheck,
   PatientProfile,
-  PharmacistAction,
   PharmacySettings,
   Prescription,
   StockAdjustment,
@@ -25,7 +24,6 @@ import { buildSeedData } from "./seed/prescriptions";
 import { seedUsers } from "./seed/users";
 import { buildDevAccounts, DEV_ACCOUNT_PASSWORD, DEV_ACCOUNTS_ENABLED } from "./seed/accounts";
 import { DEFAULT_PHARMACY_SETTINGS } from "./seed/pharmacyInventory";
-import { buildSeedPharmacistActions } from "./seed/auditTrail";
 
 export class MediGuardDB extends Dexie {
   patients!: Table<Patient, string>;
@@ -43,7 +41,6 @@ export class MediGuardDB extends Dexie {
   accounts!: Table<Account, string>;
   accessRequests!: Table<AccessRequest, string>;
   meta!: Table<{ id: string; version: string }, string>;
-  pharmacistActions!: Table<PharmacistAction, string>;
   stockAdjustments!: Table<StockAdjustment, string>;
   pharmacySettings!: Table<PharmacySettings, string>;
 
@@ -132,6 +129,21 @@ export class MediGuardDB extends Dexie {
       alcoholInteractionRules: "id, drug_id",
       patientFeedbackReports: null,
     });
+    // pharmacistActions moved to Supabase (supabase/migrations/0030_
+    // pharmacist_actions.sql) — a Request Clarification question never
+    // reached the prescriber it was for, since it lived only in the
+    // pharmacist's own browser's IndexedDB and no other account could ever
+    // read it.
+    this.version(12).stores({
+      ...v7Stores,
+      integrationConfig: null,
+      batches: null,
+      dispenseRecords: null,
+      foodInteractionRules: "id, drug_id",
+      alcoholInteractionRules: "id, drug_id",
+      patientFeedbackReports: null,
+      pharmacistActions: null,
+    });
   }
 }
 
@@ -194,11 +206,6 @@ async function runBootstrap(): Promise<void> {
             await db.patientChecks.bulkPut(patientChecks);
           }
         );
-      }
-
-      // Demo dispensing decisions for the Audit & Compliance Center.
-      if ((await db.pharmacistActions.count()) === 0) {
-        await db.pharmacistActions.bulkPut(buildSeedPharmacistActions());
       }
 
       // Independent pharmacy alerting config (one-time seed). Batches
