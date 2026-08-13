@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  findPendingSubscriptionPayment,
   getMySubscriptionStatus,
   getSubscriptionPaymentStatus,
   initiateSubscriptionPayment,
@@ -34,5 +35,20 @@ export function useSubscriptionPaymentStatus(reference: string | null) {
     queryFn: () => getSubscriptionPaymentStatus(reference as string),
     enabled: !!reference,
     refetchInterval: (query) => (query.state.data?.status === "pending" ? 3000 : false),
+  });
+}
+
+/**
+ * One-shot lookup (not polled) for a payment the caller already started in
+ * a previous page load — lets billing/page.tsx resume tracking/self-healing
+ * a payment after a refresh instead of only ever knowing about the
+ * reference held in that one tab's own component state.
+ */
+export function useFindPendingSubscriptionPayment(product: SubscriptionProduct | null) {
+  return useQuery({
+    queryKey: ["pendingSubscriptionPayment", product],
+    queryFn: () => findPendingSubscriptionPayment(product as SubscriptionProduct),
+    enabled: !!product,
+    staleTime: Infinity,
   });
 }

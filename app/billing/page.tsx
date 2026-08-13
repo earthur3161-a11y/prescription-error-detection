@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE, ROLE_LABELS, ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useToastStore } from "@/lib/store/toast-store";
 import {
+  useFindPendingSubscriptionPayment,
   useInitiateSubscriptionPayment,
   useSubscriptionPaymentStatus,
   useSubscriptionStatus,
@@ -50,6 +51,22 @@ export default function BillingPage() {
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
+
+  // Resumes tracking a payment this account already started (a previous page
+  // load initiated it, then the tab was refreshed/reopened before it
+  // resolved) instead of only ever knowing about a reference held in this
+  // one mount's own state — otherwise a refresh mid-payment silently drops
+  // back to the plain "Pay" form even though a charge may already be
+  // going through, which is exactly what "paid but the portal never opened"
+  // looks like from here. Applied once, at render time rather than inside a
+  // useEffect (react-hooks/set-state-in-effect), the same pattern already
+  // used in PrescriptionReasonSection.tsx for resuming from a prop.
+  const pendingPayment = useFindPendingSubscriptionPayment(product ?? null);
+  const [checkedForPendingPayment, setCheckedForPendingPayment] = useState(false);
+  if (!checkedForPendingPayment && pendingPayment.isSuccess && paymentReference === null) {
+    setCheckedForPendingPayment(true);
+    if (pendingPayment.data) setPaymentReference(pendingPayment.data);
+  }
 
   // Distinct from `subscription` below: that only ever tells us "active" or
   // not (the webhook never touches it on failure — 0006_subscriptions.sql),

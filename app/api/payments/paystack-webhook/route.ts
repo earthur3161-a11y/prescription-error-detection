@@ -1,5 +1,6 @@
 import "server-only";
 import { verifyPaystackSignature } from "@/lib/payments/verifyPaystackSignature";
+import { resolveSubscriptionPayment } from "@/lib/payments/resolveSubscriptionPayment";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 
 // Paystack webhook for Mobile Money charge confirmation. Configure in the
@@ -65,44 +66,10 @@ export async function POST(request: Request) {
   // (self-check pay-as-you-go vs. Physician/Pharmacy subscription) — only
   // look at subscription_payments if it wasn't a check_payments row.
   if (!checkPaymentRows || checkPaymentRows.length === 0) {
-    const { data: subPaymentRows, error: subPaymentError } = await supabaseService
-      .from("subscription_payments")
-      .update(succeeded ? { status: "success", verified_at: new Date().toISOString() } : { status: "failed" })
-      .eq("provider_reference", reference)
-      .eq("status", "pending")
-      .select("id, owner_id, product, period_days");
-    if (subPaymentError) {
-      console.error("[payments/paystack-webhook] Failed to update subscription_payments:", subPaymentError);
-    }
-
-    // Activation happens here, at payment confirmation — not at moment of
-    // use like the self-check quota pattern — since this webhook is the
-    // actual source of truth for whether money moved.
-    const payment = subPaymentRows?.[0];
-    if (succeeded && payment) {
-      const { data: existing } = await supabaseService
-        .from("subscriptions")
-        .select("period_end")
-        .eq("owner_id", payment.owner_id)
-        .eq("product", payment.product)
-        .maybeSingle();
-      // Extend from the current expiry (if still in the future) rather than
-      // from now(), so an early renewal never discards already-paid-for days.
-      const currentEnd = existing?.period_end ? new Date(existing.period_end) : null;
-      const base = currentEnd && currentEnd > new Date() ? currentEnd : new Date();
-      const newPeriodEnd = new Date(base.getTime() + payment.period_days * 24 * 60 * 60 * 1000);
-
-      const { error: subError } = await supabaseService.from("subscriptions").upsert(
-        {
-          owner_id: payment.owner_id,
-          product: payment.product,
-          status: "active",
-          period_end: newPeriodEnd.toISOString(),
-          provider_reference: reference,
-        },
-        { onConflict: "owner_id,product" }
-      );
-      if (subError) console.error("[payments/paystack-webhook] Failed to activate subscription:", subError);
+    try {
+      await resolveSubscriptionPayment(reference, succeeded);
+    } catch (err) {
+      console.error("[payments/paystack-webhook] Failed to resolve subscription_payments:", err);
     }
   }
 

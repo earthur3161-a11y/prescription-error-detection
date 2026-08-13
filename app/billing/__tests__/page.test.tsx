@@ -10,6 +10,7 @@ const subscriptionState = {
 };
 const paymentStatusByReference = new Map<string, { status: "pending" | "success" | "failed" }>();
 let paymentTimedOut = false;
+let pendingPaymentLookup: { isSuccess: boolean; data: string | null } = { isSuccess: true, data: null };
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -29,6 +30,7 @@ vi.mock("@/lib/query/hooks/useSubscriptionStatus", () => ({
   useSubscriptionPaymentStatus: (reference: string | null) => ({
     data: reference ? paymentStatusByReference.get(reference) : undefined,
   }),
+  useFindPendingSubscriptionPayment: () => pendingPaymentLookup,
 }));
 
 vi.mock("@/lib/hooks/usePaymentTimeout", () => ({
@@ -44,6 +46,7 @@ afterEach(() => {
   subscriptionState.data = { isActive: false, periodEnd: null };
   subscriptionState.isLoading = false;
   paymentTimedOut = false;
+  pendingPaymentLookup = { isSuccess: true, data: null };
 });
 
 function payNow() {
@@ -153,5 +156,29 @@ describe("BillingPage — payment state is derived, not manually reset", () => {
     render(<BillingPage />);
     expect(screen.getByText(/active until/i)).toBeInTheDocument();
     expect(showToastMock).not.toHaveBeenCalled();
+  });
+});
+
+// Regression coverage: a payment initiated in an earlier page load (then the
+// tab refreshed or was reopened before it resolved) used to be untraceable —
+// paymentReference lived only in that one mount's component state, so a
+// refresh silently dropped back to the plain "Pay" form even with a real
+// charge potentially still in flight. This is exactly what "paid but the
+// portal never opened" looks like from the billing page's own point of view.
+describe("BillingPage — resuming a payment already in flight from a previous page load", () => {
+  it("resumes polling a pending payment found on mount instead of showing the plain form", () => {
+    pendingPaymentLookup = { isSuccess: true, data: "ref_from_before" };
+    paymentStatusByReference.set("ref_from_before", { status: "pending" });
+
+    render(<BillingPage />);
+
+    expect(screen.getByText(/approve the payment request/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pay ghs/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the plain form when the lookup finds nothing pending", () => {
+    pendingPaymentLookup = { isSuccess: true, data: null };
+    render(<BillingPage />);
+    expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument();
   });
 });

@@ -48,25 +48,55 @@ export async function initiateSubscriptionPayment(params: {
 }
 
 /**
- * Reads the payment's own status directly (not the subscription's) — the
- * subscriptions row is only ever touched by the webhook on success
- * (0006_subscriptions.sql), so a failed/abandoned/reversed charge leaves it
- * unchanged forever. Polling subscription status alone can never
- * distinguish "still pending" from "definitively failed"; this is what
- * makes that distinction visible to the client. A plain RLS-scoped select
- * (subscription_payments_select_own, owner_id = auth.uid()) is enough here
- * — unlike check_payments' get_payment_status RPC, this table is never
- * read by an unauthenticated caller, so no SECURITY DEFINER function is
- * needed to safely expose it.
+ * Reads the payment's own status (not the subscription's) — the
+ * subscriptions row is only ever touched on success, so a failed/abandoned/
+ * reversed charge leaves it unchanged forever; polling subscription status
+ * alone can never distinguish "still pending" from "definitively failed."
+ *
+ * Goes through /api/subscriptions/verify rather than a direct table read:
+ * that route re-checks with Paystack itself whenever the row is still
+ * "pending," instead of trusting only the webhook to ever have told us —
+ * see that route's own header for why (every subscription_payments row in
+ * this project's history was found stuck on "pending", including at least
+ * one confirmed real charge). This is what makes the existing 3-second
+ * polling loop self-healing instead of polling a value nothing ever updates.
  */
 export async function getSubscriptionPaymentStatus(
   reference: string
 ): Promise<{ status: SubscriptionPaymentStatus }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("You need to be signed in to check payment status.");
+
+  const res = await fetch("/api/subscriptions/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ reference }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message ?? "Couldn't check payment status.");
+  return { status: body.status };
+}
+
+/**
+ * Finds a still-pending payment for this product that the caller already
+ * started, if any — lets billing/page.tsx resume polling/self-healing after
+ * a refresh or a fresh sign-in, instead of only ever tracking the reference
+ * from the in-memory state of the exact tab that called initiate(). A plain
+ * RLS-scoped select (subscription_payments_select_own, owner_id =
+ * auth.uid()) is enough here, same as this always was before the change
+ * above — this one only ever reads the caller's own rows, nothing to
+ * reconcile with Paystack.
+ */
+export async function findPendingSubscriptionPayment(product: SubscriptionProduct): Promise<string | null> {
   const { data, error } = await supabase
     .from("subscription_payments")
-    .select("status")
-    .eq("provider_reference", reference)
+    .select("provider_reference")
+    .eq("product", product)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return { status: data?.status ?? "pending" };
+  return data?.provider_reference ?? null;
 }
