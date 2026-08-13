@@ -14,10 +14,12 @@ import {
 } from "@/lib/query/hooks/useAccessRequests";
 import type { UserRole } from "@/lib/types";
 
+// Facility Admin intentionally left out — that portal is hidden for now
+// (not deleted: RoleGuard/RLS/the admin pages all still work for the one
+// existing approved admin account, this just stops new ones being created).
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "prescriber", label: "Physician" },
   { value: "pharmacist", label: "Pharmacist" },
-  { value: "admin", label: "Facility Admin" },
 ];
 
 function RequestAccessForm() {
@@ -190,7 +192,7 @@ export default function RequestAccessPage() {
               <div>
                 <h1 className="text-lg font-semibold text-foreground">Join an institution</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  For physicians, pharmacists, and facility admins joining a hospital or clinic already
+                  For physicians and pharmacists joining a hospital or clinic already
                   using (or adopting) MediGuard. A MediGuard operator reviews and approves your request,
                   then your account is scoped to that institution&rsquo;s patients and staff.
                 </p>
