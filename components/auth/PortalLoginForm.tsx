@@ -3,7 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -12,7 +12,10 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE } from "@/lib/auth/roles";
 import { authenticate } from "@/lib/data/repositories/accountRepository";
+import { supabase } from "@/lib/supabase/client";
 import type { AccountRole } from "@/lib/types";
+
+type Mode = "signin" | "forgot" | "sent";
 
 export interface PortalConfig {
   role: AccountRole;
@@ -30,6 +33,7 @@ export interface PortalConfig {
 export function PortalLoginForm({ config }: { config: PortalConfig }) {
   const router = useRouter();
   const { login, role, hasHydrated } = useAuth();
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +73,29 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
     }
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+    try {
+      // Never branches on whether resetPasswordForEmail actually found an
+      // account — same "don't reveal whether the account exists" rule
+      // handleSubmit's own invalid-login message already follows. A genuine
+      // API/network failure still surfaces below; only account-existence is
+      // deliberately never distinguished.
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) {
+        setError("Couldn't send the reset email. Check your connection and try again.");
+        return;
+      }
+      setMode("sent");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center px-4 py-10">
       <Link
@@ -91,62 +118,133 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
               <p className="mt-1 text-sm text-muted-foreground">{config.tagline}</p>
             </div>
 
-            <form className="space-y-3" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-secondary">
-                  Work email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-secondary">
-                  Password
-                </label>
-                <PasswordInput
-                  id="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              {error && (
-                <Notice tone="blocked" role="alert">
-                  {error}
-                </Notice>
-              )}
+            {mode === "signin" && (
+              <>
+                <form className="space-y-3" onSubmit={handleSubmit}>
+                  <div>
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-secondary">
+                      Work email
+                    </label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="username"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label htmlFor="password" className="block text-sm font-medium text-secondary">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setMode("forgot");
+                        }}
+                        className="text-xs font-medium text-brand hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <PasswordInput
+                      id="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {error && (
+                    <Notice tone="blocked" role="alert">
+                      {error}
+                    </Notice>
+                  )}
 
-              <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
-                Sign in
-              </Button>
-            </form>
+                  <Button type="submit" className="w-full" disabled={pending}>
+                    {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
+                    Sign in
+                  </Button>
+                </form>
 
-            {config.requestRole && (
-              <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
-                Don&rsquo;t have an account?{" "}
-                <Link
-                  href={`/request-access?role=${config.requestRole}`}
-                  className="font-medium text-brand hover:underline"
-                >
-                  Request access
-                </Link>
-              </p>
+                {config.requestRole && (
+                  <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+                    Don&rsquo;t have an account?{" "}
+                    <Link
+                      href={`/request-access?role=${config.requestRole}`}
+                      className="font-medium text-brand hover:underline"
+                    >
+                      Request access
+                    </Link>
+                  </p>
+                )}
+                {config.signupHref && (
+                  <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+                    Don&rsquo;t have an account?{" "}
+                    <Link href={config.signupHref} className="font-medium text-brand hover:underline">
+                      Create an account
+                    </Link>
+                  </p>
+                )}
+              </>
             )}
-            {config.signupHref && (
-              <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
-                Don&rsquo;t have an account?{" "}
-                <Link href={config.signupHref} className="font-medium text-brand hover:underline">
-                  Create an account
-                </Link>
-              </p>
+
+            {mode === "forgot" && (
+              <form className="space-y-3" onSubmit={handleForgotPassword}>
+                <p className="text-sm text-secondary">
+                  Enter your work email and we&rsquo;ll send you a link to reset your password.
+                </p>
+                <div>
+                  <label htmlFor="reset-email" className="mb-1.5 block text-sm font-medium text-secondary">
+                    Work email
+                  </label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                {error && (
+                  <Notice tone="blocked" role="alert">
+                    {error}
+                  </Notice>
+                )}
+                <Button type="submit" className="w-full" disabled={pending}>
+                  {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
+                  Send reset link
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setMode("signin");
+                  }}
+                  className="w-full text-center text-sm font-medium text-brand hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            )}
+
+            {mode === "sent" && (
+              <div className="space-y-4 text-center">
+                <Notice tone="safe" icon={CheckCircle2}>
+                  If an account exists for {email}, a reset link is on its way — check your email.
+                </Notice>
+                <button
+                  type="button"
+                  onClick={() => setMode("signin")}
+                  className="w-full text-center text-sm font-medium text-brand hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </div>
             )}
           </CardBody>
         </Card>

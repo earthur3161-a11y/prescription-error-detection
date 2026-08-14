@@ -5,6 +5,7 @@ import { Stethoscope } from "lucide-react";
 const replaceMock = vi.fn();
 const loginMock = vi.fn();
 const authenticateMock = vi.fn();
+const resetPasswordForEmailMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
@@ -16,6 +17,10 @@ vi.mock("@/lib/auth/useAuth", () => ({
 
 vi.mock("@/lib/data/repositories/accountRepository", () => ({
   authenticate: authenticateMock,
+}));
+
+vi.mock("@/lib/supabase/client", () => ({
+  supabase: { auth: { resetPasswordForEmail: resetPasswordForEmailMock } },
 }));
 
 const { PortalLoginForm } = await import("../PortalLoginForm");
@@ -82,5 +87,46 @@ describe("PortalLoginForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/invalid login/i));
+  });
+});
+
+describe("PortalLoginForm — forgot password", () => {
+  it("switches to a reset-request form, sends the reset email, and can return to sign in", async () => {
+    resetPasswordForEmailMock.mockResolvedValue({ error: null });
+
+    render(<PortalLoginForm config={config} />);
+
+    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "doc@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /forgot password/i }));
+
+    expect(screen.queryByLabelText(/^password$/i)).not.toBeInTheDocument();
+    const resetEmailInput = screen.getByLabelText(/work email/i) as HTMLInputElement;
+    expect(resetEmailInput.value).toBe("doc@example.com");
+
+    fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    await waitFor(() =>
+      expect(resetPasswordForEmailMock).toHaveBeenCalledWith(
+        "doc@example.com",
+        expect.objectContaining({ redirectTo: expect.stringContaining("/reset-password") })
+      )
+    );
+    await waitFor(() => expect(screen.getByText(/reset link is on its way/i)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /back to sign in/i }));
+    expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
+  });
+
+  it("never reveals whether the account exists, even when resetPasswordForEmail errors", async () => {
+    resetPasswordForEmailMock.mockResolvedValue({ error: { message: "network down" } });
+
+    render(<PortalLoginForm config={config} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /forgot password/i }));
+    fireEvent.change(screen.getByLabelText(/work email/i), { target: { value: "doc@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.queryByText(/account exists|no account|not found/i)).not.toBeInTheDocument();
   });
 });
