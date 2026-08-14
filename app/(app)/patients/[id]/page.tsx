@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, FilePlus2, Pencil } from "lucide-react";
+import { ArrowLeft, FilePlus2, PackageCheck, Pencil } from "lucide-react";
 import { PatientCard } from "@/components/patient/PatientCard";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -26,8 +26,8 @@ export default function PatientProfilePage({
   const { user } = useAuth();
   const { data: patient, isLoading } = usePatient(id);
   const { data: formulary } = useFormulary();
-  const { data: prescriptions } = usePrescriptions({ patientId: id, currentOnly: true });
-  const { data: dispenses } = useDispenseRecordsByPatient(id);
+  const { data: prescriptions, isLoading: prescriptionsLoading } = usePrescriptions({ patientId: id, currentOnly: true });
+  const { data: dispenses, isLoading: dispensesLoading } = useDispenseRecordsByPatient(id);
 
   if (isLoading || !formulary) {
     return (
@@ -75,7 +75,7 @@ export default function PatientProfilePage({
 
       <div>
         <h2 className="mb-3 font-semibold text-foreground">Prescription History</h2>
-        {(prescriptions?.length ?? 0) === 0 && (
+        {!prescriptionsLoading && (prescriptions?.length ?? 0) === 0 && (
           <p className="text-sm text-muted-foreground">No prescriptions on file for this patient.</p>
         )}
         <div className="stagger space-y-3">
@@ -103,15 +103,19 @@ export default function PatientProfilePage({
         </div>
       </div>
 
-      {dispenses && dispenses.length > 0 && (
-        <div>
-          <h2 className="mb-3 font-semibold text-foreground">Dispensing History</h2>
+      <div>
+        <h2 className="mb-3 font-semibold text-foreground">Dispensing History</h2>
+        {!dispensesLoading && (dispenses?.length ?? 0) === 0 && (
+          <p className="text-sm text-muted-foreground">No dispenses on file for this patient.</p>
+        )}
+        {dispenses && dispenses.length > 0 && (
           <Card>
             <CardBody>
               <ul className="stagger divide-y divide-border">
                 {dispenses.map((d) => (
-                  <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                    <span className="text-foreground">
+                  <li key={d.id} className="flex flex-wrap items-center gap-2.5 py-2 text-sm">
+                    <PackageCheck className="size-4 shrink-0 text-brand" aria-hidden="true" />
+                    <span className="flex-1 text-foreground">
                       {d.drugName} <span className="text-subtle">× {d.quantityDispensed}</span>
                     </span>
                     <span className="text-subtle">{formatDateTime(d.dispensedAt)}</span>
@@ -120,8 +124,8 @@ export default function PatientProfilePage({
               </ul>
             </CardBody>
           </Card>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

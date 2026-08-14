@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FlagSeverityChip } from "@/components/ui/FlagSeverityChip";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -57,6 +58,15 @@ export default function DrugInfoPage() {
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
         <Input value={query} onChange={(e) => { setQuery(e.target.value); setSelected(null); }} placeholder="Search by drug, brand, or class…" className="pl-9" />
       </div>
+
+      {!query.trim() && !selected && (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border-strong px-6 py-12 text-center">
+          <Search className="size-6 text-subtle" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">
+            Search for a drug to see clinical details, interactions, and counseling points.
+          </p>
+        </div>
+      )}
 
       {query.trim() && !selected && (
         <div className="space-y-2">
@@ -113,9 +123,13 @@ export default function DrugInfoPage() {
               {interactions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">None in the formulary rule set.</p>
               ) : (
-                <ul className="mt-1 space-y-1 text-sm text-secondary">
+                <ul className="mt-1 space-y-1.5 text-sm text-secondary">
                   {interactions.map((i, idx) => (
-                    <li key={idx}><span className="font-medium">{i.other}</span> ({i.severity}) — {i.description}</li>
+                    <li key={idx} className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      <span className="font-medium">{i.other}</span>
+                      <FlagSeverityChip severity={i.severity} />
+                      <span>— {i.description}</span>
+                    </li>
                   ))}
                 </ul>
               )}

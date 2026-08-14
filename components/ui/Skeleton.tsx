@@ -1,5 +1,6 @@
 import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils/cn";
+import { TONE_BORDER_L_CLASS } from "@/lib/design/verdictVisuals";
 
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
@@ -41,6 +42,34 @@ export function StatCardSkeleton() {
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-soft">
       <Skeleton className="h-3.5 w-20" />
       <Skeleton className="mt-3 h-8 w-16" />
+    </div>
+  );
+}
+
+/** Mirrors VerdictCard.tsx's dense order-entry row — name, Route/Dose/Frequency/Duration fields, and a trailing verdict chip, inside the same rounded-2xl card VerdictCard itself uses. Left-border accent reuses TONE_BORDER_L_CLASS.neutral (no verdict exists yet while loading, so neutral is the correct tone, not a new one-off). Used by PrescriptionBuilder.tsx while the formulary is still loading. */
+export function OrderEntryRowSkeleton({ count = 2 }: { count?: number }) {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "rounded-2xl border border-border bg-surface px-4 py-3 shadow-soft",
+            TONE_BORDER_L_CLASS.neutral
+          )}
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Skeleton className="h-4 w-32" />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Skeleton className="h-9 w-36" />
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-14" />
+              <Skeleton className="h-9 w-14" />
+            </div>
+            <Skeleton className="ml-auto h-5 w-16 rounded-full" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

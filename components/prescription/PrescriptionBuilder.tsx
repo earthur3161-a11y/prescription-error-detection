@@ -8,7 +8,7 @@ import { SignSubmitBar } from "@/components/prescription/SignSubmitBar";
 import { OverrideModal } from "@/components/prescription/OverrideModal";
 import { PrescriptionReasonSection } from "@/components/prescription/PrescriptionReasonSection";
 import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { OrderEntryRowSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useCreatePrescription } from "@/lib/query/hooks/useCreatePrescription";
@@ -225,7 +225,7 @@ export function PrescriptionBuilder({
         {formularyLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-11 w-full max-w-lg" />
-            <Skeleton className="h-32 w-full" />
+            <OrderEntryRowSkeleton />
           </div>
         ) : (
           <>

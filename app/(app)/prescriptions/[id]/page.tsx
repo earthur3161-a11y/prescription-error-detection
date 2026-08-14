@@ -25,7 +25,7 @@ import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict } from "@/lib/screening-engine";
 import { isPrescriptionEditable } from "@/lib/types";
-import { ACTION_LABEL } from "@/lib/pharmacy/actionLabels";
+import { ACTION_ICON, ACTION_LABEL } from "@/lib/pharmacy/actionLabels";
 
 export default function PrescriptionDetailPage({
   params,
@@ -161,9 +161,11 @@ export default function PrescriptionDetailPage({
                 const drug = a.clarificationDrugId
                   ? formulary.drugs.find((d) => d.id === a.clarificationDrugId)
                   : undefined;
+                const ActionIcon = ACTION_ICON[a.action];
                 return (
                   <li key={a.id} className="rounded-lg bg-surface-2 px-3 py-2.5 text-sm">
-                    <p className="font-medium text-foreground">
+                    <p className="flex items-center gap-1.5 font-medium text-foreground">
+                      <ActionIcon className="size-3.5 shrink-0 text-brand" aria-hidden="true" />
                       {ACTION_LABEL[a.action]}
                       {drug && <span className="font-normal text-muted-foreground"> — about {drug.generic_name}</span>}
                     </p>

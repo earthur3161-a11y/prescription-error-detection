@@ -50,6 +50,12 @@ export default function PatientsPage() {
         </div>
       )}
 
+      {!isLoading && (patients?.length ?? 0) === 0 && (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {query.trim() ? "No patients match your search." : "No patients yet."}
+        </p>
+      )}
+
       <div className="stagger space-y-3">
         {(patients ?? []).map((patient) => (
           <Link

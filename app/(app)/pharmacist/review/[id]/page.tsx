@@ -29,7 +29,7 @@ import { useProfiles } from "@/lib/query/hooks/useProfiles";
 import { formatDateTime } from "@/lib/utils/date";
 import { overallVerdict, screenDrugLine } from "@/lib/screening-engine";
 import { pharmacyStateOf } from "@/lib/pharmacy/status";
-import { ACTION_LABEL } from "@/lib/pharmacy/actionLabels";
+import { ACTION_ICON, ACTION_LABEL } from "@/lib/pharmacy/actionLabels";
 import type { PharmacistActionType } from "@/lib/types";
 
 export default function PharmacistReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -241,18 +241,24 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
         <Card>
           <CardBody className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-subtle">Action history</h2>
-            <ul className="space-y-2">
-              {actions.map((a) => (
-                <li key={a.id} className="text-sm">
-                  <span className="font-medium text-foreground">{ACTION_LABEL[a.action]}</span>
-                  <span className="text-subtle">
-                    {" "}
-                    · {profiles?.get(a.pharmacistId)?.name ?? a.pharmacistId} · {formatDateTime(a.timestamp)}
-                  </span>
-                  {a.reason && <p className="text-secondary">{a.reason}</p>}
-                  {a.interventionOutcome && <p className="text-muted-foreground">Outcome: {a.interventionOutcome}</p>}
-                </li>
-              ))}
+            <ul className="divide-y divide-border">
+              {actions.map((a) => {
+                const ActionIcon = ACTION_ICON[a.action];
+                return (
+                  <li key={a.id} className="flex items-start gap-2.5 py-2.5 text-sm">
+                    <ActionIcon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                    <div>
+                      <span className="font-medium text-foreground">{ACTION_LABEL[a.action]}</span>
+                      <span className="text-subtle">
+                        {" "}
+                        · {profiles?.get(a.pharmacistId)?.name ?? a.pharmacistId} · {formatDateTime(a.timestamp)}
+                      </span>
+                      {a.reason && <p className="text-secondary">{a.reason}</p>}
+                      {a.interventionOutcome && <p className="text-muted-foreground">Outcome: {a.interventionOutcome}</p>}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </CardBody>
         </Card>
