@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import { useToastStore } from "@/lib/store/toast-store";
-import { useCheckQuota, useInitiatePayment, usePaymentStatus } from "@/lib/query/hooks/useCheckQuota";
+import {
+  useCheckQuota,
+  useFindPendingCheckPayment,
+  useInitiatePayment,
+  usePaymentStatus,
+} from "@/lib/query/hooks/useCheckQuota";
 import { usePaymentTimeout } from "@/lib/hooks/usePaymentTimeout";
 
 type MobileMoneyProvider = "mtn" | "vod" | "atl";
@@ -44,11 +49,33 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   const [subStep, setSubStep] = useState<SubStep>("unlock");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  // Synchronous re-entry guard for handlePay — see app/billing/page.tsx's
+  // identical payingRef for why (iOS Safari's synthetic-click-plus-touchend
+  // double-fire can outrace a React state-driven disabled attribute).
+  const payingRef = useRef(false);
 
   const quota = useCheckQuota(phone);
   const initiatePayment = useInitiatePayment();
   const paymentStatus = usePaymentStatus(subStep === "paying" ? paymentReference : null);
   const paymentTimedOut = usePaymentTimeout(subStep === "paying" && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
+
+  // Resumes tracking a payment this phone already started (this wizard's own
+  // step/paymentReference state doesn't survive a reload — the multi-step
+  // flow resets to "signin" either way — so without this, a patient who
+  // reloads mid-payment loses the reference and, if the webhook has already
+  // fired, would be shown the payment form again for something already
+  // paid). Applied once, at render time rather than inside a useEffect
+  // (react-hooks/set-state-in-effect), the same pattern app/billing/page.tsx
+  // already uses for the identical resume case.
+  const pendingPayment = useFindPendingCheckPayment(phone);
+  const [checkedForPendingPayment, setCheckedForPendingPayment] = useState(false);
+  if (!checkedForPendingPayment && pendingPayment.isSuccess && paymentReference === null) {
+    setCheckedForPendingPayment(true);
+    if (pendingPayment.data) {
+      setPaymentReference(pendingPayment.data);
+      setSubStep("paying");
+    }
+  }
 
   useEffect(() => {
     if (subStep === "paying" && paymentStatus.data?.status === "success") {
@@ -57,6 +84,8 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   }, [subStep, paymentStatus.data?.status, phone, onUnlocked]);
 
   function handlePay() {
+    if (payingRef.current) return;
+    payingRef.current = true;
     initiatePayment.mutate(
       { phone, provider },
       {
@@ -66,7 +95,26 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },
         onError: (err: Error) => showToast({ title: "Couldn't start payment", description: err.message, variant: "error" }),
+        onSettled: () => {
+          payingRef.current = false;
+        },
       }
+    );
+  }
+
+  // Checked before the loading guard below: quota.isFetching stays false and
+  // quota.data stays undefined forever after a genuine RPC failure exhausts
+  // its retry, so without this branch the loading guard's `!quota.data` never
+  // resolves and this screen gets stuck on the spinner indefinitely with no
+  // way forward.
+  if (quota.isError) {
+    return (
+      <div className="space-y-4 text-center">
+        <p className="text-sm text-secondary">Couldn&rsquo;t check your account. Check your connection and try again.</p>
+        <Button variant="secondary" onClick={() => quota.refetch()}>
+          Try again
+        </Button>
+      </div>
     );
   }
 

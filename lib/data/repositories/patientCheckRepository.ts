@@ -40,7 +40,7 @@ function mapRow(row: PatientCheckRow): PatientCheck {
 }
 
 export type CreateCheckResult =
-  | { allowed: true; check: PatientCheck }
+  | { allowed: true; check: PatientCheck; freeRemaining: number; paidAvailable: number }
   | { allowed: false; reason: "not_verified" | "no_credit"; freeRemaining: number; paidAvailable: number };
 
 /**
@@ -85,7 +85,12 @@ export async function createPatientCheckWithQuota(params: {
     shareToken: row.share_token,
   };
   rememberDeviceCheckId(check.id);
-  return { allowed: true, check };
+  return {
+    allowed: true,
+    check,
+    freeRemaining: row.free_remaining ?? 0,
+    paidAvailable: row.paid_available ?? 0,
+  };
 }
 
 /**

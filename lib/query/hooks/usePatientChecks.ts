@@ -15,10 +15,31 @@ export function useCreatePatientCheck() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createPatientCheckWithQuota,
-    onSuccess: (result) => {
-      if (!result.allowed) return;
-      queryClient.invalidateQueries({ queryKey: ["patientChecks"] });
-      queryClient.invalidateQueries({ queryKey: ["patientChecksForDevice"] });
+    // The RPC already recomputes free_remaining/paid_available as part of the
+    // same transaction (both on success and on a "no_credit" rejection, where
+    // 0/0 is the accurate value by construction — see
+    // create_patient_check_with_quota). Patching ["checkQuota", phone]
+    // directly from that response avoids the 30s staleTime letting a second
+    // attempt within the same window see pre-consumption quota and skip the
+    // payment form entirely.
+    onSuccess: (result, variables) => {
+      if (result.allowed) {
+        queryClient.setQueryData(["checkQuota", variables.phone], {
+          freeRemaining: result.freeRemaining,
+          paidAvailable: result.paidAvailable,
+          phoneVerified: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ["patientChecks"] });
+        queryClient.invalidateQueries({ queryKey: ["patientChecksForDevice"] });
+        return;
+      }
+      if (result.reason === "no_credit") {
+        queryClient.setQueryData(["checkQuota", variables.phone], {
+          freeRemaining: result.freeRemaining,
+          paidAvailable: result.paidAvailable,
+          phoneVerified: true,
+        });
+      }
     },
   });
 }

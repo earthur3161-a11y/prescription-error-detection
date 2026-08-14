@@ -31,8 +31,38 @@ export async function initiatePayment(params: {
   return body;
 }
 
+/**
+ * Goes through /api/payments/verify rather than reading check_payments
+ * directly (the old get_payment_status RPC): that route re-checks with
+ * Paystack itself whenever the row is still "pending", instead of trusting
+ * only the webhook to ever have told us — see that route's own header. This
+ * is what makes the existing 3-second polling loop in usePaymentStatus
+ * self-healing instead of polling a value nothing ever updates.
+ */
 export async function getPaymentStatus(reference: string): Promise<{ status: "pending" | "success" | "failed" }> {
-  const { data, error } = await supabase.rpc("get_payment_status", { p_reference: reference });
+  const res = await fetch("/api/payments/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reference }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message ?? "Couldn't check payment status.");
+  return { status: body.status };
+}
+
+/**
+ * Finds a still-pending payment for this phone that was already started, if
+ * any — lets UnlockCheckStep resume polling/self-healing after a reload
+ * instead of only ever tracking the reference held in the tab's own
+ * component state (which the multi-step wizard's own state reset already
+ * loses on reload regardless). Self-check has no Supabase session to scope
+ * an RLS select by, so this goes through a narrow SECURITY DEFINER RPC keyed
+ * on phone instead — the same trust model every other self-check RPC
+ * already uses (the phone number itself, OTP-verified earlier in the flow,
+ * is the credential).
+ */
+export async function findPendingCheckPayment(phone: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("find_pending_check_payment", { p_phone: phone });
   if (error) throw error;
-  return { status: data?.[0]?.status ?? "pending" };
+  return data?.[0]?.provider_reference ?? null;
 }

@@ -4,9 +4,17 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const quotaState = {
   data: undefined as { freeRemaining: number; paidAvailable: number; phoneVerified: boolean } | undefined,
   isFetching: false,
+  isError: false,
+  refetch: vi.fn(),
 };
 const paymentStatusByReference = new Map<string, { status: "pending" | "success" | "failed" }>();
 const initiatePaymentMock = vi.fn();
+// Defaults to "checked, nothing pending" — the common case for a fresh
+// payment attempt. Tests exercising the resume-after-reload path override this.
+let pendingPaymentLookup: { isSuccess: boolean; data: string | null | undefined } = {
+  isSuccess: true,
+  data: null,
+};
 
 vi.mock("@/lib/store/toast-store", () => ({
   useToastStore: (selector: (s: { show: (t: unknown) => void }) => unknown) => selector({ show: vi.fn() }),
@@ -18,6 +26,7 @@ vi.mock("@/lib/query/hooks/useCheckQuota", () => ({
   usePaymentStatus: (reference: string | null) => ({
     data: reference ? paymentStatusByReference.get(reference) : undefined,
   }),
+  useFindPendingCheckPayment: () => pendingPaymentLookup,
 }));
 
 const { UnlockCheckStep } = await import("../UnlockCheckStep");
@@ -27,6 +36,8 @@ afterEach(() => {
   vi.clearAllMocks();
   paymentStatusByReference.clear();
   quotaState.data = undefined;
+  quotaState.isError = false;
+  pendingPaymentLookup = { isSuccess: true, data: null };
 });
 
 // Phone identity is verified upstream by SignInStep before this component is
@@ -107,5 +118,50 @@ describe("UnlockCheckStep — payment failure surfaces immediately, not just via
 
     await waitFor(() => expect(screen.getByText(/check your phone/i)).toBeInTheDocument());
     expect(screen.queryByText(/payment failed/i)).not.toBeInTheDocument();
+  });
+});
+
+// Regression coverage: quota.isFetching stays false and quota.data stays
+// undefined forever after a genuine RPC failure exhausts its retry — without
+// a dedicated isError branch, the loading guard's `!quota.data` check never
+// resolves and this screen gets stuck on the spinner indefinitely.
+describe("UnlockCheckStep — quota lookup failure doesn't strand the patient on a spinner", () => {
+  it("shows an error state with a working retry instead of an infinite spinner", () => {
+    quotaState.data = undefined;
+    quotaState.isFetching = false;
+    quotaState.isError = true;
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    expect(screen.queryByText(/checking your account/i)).not.toBeInTheDocument();
+    const retryButton = screen.getByRole("button", { name: /try again/i });
+    fireEvent.click(retryButton);
+    expect(quotaState.refetch).toHaveBeenCalled();
+  });
+});
+
+// Regression coverage: this component's own step/paymentReference state
+// doesn't survive a reload (the wizard resets to "signin" either way), so
+// without this, a patient who reloads mid-payment sees the payment form
+// again for something they may have already paid for.
+describe("UnlockCheckStep — resumes a payment already in flight from a previous page load", () => {
+  it("jumps straight to the pending-payment screen when one is found for this phone", async () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    pendingPaymentLookup = { isSuccess: true, data: "ref_resumed" };
+    paymentStatusByReference.set("ref_resumed", { status: "pending" });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    await waitFor(() => expect(screen.getByText(/check your phone/i)).toBeInTheDocument());
+    expect(initiatePaymentMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the normal pay form when the lookup finds nothing pending", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    pendingPaymentLookup = { isSuccess: true, data: null };
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument();
   });
 });

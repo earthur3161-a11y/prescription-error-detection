@@ -543,6 +543,10 @@ export type Database = {
         Args: { p_reference: string };
         Returns: { status: CheckPaymentStatus }[];
       };
+      find_pending_check_payment: {
+        Args: { p_phone: string };
+        Returns: { provider_reference: string }[];
+      };
       create_patient_feedback_report: {
         Args: { p_patient_check_id: string | null; p_message: string };
         Returns: PatientFeedbackReportRow;

@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 import type { Database } from "@/lib/supabase/types";
+import { toE164Gh } from "@/lib/utils/phone";
 
 type SubscriptionPaymentInsert = Database["public"]["Tables"]["subscription_payments"]["Insert"];
 
@@ -67,7 +68,12 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  const { phone, provider } = parsed.data;
+  // Its sibling, payments/initiate, normalizes for the same reason: Paystack's
+  // mobile_money charge needs E.164 to route correctly. This route never did,
+  // sending whatever raw shape the client typed (e.g. "0244 123 456")
+  // straight through.
+  const phone = toE164Gh(parsed.data.phone);
+  const { provider } = parsed.data;
 
   // Re-check current status server-side — never trust the client's cached
   // subscription state before charging real money.

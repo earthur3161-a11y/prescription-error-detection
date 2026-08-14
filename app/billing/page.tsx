@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, Loader2, ShieldCheck, Stethoscope } from "lucide-react";
@@ -64,6 +64,12 @@ export default function BillingPage() {
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
+  // Synchronous re-entry guard for handlePay — iOS Safari has a documented
+  // history of firing a synthetic click in addition to touchend for a single
+  // tap, which can race ahead of initiatePayment.isPending updating in time
+  // to disable the button via React's normal render cycle. A ref check is
+  // checked/set before any async work starts, so it can't lose that race.
+  const payingRef = useRef(false);
 
   // Resumes tracking a payment this account already started (a previous page
   // load initiated it, then the tab was refreshed/reopened before it
@@ -120,7 +126,10 @@ export default function BillingPage() {
   }
 
   function handlePay() {
+    if (payingRef.current) return;
+    payingRef.current = true;
     if (!isValidGhPhone(phone)) {
+      payingRef.current = false;
       showToast({ title: "Enter a valid Ghana phone number", variant: "error" });
       return;
     }
@@ -132,6 +141,9 @@ export default function BillingPage() {
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },
         onError: (err: Error) => showToast({ title: "Couldn't start payment", description: err.message, variant: "error" }),
+        onSettled: () => {
+          payingRef.current = false;
+        },
       }
     );
   }
