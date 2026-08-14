@@ -3,13 +3,22 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrescriptionBuilder } from "@/components/prescription/PrescriptionBuilder";
+import { RoleGuard } from "@/components/layout/RoleGuard";
 import { useAuth } from "@/lib/auth/useAuth";
 
+// Pharmacist-authored prescriptions have their own correct entry point
+// (/pharmacist/verify/new, source: "walk_in") — nothing here gated that on
+// role before, so a pharmacist navigating here directly could create a
+// prescriber_id = themselves row hardcoded to source: "physician", a
+// mislabeled record that looks like it came from the physician workflow
+// when it didn't.
 export default function NewPrescriptionPage() {
   return (
-    <Suspense fallback={null}>
-      <NewPrescriptionWorkspace />
-    </Suspense>
+    <RoleGuard allowedRoles={["prescriber"]}>
+      <Suspense fallback={null}>
+        <NewPrescriptionWorkspace />
+      </Suspense>
+    </RoleGuard>
   );
 }
 
