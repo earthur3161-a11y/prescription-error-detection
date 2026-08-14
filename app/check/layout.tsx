@@ -16,7 +16,7 @@ export default function CheckLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 glass border-b border-border/60">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-brand">
+            <span className="grid size-8 place-items-center rounded-lg bg-patient">
               <ShieldCheck className="size-5 text-brand-foreground" aria-hidden="true" />
             </span>
             <span className="font-semibold text-foreground">MediGuard</span>
@@ -28,10 +28,10 @@ export default function CheckLayout({ children }: { children: ReactNode }) {
               logo tap as "go home." An explicit, textual link removes the
               ambiguity.
             */}
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-brand hover:underline">
+            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-patient hover:underline">
               Home
             </Link>
-            <Link href="/check/history" className="text-sm font-medium text-brand hover:underline">
+            <Link href="/check/history" className="text-sm font-medium text-patient hover:underline">
               My checks
             </Link>
             <ThemeToggle />

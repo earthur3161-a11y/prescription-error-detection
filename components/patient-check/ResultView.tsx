@@ -98,7 +98,7 @@ export function ResultView({ check, formulary }: ResultViewProps) {
           <ul className="stagger space-y-2 pt-1">
             {guidance.steps.map((step, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-secondary">
-                <StepBadge step={i + 1} className="mt-0.5" />
+                <StepBadge step={i + 1} className="mt-0.5 bg-patient-subtle text-patient" />
                 {step}
               </li>
             ))}

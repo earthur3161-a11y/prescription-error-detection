@@ -215,7 +215,7 @@ export default function NewCheckPage() {
           </Button>
           <div className="flex-1">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-brand transition-all" style={{ width: STEP_PROGRESS[step] }} />
+              <div className="h-full bg-patient transition-all" style={{ width: STEP_PROGRESS[step] }} />
             </div>
             <p className="mt-1.5 hidden text-xs font-medium text-subtle sm:block">Step {STEP_NUMBER[step]} of 3</p>
           </div>

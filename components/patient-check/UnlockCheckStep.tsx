@@ -73,7 +73,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   if (quota.isFetching || !quota.data) {
     return (
       <div className="space-y-4 text-center">
-        <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
+        <Loader2 className="mx-auto size-8 animate-spin text-patient" aria-hidden="true" />
         <p className="text-sm text-secondary">Checking your account…</p>
       </div>
     );
@@ -151,7 +151,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
 
   return (
     <div className="space-y-4 text-center">
-      <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
+      <Loader2 className="mx-auto size-8 animate-spin text-patient" aria-hidden="true" />
       <div>
         <h2 className="text-lg font-semibold text-foreground">Check your phone</h2>
         <p className="mt-1 text-sm text-secondary">Approve the payment request to see your result.</p>

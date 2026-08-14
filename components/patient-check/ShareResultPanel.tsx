@@ -33,7 +33,7 @@ export function ShareResultPanel({ shareToken }: ShareResultPanelProps) {
       <CardBody className="space-y-4">
         <div>
           <h2 className="flex items-center gap-2 font-semibold text-foreground">
-            <QrCode className="size-5 text-brand" aria-hidden="true" />
+            <QrCode className="size-5 text-patient" aria-hidden="true" />
             Show this to your pharmacist
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">

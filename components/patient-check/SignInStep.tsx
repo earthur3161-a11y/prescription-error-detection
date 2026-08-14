@@ -72,8 +72,8 @@ export function SignInStep({ onSignedIn }: SignInStepProps) {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-brand-subtle">
-            <ShieldCheck className="size-7 text-brand" aria-hidden="true" />
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-patient-subtle">
+            <ShieldCheck className="size-7 text-patient" aria-hidden="true" />
           </div>
           <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Sign in to check your medicine</h1>
           <p className="mt-1.5 text-sm text-secondary">

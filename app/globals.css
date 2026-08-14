@@ -35,6 +35,21 @@
   --brand-subtle: #eceded;
   --brand-foreground: #ffffff;
 
+  /* Patient Self-Check's own accent — everywhere else in the app (including
+     this flow's Button, which stays flat brand/graphite on purpose) uses
+     --brand, but this flow earned real color warmth to go with the warmth
+     its animation/typography already have. Deliberately a rose/berry hue
+     (~325°), not the terracotta/coral that was the first instinct — those
+     sit at ~5-10°, almost on top of --blocked-fg's ~3°, and protanopia/
+     deuteranopia specifically collapse discrimination along that exact
+     red-orange axis. 325° keeps a >=38 degree margin from every verdict hue
+     (safe ~150°, caution ~37.5°, blocked ~3°, unknown ~255°) — wider than
+     the tightest gap already inside that palette. Never used on the verdict
+     banner itself (ResultView.tsx's BANNER_TONE_CLASS) — that must stay on
+     the real safe/caution/blocked/unknown vocabulary. */
+  --patient: #94386e;
+  --patient-subtle: #f6e5ef;
+
   /* Verdict palette — four states, not three. `unknown` sits outside the
      green/amber/red hue family entirely (slate-violet) specifically so it
      can never read as "a paler caution" — color alone doesn't carry this
@@ -107,6 +122,9 @@
   --brand-subtle: rgba(199, 203, 207, 0.14);
   --brand-foreground: #15171a;
 
+  --patient: #cc66a2;
+  --patient-subtle: rgba(204, 102, 162, 0.16);
+
   --safe-fg: #4fae7d;
   --safe-bg: rgba(79, 174, 125, 0.16);
   --safe-border: rgba(79, 174, 125, 0.4);
@@ -157,6 +175,9 @@
   --color-brand-teal: var(--brand-teal);
   --color-brand-subtle: var(--brand-subtle);
   --color-brand-foreground: var(--brand-foreground);
+
+  --color-patient: var(--patient);
+  --color-patient-subtle: var(--patient-subtle);
 
   --color-safe-fg: var(--safe-fg);
   --color-safe-bg: var(--safe-bg);

@@ -77,7 +77,7 @@ export default function CheckHistoryPage() {
         <CardBody className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 font-semibold text-foreground">
-              <User className="size-5 text-brand" aria-hidden="true" />
+              <User className="size-5 text-patient" aria-hidden="true" />
               My health profile
             </h2>
             {!editing && (

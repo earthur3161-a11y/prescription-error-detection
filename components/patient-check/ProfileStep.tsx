@@ -40,8 +40,8 @@ function Section({ icon: Icon, title, first, children }: SectionProps) {
   return (
     <section className={first ? "space-y-3" : "space-y-3 border-t border-border pt-7"}>
       <div className="flex items-center gap-2.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-subtle">
-          <Icon className="size-4 text-brand" aria-hidden="true" />
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-patient-subtle">
+          <Icon className="size-4 text-patient" aria-hidden="true" />
         </span>
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       </div>

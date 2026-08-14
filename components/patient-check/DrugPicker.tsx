@@ -58,7 +58,7 @@ export function DrugPicker({ addedDrugs, onAdd, onRemove }: DrugPickerProps) {
               className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3"
             >
               <span className="flex items-center gap-2.5">
-                <Pill className="size-4 text-brand" aria-hidden="true" />
+                <Pill className="size-4 text-patient" aria-hidden="true" />
                 <span className="text-sm font-medium text-foreground">{drug.generic_name}</span>
               </span>
               <Button
