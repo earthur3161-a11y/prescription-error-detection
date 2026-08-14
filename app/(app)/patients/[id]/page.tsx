@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { VerdictMark } from "@/components/ui/VerdictMark";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
+import { PageShell } from "@/components/layout/PageShell";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
@@ -31,15 +32,15 @@ export default function PatientProfilePage({
 
   if (isLoading || !formulary) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-48 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!patient) {
-    return <div className="mx-auto max-w-3xl p-8 text-center text-muted-foreground">Patient not found.</div>;
+    return <PageShell className="p-8 text-center text-muted-foreground">Patient not found.</PageShell>;
   }
 
   // patients_update_own (0004_multitenancy_foundation.sql) scopes edits to
@@ -48,7 +49,7 @@ export default function PatientProfilePage({
   const canEdit = !!user && patient.ownerId === user.id;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to patients
@@ -126,6 +127,6 @@ export default function PatientProfilePage({
           </Card>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

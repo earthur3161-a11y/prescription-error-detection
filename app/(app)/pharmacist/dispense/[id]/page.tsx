@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { VerdictMark } from "@/components/ui/VerdictMark";
 import { FlagSeverityChip } from "@/components/ui/FlagSeverityChip";
 import { CounselingSheet } from "@/components/pharmacy/CounselingSheet";
+import { PageShell } from "@/components/layout/PageShell";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -113,10 +114,10 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
 
   if (isLoading || !formulary || !prescription || !batches || !settings) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
@@ -125,7 +126,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
   // Guard: only dispensable once Approved (Cleared).
   if (!finalized && state !== "cleared") {
     return (
-      <div className="mx-auto max-w-2xl space-y-4 p-6 sm:p-8">
+      <PageShell maxWidth="2xl" className="space-y-4">
         <Link href={`/pharmacist/review/${id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
           <ArrowLeft className="size-4" aria-hidden="true" />
           Back to review
@@ -140,7 +141,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
             </Link>
           </CardBody>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
@@ -207,7 +208,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
 
   if (finalized) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5 p-6 sm:p-8">
+      <PageShell className="space-y-5">
         <Card>
           <CardBody className="space-y-2 text-center">
             <CheckCircle2 className="mx-auto size-10 text-safe-fg" aria-hidden="true" />
@@ -247,12 +248,12 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
             </div>
           </CardBody>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-6 sm:p-8">
+    <PageShell className="space-y-5">
       <Link href={`/pharmacist/review/${id}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to review
@@ -410,6 +411,6 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
           Dispense &amp; finalize
         </Button>
       </div>
-    </div>
+    </PageShell>
   );
 }

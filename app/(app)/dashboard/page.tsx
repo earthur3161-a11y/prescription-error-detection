@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { VerdictMark } from "@/components/ui/VerdictMark";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Kpi } from "@/components/analytics/Kpi";
+import { PageShell } from "@/components/layout/PageShell";
 import { StackedDailyChart } from "@/components/analytics/AnalyticsCharts";
 import { useAuth } from "@/lib/auth/useAuth";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -42,7 +43,7 @@ export default function DashboardPage() {
   const daily = toDailyPoints(dailyTrend.data ?? []);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="5xl">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
@@ -176,6 +177,6 @@ export default function DashboardPage() {
           </CardBody>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Notice } from "@/components/ui/Notice";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   useMintApiKey,
   useMyApiKeys,
@@ -58,20 +59,20 @@ export default function IntegrationDashboardPage() {
 
   if (institutionLoading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!institution) {
     return (
-      <div className="mx-auto max-w-3xl p-6 sm:p-8">
+      <PageShell>
         <Notice tone="caution" icon={ShieldAlert}>
           No institution is associated with this account yet — contact MediGuard support.
         </Notice>
-      </div>
+      </PageShell>
     );
   }
 
@@ -83,7 +84,7 @@ export default function IntegrationDashboardPage() {
   const revokedKeys = (apiKeys ?? []).filter((k) => k.revokedAt);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
           <Plug className="size-6 text-brand" aria-hidden="true" />
@@ -205,6 +206,6 @@ export default function IntegrationDashboardPage() {
           </div>
         </CardBody>
       </Card>
-    </div>
+    </PageShell>
   );
 }

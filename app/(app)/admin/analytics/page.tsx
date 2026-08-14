@@ -27,6 +27,7 @@ import {
   StackedDailyChart,
 } from "@/components/analytics/AnalyticsCharts";
 import { Kpi } from "@/components/analytics/Kpi";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   presetToRange,
   ReportingRangeSelect,
@@ -65,7 +66,7 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl space-y-4 p-6 sm:p-8">
+      <PageShell maxWidth="5xl" className="space-y-4">
         <Skeleton className="h-8 w-64" />
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           <Skeleton className="h-24 w-full" />
@@ -74,7 +75,7 @@ export default function AnalyticsPage() {
           <Skeleton className="h-24 w-full" />
         </div>
         <Skeleton className="h-56 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
@@ -95,7 +96,7 @@ export default function AnalyticsPage() {
   const prescribers = prescriberPerformance.data ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="5xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
@@ -205,6 +206,6 @@ export default function AnalyticsPage() {
           </div>
         )}
       </SectionCard>
-    </div>
+    </PageShell>
   );
 }

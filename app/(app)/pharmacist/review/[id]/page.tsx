@@ -8,6 +8,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { Textarea } from "@/components/ui/Textarea";
 import { RiskScoreBadge } from "@/components/pharmacy/RiskScoreBadge";
 import { FindingsPanel } from "@/components/pharmacy/FindingsPanel";
@@ -76,10 +77,10 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
 
   if (isLoading || !formulary || !prescription) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
@@ -118,7 +119,7 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-6 sm:p-8">
+    <PageShell className="space-y-5">
       <Link href="/prescriptions" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to prescriptions
@@ -263,6 +264,6 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
           </CardBody>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

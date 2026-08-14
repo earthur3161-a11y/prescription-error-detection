@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PatientForm } from "@/components/patient/PatientForm";
+import { PageShell } from "@/components/layout/PageShell";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -19,15 +20,15 @@ export default function EditPatientPage({
 
   if (isLoading || !user) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!patient) {
-    return <div className="mx-auto max-w-3xl p-8 text-center text-muted-foreground">Patient not found.</div>;
+    return <PageShell className="p-8 text-center text-muted-foreground">Patient not found.</PageShell>;
   }
 
   // Friendly pre-check, not the real enforcement — patients_update_own
@@ -35,7 +36,7 @@ export default function EditPatientPage({
   const isOwner = patient.ownerId === user.id;
   if (!isOwner) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Link
           href={`/patients/${id}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
@@ -44,12 +45,12 @@ export default function EditPatientPage({
           Back to patient
         </Link>
         <p className="text-muted-foreground">Only the physician who added this patient can edit their details.</p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <Link
         href={`/patients/${id}`}
         className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
@@ -66,6 +67,6 @@ export default function EditPatientPage({
       </div>
 
       <PatientForm patient={patient} />
-    </div>
+    </PageShell>
   );
 }

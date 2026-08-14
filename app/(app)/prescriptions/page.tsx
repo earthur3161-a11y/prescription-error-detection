@@ -10,6 +10,7 @@ import { VerdictMark } from "@/components/ui/VerdictMark";
 import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionStatusBadge";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
 import { Button } from "@/components/ui/Button";
+import { PageShell } from "@/components/layout/PageShell";
 import { FilePlus2 } from "lucide-react";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -42,7 +43,7 @@ export default function PrescriptionHistoryPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Prescription History</h1>
@@ -134,6 +135,6 @@ export default function PrescriptionHistoryPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }

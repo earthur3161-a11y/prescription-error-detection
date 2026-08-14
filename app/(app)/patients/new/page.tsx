@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PatientForm } from "@/components/patient/PatientForm";
+import { PageShell } from "@/components/layout/PageShell";
 
 export default function NewPatientPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <Link href="/patients" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to patients
@@ -20,6 +21,6 @@ export default function NewPatientPage() {
       </div>
 
       <PatientForm />
-    </div>
+    </PageShell>
   );
 }

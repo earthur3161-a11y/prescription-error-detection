@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PrescriptionBuilder } from "@/components/prescription/PrescriptionBuilder";
+import { PageShell } from "@/components/layout/PageShell";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -22,18 +23,18 @@ export default function EditPrescriptionPage({
 
   if (isLoading || !user) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!prescription) {
     return (
-      <div className="mx-auto max-w-3xl p-8 text-center text-muted-foreground">
+      <PageShell className="p-8 text-center text-muted-foreground">
         Prescription not found.
-      </div>
+      </PageShell>
     );
   }
 
@@ -43,7 +44,7 @@ export default function EditPrescriptionPage({
   const isEditable = isPrescriptionEditable(prescription);
   if (!isOwner || !isEditable) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Link
           href={`/prescriptions/${id}`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
@@ -56,7 +57,7 @@ export default function EditPrescriptionPage({
             ? "Only the original prescriber can edit this prescription."
             : "This prescription can no longer be edited — its status has moved past the editable stage."}
         </p>
-      </div>
+      </PageShell>
     );
   }
 

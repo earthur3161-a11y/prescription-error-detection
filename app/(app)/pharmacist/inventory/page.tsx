@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Kpi } from "@/components/analytics/Kpi";
+import { PageShell } from "@/components/layout/PageShell";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useBatches, usePharmacySettings, useApplyStockAdjustment, useAddBatch } from "@/lib/query/hooks/usePharmacy";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -69,10 +70,10 @@ export default function InventoryPage() {
 
   if (!formulary || !batches || !settings) {
     return (
-      <div className="mx-auto max-w-4xl space-y-4 p-6 sm:p-8">
+      <PageShell maxWidth="4xl" className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageShell>
     );
   }
   const nearExpiryDays = settings.nearExpiryDays;
@@ -106,7 +107,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Inventory</h1>
@@ -277,6 +278,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageShell>
   );
 }

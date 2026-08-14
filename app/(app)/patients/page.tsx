@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { usePatients } from "@/lib/query/hooks/usePatients";
 import { useAuth } from "@/lib/auth/useAuth";
 import { calculateAgeYears } from "@/lib/utils/date";
@@ -18,7 +19,7 @@ export default function PatientsPage() {
   const { data: patients, isLoading } = usePatients(query);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Patients</h1>
@@ -85,6 +86,6 @@ export default function PatientsPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }

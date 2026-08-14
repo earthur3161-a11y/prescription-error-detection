@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
+import { PageShell } from "@/components/layout/PageShell";
 
 function CodeBlock({ children }: { children: string }) {
   return (
@@ -16,7 +17,7 @@ export default function IntegrationDocsPage() {
   const router = useRouter();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <button
         onClick={() => router.push("/admin/integration")}
         className="flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
@@ -231,6 +232,6 @@ export default function IntegrationDocsPage() {
           </p>
         </CardBody>
       </Card>
-    </div>
+    </PageShell>
   );
 }

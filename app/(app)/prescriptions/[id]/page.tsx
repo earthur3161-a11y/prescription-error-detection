@@ -14,6 +14,7 @@ import { PrescriptionStatusBadge } from "@/components/prescription/PrescriptionS
 import { PrescriptionLineSummary } from "@/components/prescription/PrescriptionLineSummary";
 import { SourceBadge } from "@/components/prescription/SourceBadge";
 import { ScreeningCoverageNotice } from "@/components/prescription/ScreeningCoverageNotice";
+import { PageShell } from "@/components/layout/PageShell";
 import { usePrescription } from "@/lib/query/hooks/usePrescriptions";
 import { usePatient } from "@/lib/query/hooks/usePatient";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -51,19 +52,19 @@ export default function PrescriptionDetailPage({
 
   if (isLoading || !formulary) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-32 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   if (!prescription) {
     return (
-      <div className="mx-auto max-w-3xl p-8 text-center text-muted-foreground">
+      <PageShell className="p-8 text-center text-muted-foreground">
         Prescription not found.
-      </div>
+      </PageShell>
     );
   }
 
@@ -91,7 +92,7 @@ export default function PrescriptionDetailPage({
     role === "prescriber" && !!user && prescription.prescriberId === user.id && hasClarificationRequest;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <Link href="/prescriptions" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to prescriptions
@@ -318,6 +319,6 @@ export default function PrescriptionDetailPage({
           </>
         }
       />
-    </div>
+    </PageShell>
   );
 }

@@ -7,6 +7,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Notice } from "@/components/ui/Notice";
+import { PageShell } from "@/components/layout/PageShell";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useBulkUpsertDrugs } from "@/lib/query/hooks/useDrugMutations";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -59,7 +60,7 @@ export default function FormularyImportPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <button
         onClick={() => router.push("/admin/formulary")}
         className="flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
@@ -223,6 +224,6 @@ export default function FormularyImportPage() {
           </CardBody>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

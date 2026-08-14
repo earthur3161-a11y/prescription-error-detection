@@ -5,6 +5,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ListRowSkeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { Switch } from "@/components/ui/Switch";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_LABELS } from "@/lib/auth/roles";
@@ -21,7 +22,7 @@ export default function SettingsPage() {
   const { data: profiles, isLoading: profilesLoading } = useProfiles(user?.role !== "prescriber");
 
   return (
-    <div className="stagger mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell className="stagger">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">Facility information and offline sync status.</p>
@@ -124,6 +125,6 @@ export default function SettingsPage() {
           </CardBody>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

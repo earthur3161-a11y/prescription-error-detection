@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { Notice } from "@/components/ui/Notice";
+import { PageShell } from "@/components/layout/PageShell";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
@@ -75,7 +76,7 @@ export default function MyFormularyPage() {
 
   if (user && !isIndependentClinician) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4 p-6 sm:p-8">
+      <PageShell maxWidth="2xl" className="space-y-4">
         <h1 className="text-2xl font-semibold text-foreground">My Formulary</h1>
         <Notice tone="neutral">
           {user.role === "admin"
@@ -87,7 +88,7 @@ export default function MyFormularyPage() {
             <Button variant="secondary">Go to Formulary Management</Button>
           </Link>
         )}
-      </div>
+      </PageShell>
     );
   }
 
@@ -133,7 +134,7 @@ export default function MyFormularyPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">My Formulary</h1>
@@ -341,6 +342,6 @@ export default function MyFormularyPage() {
           your formulary? It will no longer be screenable until re-added.
         </p>
       </Modal>
-    </div>
+    </PageShell>
   );
 }

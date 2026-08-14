@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { Notice } from "@/components/ui/Notice";
+import { PageShell } from "@/components/layout/PageShell";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { useDeleteDrug, useUpsertDrug } from "@/lib/query/hooks/useDrugMutations";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -109,7 +110,7 @@ export default function AdminFormularyPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
@@ -336,6 +337,6 @@ export default function AdminFormularyPage() {
           the formulary? It will no longer be screenable until re-added.
         </p>
       </Modal>
-    </div>
+    </PageShell>
   );
 }

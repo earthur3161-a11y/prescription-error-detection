@@ -209,6 +209,14 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-glow: var(--shadow-glow);
 
+  /* --radius-lg is a Tailwind v4 built-in theme key (stock 0.5rem) this app
+     never overrode — every existing rounded-lg site has silently used
+     Tailwind's default until now. Tokenizing it continues the same 0.25rem
+     step already established between xl and 2xl below, rather than
+     accepting an unrelated stock value by omission. --radius-full has no
+     Tailwind theme-key equivalent (rounded-full is special-cased as
+     calc(infinity*1px), not scale-driven) — nothing to tokenize there. */
+  --radius-lg: 0.625rem;
   --radius-xl: 0.875rem;
   --radius-2xl: 1.125rem;
 

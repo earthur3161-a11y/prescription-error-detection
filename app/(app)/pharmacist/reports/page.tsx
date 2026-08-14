@@ -7,6 +7,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { useAllPharmacistActions, useDispenseRecords, useBatches, usePharmacySettings } from "@/lib/query/hooks/usePharmacy";
 import { usePatients } from "@/lib/query/hooks/usePatients";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
@@ -79,15 +80,15 @@ export default function PharmacyReportsPage() {
 
   if (!actions || !dispenses || !batches || !settings) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Daily dispensing report</h1>
@@ -144,6 +145,6 @@ export default function PharmacyReportsPage() {
       <p className="text-center text-sm text-subtle">
         Full audit trail lives in the <Link href="/pharmacist/error-log" className="text-brand hover:underline">Error &amp; Flag Log</Link>.
       </p>
-    </div>
+    </PageShell>
   );
 }

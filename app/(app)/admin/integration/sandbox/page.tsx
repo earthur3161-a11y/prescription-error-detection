@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
 import { VerdictMark } from "@/components/ui/VerdictMark";
+import { PageShell } from "@/components/layout/PageShell";
 import { useMyApiKeys } from "@/lib/query/hooks/useInstitution";
 import type { Flag, Verdict } from "@/lib/screening-engine";
 
@@ -90,7 +91,7 @@ export default function IntegrationSandboxPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
+    <PageShell>
       <button
         onClick={() => router.push("/admin/integration")}
         className="flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
@@ -202,6 +203,6 @@ export default function IntegrationSandboxPage() {
           </p>
         </CardBody>
       </Card>
-    </div>
+    </PageShell>
   );
 }

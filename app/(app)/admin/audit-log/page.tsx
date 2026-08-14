@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton, StatCardSkeleton } from "@/components/ui/Skeleton";
 import { Kpi } from "@/components/analytics/Kpi";
+import { PageShell } from "@/components/layout/PageShell";
 import { useOverrideLogs } from "@/lib/query/hooks/useOverrideLogs";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -129,7 +130,7 @@ export default function AdminAuditLogPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="5xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
@@ -264,6 +265,6 @@ export default function AdminAuditLogPage() {
           );
         })}
       </div>
-    </div>
+    </PageShell>
   );
 }

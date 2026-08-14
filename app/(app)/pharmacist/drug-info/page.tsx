@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { FlagSeverityChip } from "@/components/ui/FlagSeverityChip";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { useFormulary } from "@/lib/query/hooks/useFormulary";
 import { counselingFor } from "@/lib/pharmacy/counseling";
 import type { Drug } from "@/lib/types";
@@ -38,17 +39,17 @@ export default function DrugInfoPage() {
 
   if (!formulary) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-6 sm:p-8">
+      <PageShell className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageShell>
     );
   }
 
   const counsel = selected ? counselingFor(selected) : null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-6 sm:p-8">
+    <PageShell className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Drug information</h1>
         <p className="mt-1 text-sm text-muted-foreground">Quick clinical reference — independent of any active prescription.</p>
@@ -147,6 +148,6 @@ export default function DrugInfoPage() {
           </CardBody>
         </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

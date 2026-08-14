@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Kpi } from "@/components/analytics/Kpi";
+import { PageShell } from "@/components/layout/PageShell";
 import { useAuth } from "@/lib/auth/useAuth";
 import { useAuditEvents } from "@/lib/query/hooks/useAuditEvents";
 import {
@@ -128,7 +129,7 @@ export default function CompliancePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
+    <PageShell maxWidth="5xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
@@ -224,6 +225,6 @@ export default function CompliancePage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

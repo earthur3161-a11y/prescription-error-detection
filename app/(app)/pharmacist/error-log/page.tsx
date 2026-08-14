@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageShell } from "@/components/layout/PageShell";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { useOverrideLogs } from "@/lib/query/hooks/useOverrideLogs";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -52,7 +53,7 @@ export default function PharmacistErrorLogPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-6 sm:p-8">
+    <PageShell maxWidth="4xl" className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Verification Error Log</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -134,6 +135,6 @@ export default function PharmacistErrorLogPage() {
           })}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
