@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileUp, Plus, Trash2 } from "lucide-react";
+import { FileUp, Pill, Plus, Trash2 } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -112,7 +112,10 @@ export default function AdminFormularyPage() {
     <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Formulary Management</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+            <Pill className="size-6 text-brand" aria-hidden="true" />
+            Formulary Management
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {formulary
               ? `${formulary.drugs.length} medicines in the database used by the screening engine. EML status is a tag, not a filter.`

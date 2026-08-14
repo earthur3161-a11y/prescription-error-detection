@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShieldAlert } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuth } from "@/lib/auth/useAuth";
@@ -36,8 +36,11 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-surface">
         <div className="flex flex-wrap items-center justify-between gap-y-2 px-4 py-4 sm:px-6">
-          <Link href="/superadmin" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <ShieldAlert className="size-6 text-foreground" aria-hidden="true" />
+          <Link
+            href="/superadmin"
+            className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          >
+            <ShieldCheck className="size-6 text-foreground" aria-hidden="true" />
             <span className="font-semibold text-foreground">MediGuard Operations</span>
           </Link>
           <button
@@ -46,7 +49,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
               router.replace("/superadmin/login");
             }}
             aria-label="Sign out"
-            className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted"
+            className="flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <LogOut className="size-4" aria-hidden="true" />
             Sign out
@@ -61,7 +64,7 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-t-lg border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                  "rounded-t-lg border-b-2 px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
                   active
                     ? "border-brand text-brand"
                     : "border-transparent text-secondary hover:text-foreground"

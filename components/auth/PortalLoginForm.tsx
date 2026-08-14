@@ -3,7 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -70,79 +70,87 @@ export function PortalLoginForm({ config }: { config: PortalConfig }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
-      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-brand">
-        ← MediGuard home
+    <div className="bg-hero flex min-h-screen flex-col items-center px-4 py-10">
+      <Link
+        href="/"
+        className="mb-6 flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      >
+        <span className="grid size-9 place-items-center rounded-xl bg-gradient-brand shadow-glow">
+          <ShieldCheck className="size-5 text-white" aria-hidden="true" />
+        </span>
+        <span className="text-lg font-semibold text-foreground">MediGuard</span>
       </Link>
-      <Card className="w-full max-w-md animate-fade-up shadow-md">
-        <CardBody className="space-y-5">
-          <div className="flex flex-col items-center text-center">
-            <div className={`mb-3 flex size-14 items-center justify-center rounded-2xl shadow-sm ${config.accentClass}`}>
-              <Icon className={`size-7 ${config.iconClass}`} />
+      <div className="flex w-full flex-1 flex-col items-center justify-center">
+        <Card className="w-full max-w-md animate-fade-up shadow-md">
+          <CardBody className="space-y-5">
+            <div className="flex flex-col items-center text-center">
+              <div className={`mb-3 flex size-14 items-center justify-center rounded-2xl shadow-sm ${config.accentClass}`}>
+                <Icon className={`size-7 ${config.iconClass}`} />
+              </div>
+              <h1 className="text-xl font-semibold text-foreground">{config.portalName}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{config.tagline}</p>
             </div>
-            <h1 className="text-xl font-semibold text-foreground">{config.portalName}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{config.tagline}</p>
-          </div>
 
-          <form className="space-y-3" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-secondary">
-                Work email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-secondary">
-                Password
-              </label>
-              <PasswordInput
-                id="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && (
-              <Notice tone="blocked" role="alert">
-                {error}
-              </Notice>
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-secondary">
+                  Work email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-secondary">
+                  Password
+                </label>
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {error && (
+                <Notice tone="blocked" role="alert">
+                  {error}
+                </Notice>
+              )}
+
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
+                Sign in
+              </Button>
+            </form>
+
+            {config.requestRole && (
+              <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+                Don&rsquo;t have an account?{" "}
+                <Link
+                  href={`/request-access?role=${config.requestRole}`}
+                  className="font-medium text-brand hover:underline"
+                >
+                  Request access
+                </Link>
+              </p>
             )}
-
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
-              Sign in
-            </Button>
-          </form>
-
-          {config.requestRole && (
-            <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
-              Don&rsquo;t have an account?{" "}
-              <Link
-                href={`/request-access?role=${config.requestRole}`}
-                className="font-medium text-brand hover:underline"
-              >
-                Request access
-              </Link>
-            </p>
-          )}
-          {config.signupHref && (
-            <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
-              Don&rsquo;t have an account?{" "}
-              <Link href={config.signupHref} className="font-medium text-brand hover:underline">
-                Create an account
-              </Link>
-            </p>
-          )}
-        </CardBody>
-      </Card>
+            {config.signupHref && (
+              <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+                Don&rsquo;t have an account?{" "}
+                <Link href={config.signupHref} className="font-medium text-brand hover:underline">
+                  Create an account
+                </Link>
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

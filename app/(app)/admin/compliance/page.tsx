@@ -24,13 +24,6 @@ import {
 } from "@/lib/compliance/auditEvents";
 import { formatDateTime } from "@/lib/utils/date";
 
-const CHANNEL_TONE: Record<AuditChannel, "safe" | "caution" | "blocked" | "brand" | "neutral"> = {
-  patient: "safe",
-  pharmacy: "brand",
-  physician: "caution",
-  system: "neutral",
-};
-
 // This is the app's canonical compliance/audit record — the one place a
 // color-only status signal least belongs (see lib/design/verdictVisuals.ts's
 // own rule: color alone never carries this distinction). AuditTone has its
@@ -72,7 +65,7 @@ function EventRow({ event }: { event: AuditEvent }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-medium text-foreground">{event.action}</span>
-          <Badge tone={CHANNEL_TONE[event.channel]}>{CHANNEL_LABEL[event.channel]}</Badge>
+          <Badge tone="neutral">{CHANNEL_LABEL[event.channel]}</Badge>
           <Badge tone="neutral">{CATEGORY_LABEL[event.category]}</Badge>
           {event.prescriptionId && (
             <Link

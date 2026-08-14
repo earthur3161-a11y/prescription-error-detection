@@ -71,8 +71,12 @@ export default function PharmacistErrorLogPage() {
         )}
         <div className="stagger space-y-3">
           {flagBacks.map((rx) => (
-            <Link key={rx.id} href={`/prescriptions/${rx.id}`}>
-              <Card className="transition-all active:scale-[0.98] hover:shadow-md">
+            <Link
+              key={rx.id}
+              href={`/prescriptions/${rx.id}`}
+              className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            >
+              <Card interactive className="active:scale-[0.98]">
                 <CardBody className="space-y-1.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-medium text-foreground">
@@ -102,8 +106,12 @@ export default function PharmacistErrorLogPage() {
           {(overrideLogs ?? []).map((log) => {
             const rx = prescriptionById.get(log.prescriptionId);
             return (
-              <Link key={log.id} href={`/prescriptions/${log.prescriptionId}`}>
-                <Card className="transition-all active:scale-[0.98] hover:shadow-md">
+              <Link
+                key={log.id}
+                href={`/prescriptions/${log.prescriptionId}`}
+                className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              >
+                <Card interactive className="active:scale-[0.98]">
                   <CardBody className="space-y-1.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-medium text-foreground">

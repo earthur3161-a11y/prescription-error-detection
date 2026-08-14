@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, Loader2, ShieldCheck, Stethoscope } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -35,6 +35,19 @@ const PROVIDERS: { value: MobileMoneyProvider; label: string }[] = [
 const PRODUCT_LABEL: Record<SubscriptionProduct, string> = {
   physician_portal: "Physician Portal",
   pharmacy_portal: "Pharmacy Portal",
+};
+
+// Same icon/tint pairing as the /login portal chooser (app/login/page.tsx) —
+// this is a returning professional's first visual confirmation they're
+// paying for the right portal, so it should read as the same identity they
+// picked there, not a new one invented for this page.
+const PRODUCT_ICON: Record<SubscriptionProduct, ComponentType<{ className?: string }>> = {
+  physician_portal: Stethoscope,
+  pharmacy_portal: ClipboardCheck,
+};
+const PRODUCT_ACCENT: Record<SubscriptionProduct, string> = {
+  physician_portal: "bg-brand-subtle text-brand",
+  pharmacy_portal: "bg-brand-teal/10 text-brand-teal",
 };
 
 const PRODUCT_PRICE_GHS: Record<SubscriptionProduct, string> = {
@@ -134,9 +147,10 @@ export default function BillingPage() {
 
   const isActive = subscription.data?.isActive ?? false;
   const paymentFailed = paymentReference !== null && paymentStatus.data?.status === "failed";
+  const ProductIcon = PRODUCT_ICON[product];
 
   return (
-    <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
+    <div className="bg-hero flex min-h-screen flex-col items-center px-4 py-10">
       {/*
         A plain link, not a sign-out action: app/page.tsx knows to hold a
         signed-in, unsubscribed professional on the public homepage instead
@@ -144,9 +158,16 @@ export default function BillingPage() {
         would just send right back here) — see the comment there. That's
         what makes a simple "/" href work without looping.
       */}
-      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors hover:text-brand">
-        ← Return home
+      <Link
+        href="/"
+        className="mb-6 flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      >
+        <span className="grid size-9 place-items-center rounded-xl bg-gradient-brand shadow-glow">
+          <ShieldCheck className="size-5 text-white" aria-hidden="true" />
+        </span>
+        <span className="text-lg font-semibold text-foreground">MediGuard</span>
       </Link>
+      <div className="flex w-full flex-1 flex-col items-center justify-center">
       <Card className="w-full max-w-md animate-fade-up shadow-md">
         <CardBody className="space-y-5">
           {/*
@@ -173,7 +194,10 @@ export default function BillingPage() {
             </button>
           </Notice>
 
-          <div className="text-center">
+          <div className="flex flex-col items-center text-center">
+            <div className={`mb-3 flex size-14 items-center justify-center rounded-2xl shadow-sm ${PRODUCT_ACCENT[product]}`}>
+              <ProductIcon className="size-7" />
+            </div>
             <h1 className="text-xl font-semibold text-foreground">{PRODUCT_LABEL[product]} subscription</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               GHS {PRODUCT_PRICE_GHS[product]} / month via Mobile Money.
@@ -258,6 +282,7 @@ export default function BillingPage() {
           )}
         </CardBody>
       </Card>
+      </div>
     </div>
   );
 }

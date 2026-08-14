@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Loader2, Plus, ShieldAlert, XCircle } from "lucide-react";
+import { Check, Copy, Loader2, Plug, Plus, ShieldAlert, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -85,7 +85,10 @@ export default function IntegrationDashboardPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-8">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Integration Dashboard</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          <Plug className="size-6 text-brand" aria-hidden="true" />
+          Integration Dashboard
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Connect {institution.name} to MediGuard&rsquo;s screening API from your own prescribing/dispensing system.
         </p>

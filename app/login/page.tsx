@@ -72,7 +72,11 @@ export default function LoginChooserPage() {
           {PORTALS.map((portal) => {
             const Icon = portal.icon;
             return (
-              <Link key={portal.href} href={portal.href} className="group block">
+              <Link
+                key={portal.href}
+                href={portal.href}
+                className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              >
                 <Card interactive className={`border-2 border-transparent transition-colors ${portal.ringClass}`}>
                   <CardBody className="flex items-center gap-4">
                     <div className={`grid size-12 shrink-0 place-items-center rounded-2xl ${portal.badgeClass}`}>

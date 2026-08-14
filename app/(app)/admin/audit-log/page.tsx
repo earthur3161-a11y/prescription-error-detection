@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Download, ScrollText } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton, StatCardSkeleton } from "@/components/ui/Skeleton";
+import { Kpi } from "@/components/analytics/Kpi";
 import { useOverrideLogs } from "@/lib/query/hooks/useOverrideLogs";
 import { usePrescriptions } from "@/lib/query/hooks/usePrescriptions";
 import { usePatients } from "@/lib/query/hooks/usePatients";
@@ -131,7 +132,10 @@ export default function AdminAuditLogPage() {
     <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Error Reporting Dashboard</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+            <ScrollText className="size-6 text-brand" aria-hidden="true" />
+            Error Reporting Dashboard
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Facility-wide override audit trail, EML compliance, and flag trends. For the full
             cross-channel timeline of every check, alert and decision, see the{" "}
@@ -155,15 +159,12 @@ export default function AdminAuditLogPage() {
         </div>
       ) : (
         <div className="stagger grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardBody>
-              <p className="text-xs font-semibold uppercase tracking-wide text-subtle">EML compliance</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{emlStats.percent}%</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {emlStats.nonEmlCount} of {emlStats.total} prescriptions include a non-EML drug
-              </p>
-            </CardBody>
-          </Card>
+          <Kpi
+            label="EML compliance"
+            value={`${emlStats.percent}%`}
+            sub={`${emlStats.nonEmlCount} of ${emlStats.total} prescriptions include a non-EML drug`}
+            tone={emlStats.percent >= 80 ? "safe" : "caution"}
+          />
           <Card>
             <CardBody>
               <p className="text-xs font-semibold uppercase tracking-wide text-subtle">Most common flags</p>

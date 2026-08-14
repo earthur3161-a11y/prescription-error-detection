@@ -3,7 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -79,88 +79,96 @@ export function PortalSignupForm({ config }: { config: PortalSignupConfig }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
-      <Link href="/" className="mb-6 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-brand">
-        ← MediGuard home
+    <div className="bg-hero flex min-h-screen flex-col items-center px-4 py-10">
+      <Link
+        href="/"
+        className="mb-6 flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      >
+        <span className="grid size-9 place-items-center rounded-xl bg-gradient-brand shadow-glow">
+          <ShieldCheck className="size-5 text-white" aria-hidden="true" />
+        </span>
+        <span className="text-lg font-semibold text-foreground">MediGuard</span>
       </Link>
-      <Card className="w-full max-w-md animate-fade-up shadow-md">
-        <CardBody className="space-y-5">
-          <div className="flex flex-col items-center text-center">
-            <div className={`mb-3 flex size-14 items-center justify-center rounded-2xl shadow-sm ${config.accentClass}`}>
-              <Icon className={`size-7 ${config.iconClass}`} />
-            </div>
-            <h1 className="text-xl font-semibold text-foreground">{config.portalName}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{config.tagline}</p>
-          </div>
-
-          <form className="space-y-3" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-secondary">
-                Full name
-              </label>
-              <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-secondary">
-                Work email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-secondary">
-                Password
-              </label>
-              <PasswordInput
-                id="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <p
-                className={cn(
-                  "mt-1 text-xs transition-colors duration-200",
-                  password.length >= 8 ? "text-safe-fg" : "text-subtle"
-                )}
-              >
-                {password.length >= 8 ? "✓ " : ""}At least 8 characters.
-              </p>
+      <div className="flex w-full flex-1 flex-col items-center justify-center">
+        <Card className="w-full max-w-md animate-fade-up shadow-md">
+          <CardBody className="space-y-5">
+            <div className="flex flex-col items-center text-center">
+              <div className={`mb-3 flex size-14 items-center justify-center rounded-2xl shadow-sm ${config.accentClass}`}>
+                <Icon className={`size-7 ${config.iconClass}`} />
+              </div>
+              <h1 className="text-xl font-semibold text-foreground">{config.portalName}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{config.tagline}</p>
             </div>
 
-            {error && (
-              <Notice tone="blocked" role="alert">
-                {error}
-              </Notice>
-            )}
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              <div>
+                <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-secondary">
+                  Full name
+                </label>
+                <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-secondary">
+                  Work email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-secondary">
+                  Password
+                </label>
+                <PasswordInput
+                  id="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <p
+                  className={cn(
+                    "mt-1 text-xs transition-colors duration-200",
+                    password.length >= 8 ? "text-safe-fg" : "text-subtle"
+                  )}
+                >
+                  {password.length >= 8 ? "✓ " : ""}At least 8 characters.
+                </p>
+              </div>
 
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
-              Create account
-            </Button>
-          </form>
+              {error && (
+                <Notice tone="blocked" role="alert">
+                  {error}
+                </Notice>
+              )}
 
-          <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href={config.loginHref} className="font-medium text-brand hover:underline">
-              Sign in
-            </Link>
-          </p>
-          <p className="text-center text-xs text-subtle">
-            Joining a hospital or clinic&rsquo;s existing MediGuard account instead?{" "}
-            <Link href="/request-access" className="font-medium text-brand hover:underline">
-              Request institutional access
-            </Link>
-            .
-          </p>
-        </CardBody>
-      </Card>
+              <Button type="submit" className="w-full" disabled={pending}>
+                {pending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
+                Create account
+              </Button>
+            </form>
+
+            <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link href={config.loginHref} className="font-medium text-brand hover:underline">
+                Sign in
+              </Link>
+            </p>
+            <p className="text-center text-xs text-subtle">
+              Joining a hospital or clinic&rsquo;s existing MediGuard account instead?{" "}
+              <Link href="/request-access" className="font-medium text-brand hover:underline">
+                Request institutional access
+              </Link>
+              .
+            </p>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

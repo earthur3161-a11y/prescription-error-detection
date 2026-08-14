@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Mail } from "lucide-react";
+import { Mail, UserPlus } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -204,7 +204,10 @@ export default function SuperAdminPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Access requests</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          <UserPlus className="size-6 text-brand" aria-hidden="true" />
+          Access requests
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Review and approve facility account requests. Approving provisions an account and sends a
           secure invite email — no plaintext password is ever created or sent.

@@ -58,10 +58,16 @@
   --unknown-bg: #edeaf7;
   --unknown-border: #b9aad9;
 
-  /* Gradients — kept for any non-clinical marketing/auth surface that still
-     wants them; the four clinical services (Patient/Physician/Pharmacist/
-     Admin) no longer reference these, deliberately, per the "precise and
-     calm, not decorative" brief. */
+  /* Gradients — scoped to the pre-authentication journey: the public
+     homepage, /login's portal chooser, PortalLoginForm/PortalSignupForm
+     (physician/pharmacy/admin/superadmin), and /billing. That's a deliberate
+     scope correction, not a reversal of the original "precise and calm, not
+     decorative" brief — this is still true of the actual clinical workspace
+     every role lands in once signed in (Dashboard, Patients, Prescriptions,
+     the Pharmacist/Admin/Superadmin surfaces), which stays flat/restrained
+     and never references these tokens. The two are meant to feel like
+     different rooms: an arrival sequence that carries the brand identity,
+     opening onto a calm, tool-like interior once you're through the door. */
   --gradient-brand: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #0ea5a4 100%);
   --gradient-brand-soft: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   --hero-glow-1: rgba(37, 99, 235, 0.16);

@@ -102,6 +102,7 @@ export function Sidebar({ role, institutionId, onNavigate }: SidebarProps) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
                   active
                     ? "bg-brand-subtle text-brand"
                     : "text-secondary hover:bg-muted hover:text-foreground"

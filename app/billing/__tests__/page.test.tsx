@@ -60,11 +60,13 @@ function payNow() {
 // that's exactly why they landed here. app/page.tsx now holds a signed-in,
 // unsubscribed professional on the public page instead of redirecting them
 // away, so a plain link is enough — verified here by asserting the href.
-describe("Billing page 'return home' link", () => {
+// (Rendered as the MediGuard logo/wordmark, not literal "return home" text,
+// since the design pass — the accessible name comes from that visible text.)
+describe("Billing page home link", () => {
   it("links to / (app/page.tsx is responsible for not looping this back)", () => {
     render(<BillingPage />);
 
-    const homeLink = screen.getByRole("link", { name: /return home/i });
+    const homeLink = screen.getByRole("link", { name: /mediguard/i });
     expect(homeLink).toHaveAttribute("href", "/");
   });
 });

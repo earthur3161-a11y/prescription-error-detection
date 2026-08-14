@@ -25,7 +25,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <button
           onClick={onMenuClick}
           aria-label="Open navigation menu"
-          className="grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted md:hidden"
+          className="grid size-11 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] md:hidden"
         >
           <Menu className="size-5" />
         </button>
@@ -57,7 +57,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             router.replace("/login");
           }}
           aria-label="Sign out"
-          className="grid size-11 shrink-0 place-items-center rounded-xl border border-border text-secondary transition-all duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-foreground"
+          className="grid size-11 shrink-0 place-items-center rounded-xl border border-border text-secondary transition-all duration-200 hover:border-border-strong hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         >
           <LogOut className="size-[18px]" />
         </button>

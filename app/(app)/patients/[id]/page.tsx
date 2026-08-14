@@ -80,8 +80,12 @@ export default function PatientProfilePage({
         )}
         <div className="stagger space-y-3">
           {(prescriptions ?? []).map((rx) => (
-            <Link key={rx.id} href={`/prescriptions/${rx.id}`}>
-              <Card className="transition-all active:scale-[0.98] hover:shadow-md">
+            <Link
+              key={rx.id}
+              href={`/prescriptions/${rx.id}`}
+              className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            >
+              <Card interactive className="active:scale-[0.98]">
                 <CardBody className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-secondary">{formatDateTime(rx.createdAt)}</p>
                   <div className="flex items-center gap-2">
