@@ -13,9 +13,10 @@ import {
   Sparkles,
   Stethoscope,
 } from "lucide-react";
-import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { StepBadge } from "@/components/ui/StepBadge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { VerdictMark } from "@/components/ui/VerdictMark";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE, ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
@@ -48,6 +49,16 @@ const OPERATING_STEPS = [
     title: "Follow up when it matters",
     description: "Any caution or blocked result points you straight back to a pharmacist or physician before you take anything.",
   },
+];
+
+// Illustrative only — not a real check. Deliberately generic, common OTC/Rx
+// names rather than anything resembling a real patient's data, and the
+// whole card is aria-hidden (VerdictMark's role="status"/aria-label is
+// written for a genuine result; an AT user must not hear this as one — the
+// headline right next to it already carries the page's real message).
+const EXAMPLE_CHECK: { name: string; verdict: "safe" | "caution" }[] = [
+  { name: "Paracetamol", verdict: "safe" },
+  { name: "Amoxicillin + Warfarin", verdict: "caution" },
 ];
 
 export default function Home() {
@@ -102,8 +113,24 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-xl px-5 pb-8 pt-10 text-center animate-fade-up sm:pt-16">
-        <div className="mx-auto mb-6 grid size-20 place-items-center rounded-3xl bg-gradient-brand shadow-glow">
-          <ShieldCheck className="size-10 text-white" aria-hidden="true" />
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-6 w-full max-w-[15rem] rounded-2xl border border-border bg-surface/80 p-3.5 text-left shadow-lg backdrop-blur"
+        >
+          <p className="mb-2 px-0.5 text-[10px] font-semibold uppercase tracking-wide text-subtle">
+            Example check
+          </p>
+          <div className="space-y-1.5">
+            {EXAMPLE_CHECK.map((line) => (
+              <div
+                key={line.name}
+                className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2"
+              >
+                <span className="truncate text-sm font-medium text-foreground">{line.name}</span>
+                <VerdictMark verdict={line.verdict} size="chip" />
+              </div>
+            ))}
+          </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-secondary backdrop-blur">
           <Sparkles className="size-3.5 text-brand" aria-hidden="true" />
@@ -133,42 +160,45 @@ export default function Home() {
         </div>
       </main>
 
-      <section id="how-we-operate" className="mx-auto max-w-5xl scroll-mt-24 px-5 pb-16 pt-8">
-        <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-secondary backdrop-blur">
-            <ListChecks className="size-3.5 text-brand" aria-hidden="true" />
-            How We Operate
-          </span>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            From prescription to peace of mind, in four steps
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-secondary sm:text-base">
-            Every check runs the same rigorous process, whether you&rsquo;re a patient checking a
-            pharmacy bag at home or a clinician reviewing a chart.
-          </p>
-        </div>
+      <section id="how-we-operate" className="scroll-mt-24 bg-surface-2 py-14 sm:py-16">
+        <div className="mx-auto max-w-3xl px-5">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand">How we operate</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              From prescription to peace of mind, in four steps
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-secondary sm:text-base">
+              Every check runs the same rigorous process, whether you&rsquo;re a patient checking a
+              pharmacy bag at home or a clinician reviewing a chart.
+            </p>
+          </div>
 
-        <div className="stagger mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {OPERATING_STEPS.map(({ icon: Icon, title, description }, index) => (
-            <Card key={title} className="h-full">
-              <CardBody>
-                <div className="flex items-center gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-subtle">
-                    <Icon className="size-5 text-brand" aria-hidden="true" />
-                  </span>
-                  <span className="text-xs font-semibold text-subtle">STEP {index + 1}</span>
+          <div className="stagger mx-auto mt-10 max-w-md">
+            {OPERATING_STEPS.map(({ icon: Icon, title, description }, index) => (
+              <div key={title} className="relative flex gap-4 pb-8 last:pb-0">
+                {index < OPERATING_STEPS.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-5 top-11 h-[calc(100%-1.75rem)] w-px bg-border"
+                  />
+                )}
+                <StepBadge step={index + 1} size="md" className="relative z-10 shrink-0" />
+                <div className="pt-1">
+                  <div className="flex items-center gap-2">
+                    <Icon className="size-4 text-brand" aria-hidden="true" />
+                    <p className="font-semibold text-foreground">{title}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
                 </div>
-                <p className="mt-3 font-semibold text-foreground">{title}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
 
-        <div className="mt-8 rounded-2xl border border-border bg-surface/60 p-5 text-center text-sm text-muted-foreground backdrop-blur-sm sm:p-6">
-          Built on Ghana&rsquo;s Standard Treatment Guidelines &amp; Essential Medicines List
-          (7th Edition) and interaction data sourced directly from FDA drug labels. MediGuard is a
-          screening aid, not a replacement for professional medical or pharmacist advice.
+          <div className="mt-4 rounded-2xl border border-border bg-surface/60 p-5 text-center text-sm text-muted-foreground backdrop-blur-sm sm:p-6">
+            Built on Ghana&rsquo;s Standard Treatment Guidelines &amp; Essential Medicines List
+            (7th Edition) and interaction data sourced directly from FDA drug labels. MediGuard is a
+            screening aid, not a replacement for professional medical or pharmacist advice.
+          </div>
         </div>
       </section>
     </div>
