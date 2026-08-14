@@ -53,7 +53,18 @@ export default function LoginChooserPage() {
           </span>
           <span className="text-lg font-semibold text-foreground">MediGuard</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-3">
+          {/*
+            The logo above already links home, but a returning user doesn't
+            reliably read a logo tap as "go home" — same reasoning
+            app/check/layout.tsx already applies for its own "Home" link. An
+            explicit, textual link removes the ambiguity.
+          */}
+          <Link href="/" className="text-sm font-medium text-muted-foreground transition-colors hover:text-brand">
+            Home
+          </Link>
+          <ThemeToggle />
+        </div>
       </div>
 
       <div className="flex w-full max-w-md flex-1 flex-col justify-center">
