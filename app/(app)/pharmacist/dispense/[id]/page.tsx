@@ -195,7 +195,7 @@ export default function DispensePage({ params }: { params: Promise<{ id: string 
         return;
       }
     }
-    await appendAction.mutateAsync({ prescriptionId: id, pharmacistId: user.id, action: "dispense" });
+    await appendAction.mutateAsync({ prescriptionId: id, pharmacistId: user.id, action: "dispense", actorRole: "pharmacist" });
     // No separate status update here — dispense_drug() now flips
     // prescriptions.status to "dispensed" itself, atomically, as of
     // 0015_close_raw_dispense_status_bypass.sql. A pharmacist's own RLS-gated

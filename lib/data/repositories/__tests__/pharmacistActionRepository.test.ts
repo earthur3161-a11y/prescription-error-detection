@@ -34,6 +34,7 @@ function row(overrides: Partial<PharmacistActionRow> = {}): PharmacistActionRow 
     prescription_id: "rx_1",
     pharmacist_id: "user_1",
     action: "approve",
+    actor_role: "pharmacist",
     reason: null,
     clarification_drug_id: null,
     intervention_outcome: null,
@@ -50,6 +51,7 @@ describe("pharmacistActionRepository.appendPharmacistAction", () => {
       prescriptionId: "rx_1",
       pharmacistId: "user_1",
       action: "hold",
+      actorRole: "pharmacist",
       reason: "Awaiting stock",
     });
 
@@ -58,6 +60,7 @@ describe("pharmacistActionRepository.appendPharmacistAction", () => {
         prescription_id: "rx_1",
         pharmacist_id: "user_1",
         action: "hold",
+        actor_role: "pharmacist",
         reason: "Awaiting stock",
       })
     );
@@ -66,7 +69,7 @@ describe("pharmacistActionRepository.appendPharmacistAction", () => {
 
   it("allows a prescriber_response action — the new capability that closes the clarification loop", async () => {
     singleMock.mockResolvedValueOnce({
-      data: row({ action: "prescriber_response", pharmacist_id: "prescriber_1", reason: "Confirmed 500mg" }),
+      data: row({ action: "prescriber_response", pharmacist_id: "prescriber_1", actor_role: "prescriber", reason: "Confirmed 500mg" }),
       error: null,
     });
 
@@ -74,6 +77,7 @@ describe("pharmacistActionRepository.appendPharmacistAction", () => {
       prescriptionId: "rx_1",
       pharmacistId: "prescriber_1",
       action: "prescriber_response",
+      actorRole: "prescriber",
       reason: "Confirmed 500mg",
     });
 
@@ -81,16 +85,42 @@ describe("pharmacistActionRepository.appendPharmacistAction", () => {
     expect(action.pharmacistId).toBe("prescriber_1");
   });
 
+  // Regression coverage: an independent physician self-approving their own
+  // prescription must be tagged actor_role: "prescriber" — never conflated
+  // with a genuine pharmacist's independent review in the audit trail. See
+  // 0033_independent_physician_self_service.sql.
+  it("tags an independent physician's own self-approval with actorRole: prescriber, not pharmacist", async () => {
+    singleMock.mockResolvedValueOnce({
+      data: row({ pharmacist_id: "physician_1", actor_role: "prescriber" }),
+      error: null,
+    });
+
+    const action = await appendPharmacistAction({
+      prescriptionId: "rx_1",
+      pharmacistId: "physician_1",
+      action: "approve",
+      actorRole: "prescriber",
+    });
+
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ actor_role: "prescriber" }));
+    expect(action.actorRole).toBe("prescriber");
+  });
+
   it("throws when the insert is rejected (e.g. by RLS), rather than silently swallowing it", async () => {
     singleMock.mockResolvedValueOnce({ data: null, error: new Error("new row violates row-level security policy") });
     await expect(
-      appendPharmacistAction({ prescriptionId: "rx_1", pharmacistId: "user_1", action: "approve" })
+      appendPharmacistAction({ prescriptionId: "rx_1", pharmacistId: "user_1", action: "approve", actorRole: "pharmacist" })
     ).rejects.toThrow("row-level security");
   });
 
   it("maps optional fields to undefined, not null, on the returned domain object", async () => {
     singleMock.mockResolvedValueOnce({ data: row(), error: null });
-    const action = await appendPharmacistAction({ prescriptionId: "rx_1", pharmacistId: "user_1", action: "approve" });
+    const action = await appendPharmacistAction({
+      prescriptionId: "rx_1",
+      pharmacistId: "user_1",
+      action: "approve",
+      actorRole: "pharmacist",
+    });
     expect(action.reason).toBeUndefined();
     expect(action.clarificationDrugId).toBeUndefined();
     expect(action.interventionOutcome).toBeUndefined();

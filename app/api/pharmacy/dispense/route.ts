@@ -21,6 +21,14 @@ import type { PatientRow, PrescriptionRow } from "@/lib/supabase/types";
  * matter what verdict they might try to pass — the only path to a
  * dispense_records row is through this server code, which always re-screens
  * before writing anything.
+ *
+ * Callers: a pharmacist (institutional or independent, per the ownership
+ * rules below), or — since 0033_independent_physician_self_service.sql — an
+ * independent physician dispensing their own prescription from their own
+ * stock. Institutional physicians are deliberately excluded from this route
+ * entirely; that scope boundary is enforced below, not just at the role
+ * check, since role alone can't distinguish an independent physician from an
+ * institutional one.
  */
 
 const requestSchema = z.object({
@@ -54,7 +62,11 @@ function mapPrescriptionRow(row: PrescriptionRow): { patientId: string; drugs: P
 }
 
 export async function POST(request: Request) {
-  // --- Authenticate: real Supabase session, pharmacist role only. ---
+  // --- Authenticate: real Supabase session, pharmacist or prescriber role. ---
+  // A prescriber caller is narrowed to "independent physician dispensing
+  // their own prescription" below, once the prescription row is in hand —
+  // role alone can't tell an independent physician from an institutional
+  // one (that distinction lives in app_metadata.institution_id).
   const authHeader = request.headers.get("authorization") ?? "";
   const token = authHeader.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) {
@@ -64,8 +76,9 @@ export async function POST(request: Request) {
   if (callerError || !callerData.user) {
     return Response.json({ error: "unauthorized", message: "Invalid or expired session." }, { status: 401 });
   }
-  if (callerData.user.app_metadata?.role !== "pharmacist") {
-    return Response.json({ error: "forbidden", message: "Pharmacist role required." }, { status: 403 });
+  const callerRole = callerData.user.app_metadata?.role;
+  if (callerRole !== "pharmacist" && callerRole !== "prescriber") {
+    return Response.json({ error: "forbidden", message: "Pharmacist or prescriber role required." }, { status: 403 });
   }
   const pharmacistId = callerData.user.id;
 
@@ -97,18 +110,37 @@ export async function POST(request: Request) {
 
   // This route runs on the service-role client, so RLS's institution
   // scoping (0012_institution_boundary.sql) never applies here — without
-  // this explicit check, any authenticated pharmacist could dispense
-  // against any prescriptionId in the system, institution-boundary or not.
+  // this explicit check, any authenticated caller could dispense against
+  // any prescriptionId in the system, institution-boundary or not.
   // Institutional pharmacist: only their own institution's prescriptions.
   // Independent pharmacist (institution_id claim is null): only a
   // prescription with no institution that they themselves entered — the
   // walk-in flow at /pharmacist/verify/new always sets prescriber_id to the
   // entering pharmacist's own id, so this is the only prescription shape an
-  // independent pharmacist can legitimately act on.
+  // independent pharmacist can legitimately act on. Both branches are
+  // pharmacist-only: a prescriber caller must fall through to
+  // ownPrescriptionSelfDispense below, never sameInstitution — otherwise an
+  // institutional physician would gain access to every prescription in
+  // their institution, not just their own, which is explicitly out of scope
+  // (see 0033_independent_physician_self_service.sql).
   const callerInstitutionId = (callerData.user.app_metadata?.institution_id as string | undefined) ?? null;
-  const sameInstitution = callerInstitutionId !== null && rxRow.institution_id === callerInstitutionId;
-  const ownWalkIn = callerInstitutionId === null && rxRow.institution_id === null && rxRow.prescriber_id === pharmacistId;
-  if (!sameInstitution && !ownWalkIn) {
+  const sameInstitution =
+    callerRole === "pharmacist" && callerInstitutionId !== null && rxRow.institution_id === callerInstitutionId;
+  const ownWalkIn =
+    callerRole === "pharmacist" &&
+    callerInstitutionId === null &&
+    rxRow.institution_id === null &&
+    rxRow.prescriber_id === pharmacistId;
+  // Independent physician, dispensing their own prescription from their own
+  // stock, after it has cleared screening — mirrors the same ownership
+  // shape as ownWalkIn above. Institutional physicians never reach this
+  // branch: their institution_id claim is non-null, so it evaluates false.
+  const ownPrescriptionSelfDispense =
+    callerRole === "prescriber" &&
+    callerInstitutionId === null &&
+    rxRow.institution_id === null &&
+    rxRow.prescriber_id === pharmacistId;
+  if (!sameInstitution && !ownWalkIn && !ownPrescriptionSelfDispense) {
     return Response.json(
       { error: "forbidden", message: "This prescription is not visible to your account." },
       { status: 403 }

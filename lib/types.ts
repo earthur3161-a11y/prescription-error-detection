@@ -492,6 +492,8 @@ export interface PharmacistAction {
   /** For a prescriber_response row, this is the responding PRESCRIBER's user id — the field name predates that row type (see 0030's own comment). */
   pharmacistId: string;
   action: PharmacistActionType;
+  /** Which role actually performed this action — an independent physician self-approving their own prescription vs. a pharmacist's independent review are never conflated, in the data or in RLS. See 0033_independent_physician_self_service.sql. */
+  actorRole: "pharmacist" | "prescriber";
   reason?: string;
   /** For request_clarification and prescriber_response: which drug the question/answer is about. */
   clarificationDrugId?: string;

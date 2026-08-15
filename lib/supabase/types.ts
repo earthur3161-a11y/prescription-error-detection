@@ -143,6 +143,12 @@ export type PharmacistActionRow = {
   clarification_drug_id: string | null;
   intervention_outcome: string | null;
   timestamp: string;
+  // Which role actually performed this action — added by
+  // 0033_independent_physician_self_service.sql so a physician's own
+  // self-approval on their own (independent, no-institution) prescription is
+  // never indistinguishable from a genuine independent pharmacist's review of
+  // someone else's. RLS enforces this can't be spoofed either direction.
+  actor_role: "pharmacist" | "prescriber";
 };
 
 export type PatientCheckRow = {
@@ -409,7 +415,8 @@ export type Database = {
       };
       pharmacist_actions: {
         Row: PharmacistActionRow;
-        Insert: Partial<PharmacistActionRow> & Pick<PharmacistActionRow, "id" | "prescription_id" | "pharmacist_id" | "action" | "timestamp">;
+        Insert: Partial<PharmacistActionRow> &
+          Pick<PharmacistActionRow, "id" | "prescription_id" | "pharmacist_id" | "action" | "timestamp" | "actor_role">;
         Update: Partial<PharmacistActionRow>;
         Relationships: [];
       };

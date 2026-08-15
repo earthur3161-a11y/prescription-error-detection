@@ -196,6 +196,7 @@ export default function PrescriptionDetailPage({
                           prescriptionId: id,
                           pharmacistId: user.id,
                           action: "prescriber_response",
+                          actorRole: "prescriber",
                           reason: clarificationReply.trim(),
                         },
                         { onSuccess: () => setClarificationReply("") }

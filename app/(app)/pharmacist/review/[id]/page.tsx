@@ -95,7 +95,11 @@ export default function PharmacistReviewPage({ params }: { params: Promise<{ id:
 
   function log(action: PharmacistActionType, extra: Partial<Parameters<typeof appendAction.mutate>[0]> = {}) {
     if (!user) return;
-    appendAction.mutate({ prescriptionId: id, pharmacistId: user.id, action, ...extra });
+    // This whole page is pharmacist-only (app/(app)/pharmacist/layout.tsx's
+    // RoleGuard) — every action logged here is a genuine pharmacist decision,
+    // never a physician's own self-service one (that's a separate action bar
+    // on the prescriber's own prescriptions/[id] page instead).
+    appendAction.mutate({ prescriptionId: id, pharmacistId: user.id, action, ...extra, actorRole: "pharmacist" });
   }
 
   function handleApprove() {
