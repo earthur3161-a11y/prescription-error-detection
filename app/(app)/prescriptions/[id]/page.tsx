@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Flag, HelpCircle, PackageCheck, Pencil, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Flag, HelpCircle, PackageCheck, Pencil, XCircle } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -75,6 +75,19 @@ export default function PrescriptionDetailPage({
   // only the original prescriber, only while still in an editable status.
   const canPrescriberEdit =
     role === "prescriber" && !!user && prescription.prescriberId === user.id && isPrescriptionEditable(prescription);
+  // An independent physician (no institution — same condition
+  // prescriptions_update_own/batches_insert_own now check) reviewing their
+  // own prescription: a single Approve action, not the full pharmacist
+  // toolkit (Hold/Reject/Clarify/Record Intervention don't apply to
+  // reviewing your own work — a physician who wants to stop their own
+  // prescription already has Cancel above). See
+  // 0033_independent_physician_self_service.sql.
+  const canPrescriberSelfVerify =
+    role === "prescriber" &&
+    !!user &&
+    !user.institutionId &&
+    prescription.prescriberId === user.id &&
+    (prescription.status === "submitted" || prescription.status === "under_review");
 
   // A flat chronological thread, not paired 1:1 per question — a prescription
   // can have more than one clarification/response over its life, and showing
@@ -240,6 +253,22 @@ export default function PrescriptionDetailPage({
           <Button variant="secondary" onClick={() => setCancelModalOpen(true)}>
             <XCircle className="size-5" aria-hidden="true" />
             Cancel Prescription
+          </Button>
+        </div>
+      )}
+
+      {canPrescriberSelfVerify && (
+        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+          <Button
+            disabled={appendAction.isPending || updateStatus.isPending}
+            onClick={() => {
+              if (!user) return;
+              appendAction.mutate({ prescriptionId: id, pharmacistId: user.id, action: "approve", actorRole: "prescriber" });
+              updateStatus.mutate({ id, status: "cleared" });
+            }}
+          >
+            <CheckCircle2 className="size-5" aria-hidden="true" />
+            Approve
           </Button>
         </div>
       )}
