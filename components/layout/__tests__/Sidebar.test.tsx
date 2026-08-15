@@ -71,4 +71,25 @@ describe("Sidebar", () => {
     render(<Sidebar role="admin" institutionId="inst_123" />);
     expect(screen.queryByRole("link", { name: "My Formulary" })).not.toBeInTheDocument();
   });
+
+  it("shows Inventory (own stock) for an independent prescriber, pointing at /inventory — distinct from a pharmacist's /pharmacist/inventory", () => {
+    render(<Sidebar role="prescriber" institutionId={null} />);
+    const links = screen.getAllByRole("link", { name: "Inventory" });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/inventory");
+  });
+
+  it("hides the independent-physician Inventory entry for an institution-affiliated prescriber (their institution's pharmacy dispenses instead)", () => {
+    render(<Sidebar role="prescriber" institutionId="inst_123" />);
+    expect(screen.queryByRole("link", { name: "Inventory" })).not.toBeInTheDocument();
+  });
+
+  it("never adds a second Inventory entry for pharmacist — their own /pharmacist/inventory item already covers it, independent or not", () => {
+    const { unmount } = render(<Sidebar role="pharmacist" institutionId={null} />);
+    expect(screen.getAllByRole("link", { name: "Inventory" })).toHaveLength(1);
+    unmount();
+
+    render(<Sidebar role="pharmacist" institutionId="inst_123" />);
+    expect(screen.getAllByRole("link", { name: "Inventory" })).toHaveLength(1);
+  });
 });

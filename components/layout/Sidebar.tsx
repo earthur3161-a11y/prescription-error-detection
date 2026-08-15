@@ -67,6 +67,13 @@ interface SidebarProps {
 }
 
 const MY_FORMULARY_ITEM: NavItem = { href: "/formulary", label: "My Formulary", icon: Pill };
+// Independent-physician-only (0033_independent_physician_self_service.sql)
+// — an institutional prescriber's dispensing happens through their
+// institution's pharmacy, and an independent pharmacist already has their
+// own Inventory entry (leading NAV_BY_ROLE.pharmacist, pointing at
+// /pharmacist/inventory) — this is deliberately a different item/route, not
+// a duplicate.
+const MY_INVENTORY_ITEM: NavItem = { href: "/inventory", label: "Inventory", icon: Package };
 
 export function Sidebar({ role, institutionId, onNavigate }: SidebarProps) {
   const pathname = usePathname();
@@ -76,9 +83,15 @@ export function Sidebar({ role, institutionId, onNavigate }: SidebarProps) {
   // of their own to manage it for them (0028_custom_drugs_institution_
   // boundary.sql).
   const isIndependentClinician = (role === "prescriber" || role === "pharmacist") && !institutionId;
-  const items = isIndependentClinician
-    ? [...NAV_BY_ROLE[role].slice(0, -1), MY_FORMULARY_ITEM, NAV_BY_ROLE[role].at(-1)!]
-    : NAV_BY_ROLE[role];
+  const isIndependentPrescriber = role === "prescriber" && !institutionId;
+  const extraItems: NavItem[] = [
+    ...(isIndependentPrescriber ? [MY_INVENTORY_ITEM] : []),
+    ...(isIndependentClinician ? [MY_FORMULARY_ITEM] : []),
+  ];
+  const items =
+    extraItems.length > 0
+      ? [...NAV_BY_ROLE[role].slice(0, -1), ...extraItems, NAV_BY_ROLE[role].at(-1)!]
+      : NAV_BY_ROLE[role];
 
   return (
     <nav aria-label="Main navigation" className="flex h-full flex-col bg-surface">
