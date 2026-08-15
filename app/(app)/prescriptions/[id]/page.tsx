@@ -88,6 +88,16 @@ export default function PrescriptionDetailPage({
     !user.institutionId &&
     prescription.prescriberId === user.id &&
     (prescription.status === "submitted" || prescription.status === "under_review");
+  // Same independent-physician-own-prescription condition as
+  // canPrescriberSelfVerify, once Approve has already moved status to
+  // cleared — the entry point into /prescriptions/[id]/dispense, which
+  // re-checks this same ownership itself before rendering DispenseFlow.
+  const canPrescriberSelfDispense =
+    role === "prescriber" &&
+    !!user &&
+    !user.institutionId &&
+    prescription.prescriberId === user.id &&
+    prescription.status === "cleared";
 
   // A flat chronological thread, not paired 1:1 per question — a prescription
   // can have more than one clarification/response over its life, and showing
@@ -269,6 +279,15 @@ export default function PrescriptionDetailPage({
           >
             <CheckCircle2 className="size-5" aria-hidden="true" />
             Approve
+          </Button>
+        </div>
+      )}
+
+      {canPrescriberSelfDispense && (
+        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+          <Button onClick={() => router.push(`/prescriptions/${prescription.id}/dispense`)}>
+            <PackageCheck className="size-5" aria-hidden="true" />
+            Dispense
           </Button>
         </div>
       )}
