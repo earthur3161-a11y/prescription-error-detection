@@ -104,24 +104,31 @@ export default function Home() {
   return (
     <div className="bg-hero relative min-h-screen">
       {/*
-        Purely decorative: a macro photo of capsules (Hush Naidoo Jade
-        Photography, unsplash.com/photos/three-white-capsules-QTu7FStK4AE,
-        Unsplash License — free for commercial use), kept subtle and
-        low-opacity so it reads as atmosphere behind .bg-hero's own radial
-        glows rather than competing with foreground text contrast in either
-        theme. Absolutely positioned + negative z-index so it paints above
-        .bg-hero's own background but behind every real (position: static)
-        child — see globals.css's .bg-hero. Faded via mask rather than a
-        hard-edged cutoff. Plain CSS background-image (not next/image): this
-        is a decorative full-bleed layer, not content, and the project has
-        no existing next/image usage or remote-image config to extend.
+        Purely decorative: a macro photo of assorted tablets/capsules (Jorge
+        Campos, unsplash.com/photos/assortment-of-colorful-pills-and-capsules-
+        scattered-randomly-NySWy3DvovU, Unsplash License — free for
+        commercial use). Desaturated to a near-monochrome texture: this
+        app's own brand deliberately stays flat graphite rather than
+        "healthcare blue" or decorative color (see the --brand token comment
+        above) — the raw photo's saturated primary colors fought that
+        restraint and, verified visually, read as busy rather than calm at
+        any opacity that kept it recognizable. Grayscale is what let opacity
+        go high enough to actually be visible while still sitting quietly
+        behind text in both themes. Absolutely positioned + negative
+        z-index so it paints above .bg-hero's own background but behind
+        every real (position: static) child — see globals.css's .bg-hero.
+        Faded via mask rather than a hard-edged cutoff. Plain CSS
+        background-image (not next/image): this is a decorative full-bleed
+        layer, not content, and the project has no existing next/image
+        usage or remote-image config to extend.
       */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] w-full bg-cover bg-center opacity-[0.16] dark:opacity-[0.24]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] w-full bg-cover bg-center opacity-[0.28]"
         style={{
           backgroundImage:
-            "url('https://images.unsplash.com/photo-1523299174285-a59d80640155?fm=jpg&q=65&w=2200&auto=format&fit=crop&ixlib=rb-4.1.0')",
+            "url('https://images.unsplash.com/photo-1761361414308-b1b683d1f33a?fm=jpg&q=65&w=2200&auto=format&fit=crop&ixlib=rb-4.1.0')",
+          filter: "grayscale(0.9) contrast(1.05)",
           maskImage: "linear-gradient(to bottom, black, transparent)",
           WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
         }}
