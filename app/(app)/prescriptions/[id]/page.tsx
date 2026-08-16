@@ -254,37 +254,44 @@ export default function PrescriptionDetailPage({
         })}
       </div>
 
-      {canPrescriberEdit && (
-        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
-          <Button variant="secondary" onClick={() => router.push(`/prescriptions/${prescription.id}/edit`)}>
-            <Pencil className="size-5" aria-hidden="true" />
-            Edit
-          </Button>
-          <Button variant="secondary" onClick={() => setCancelModalOpen(true)}>
-            <XCircle className="size-5" aria-hidden="true" />
-            Cancel Prescription
-          </Button>
-        </div>
-      )}
-
-      {canPrescriberSelfVerify && (
-        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
-          <Button
-            disabled={appendAction.isPending || updateStatus.isPending}
-            onClick={() => {
-              if (!user) return;
-              appendAction.mutate({ prescriptionId: id, pharmacistId: user.id, action: "approve", actorRole: "prescriber" });
-              updateStatus.mutate({ id, status: "cleared" });
-            }}
-          >
-            <CheckCircle2 className="size-5" aria-hidden="true" />
-            Approve
-          </Button>
+      {/* One shared action bar, not two stacked ones — canPrescriberEdit and
+          canPrescriberSelfVerify are both true at once for a submitted/
+          under_review prescription (EDITABLE_PRESCRIPTION_STATUSES includes
+          both), so rendering them as separate bordered blocks produced two
+          redundant dividers for what's really one set of "what can I do
+          with this prescription right now" actions. */}
+      {(canPrescriberEdit || canPrescriberSelfVerify) && (
+        <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-4">
+          {canPrescriberEdit && (
+            <>
+              <Button variant="secondary" onClick={() => router.push(`/prescriptions/${prescription.id}/edit`)}>
+                <Pencil className="size-5" aria-hidden="true" />
+                Edit
+              </Button>
+              <Button variant="secondary" onClick={() => setCancelModalOpen(true)}>
+                <XCircle className="size-5" aria-hidden="true" />
+                Cancel Prescription
+              </Button>
+            </>
+          )}
+          {canPrescriberSelfVerify && (
+            <Button
+              disabled={appendAction.isPending || updateStatus.isPending}
+              onClick={() => {
+                if (!user) return;
+                appendAction.mutate({ prescriptionId: id, pharmacistId: user.id, action: "approve", actorRole: "prescriber" });
+                updateStatus.mutate({ id, status: "cleared" });
+              }}
+            >
+              <CheckCircle2 className="size-5" aria-hidden="true" />
+              Approve
+            </Button>
+          )}
         </div>
       )}
 
       {canPrescriberSelfDispense && (
-        <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+        <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-4">
           <Button onClick={() => router.push(`/prescriptions/${prescription.id}/dispense`)}>
             <PackageCheck className="size-5" aria-hidden="true" />
             Dispense

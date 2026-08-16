@@ -230,8 +230,8 @@ export function InventoryManager({ promoHref, promoLabel, promoTitle, promoDescr
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-secondary">Type</label>
-              <Select value={adjType} onChange={(e) => setAdjType(e.target.value as StockAdjustmentType)}>
+              <label htmlFor="adjust-type" className="mb-1.5 block text-sm font-medium text-secondary">Type</label>
+              <Select id="adjust-type" value={adjType} onChange={(e) => setAdjType(e.target.value as StockAdjustmentType)}>
                 <option value="addition">Addition (delivery)</option>
                 <option value="removal">Removal (damaged)</option>
                 <option value="return">Return</option>
@@ -239,13 +239,13 @@ export function InventoryManager({ promoHref, promoLabel, promoTitle, promoDescr
               </Select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-secondary">Quantity</label>
-              <Input type="number" min={1} value={adjQty} onChange={(e) => setAdjQty(Number(e.target.value))} />
+              <label htmlFor="adjust-quantity" className="mb-1.5 block text-sm font-medium text-secondary">Quantity</label>
+              <Input id="adjust-quantity" type="number" min={1} value={adjQty} onChange={(e) => setAdjQty(Number(e.target.value))} />
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-secondary">Reason (required)</label>
-            <Input value={adjReason} onChange={(e) => setAdjReason(e.target.value)} placeholder="e.g. New delivery from Kinapharma" />
+            <label htmlFor="adjust-reason" className="mb-1.5 block text-sm font-medium text-secondary">Reason (required)</label>
+            <Input id="adjust-reason" value={adjReason} onChange={(e) => setAdjReason(e.target.value)} placeholder="e.g. New delivery from Kinapharma" />
           </div>
           <p className="flex items-center gap-1.5 text-xs text-subtle">
             <TriangleAlert className="size-3.5" aria-hidden="true" />
@@ -268,8 +268,8 @@ export function InventoryManager({ promoHref, promoLabel, promoTitle, promoDescr
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-secondary">Drug</label>
-            <Select value={newBatch.drugId} onChange={(e) => setNewBatch((p) => ({ ...p, drugId: e.target.value }))}>
+            <label htmlFor="batch-drug" className="mb-1.5 block text-sm font-medium text-secondary">Drug</label>
+            <Select id="batch-drug" value={newBatch.drugId} onChange={(e) => setNewBatch((p) => ({ ...p, drugId: e.target.value }))}>
               <option value="">Select a drug…</option>
               {formulary.drugs.map((d) => (
                 <option key={d.id} value={d.id}>{d.generic_name}</option>
@@ -278,20 +278,20 @@ export function InventoryManager({ promoHref, promoLabel, promoTitle, promoDescr
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-secondary">Batch number</label>
-              <Input value={newBatch.batchNumber} onChange={(e) => setNewBatch((p) => ({ ...p, batchNumber: e.target.value }))} />
+              <label htmlFor="batch-number" className="mb-1.5 block text-sm font-medium text-secondary">Batch number</label>
+              <Input id="batch-number" value={newBatch.batchNumber} onChange={(e) => setNewBatch((p) => ({ ...p, batchNumber: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-secondary">Supplier</label>
-              <Input value={newBatch.supplier} onChange={(e) => setNewBatch((p) => ({ ...p, supplier: e.target.value }))} />
+              <label htmlFor="batch-supplier" className="mb-1.5 block text-sm font-medium text-secondary">Supplier</label>
+              <Input id="batch-supplier" value={newBatch.supplier} onChange={(e) => setNewBatch((p) => ({ ...p, supplier: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-secondary">Expiry date</label>
-              <Input type="date" value={newBatch.expiryDate} onChange={(e) => setNewBatch((p) => ({ ...p, expiryDate: e.target.value }))} />
+              <label htmlFor="batch-expiry" className="mb-1.5 block text-sm font-medium text-secondary">Expiry date</label>
+              <Input id="batch-expiry" type="date" value={newBatch.expiryDate} onChange={(e) => setNewBatch((p) => ({ ...p, expiryDate: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-secondary">Quantity</label>
-              <Input type="number" min={1} value={newBatch.quantityRemaining} onChange={(e) => setNewBatch((p) => ({ ...p, quantityRemaining: Number(e.target.value) }))} />
+              <label htmlFor="batch-quantity" className="mb-1.5 block text-sm font-medium text-secondary">Quantity</label>
+              <Input id="batch-quantity" type="number" min={1} value={newBatch.quantityRemaining} onChange={(e) => setNewBatch((p) => ({ ...p, quantityRemaining: Number(e.target.value) }))} />
             </div>
           </div>
         </div>

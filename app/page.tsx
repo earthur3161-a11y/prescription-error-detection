@@ -104,32 +104,28 @@ export default function Home() {
   return (
     <div className="bg-hero relative min-h-screen">
       {/*
-        Purely decorative: a fine grid of tick marks, evoking a lab/dosage
-        measurement grid rather than a literal medicine icon — restrained
-        the same way the rest of this app's clinical-workspace surfaces are
-        (see the --brand token comment above), but here as texture rather
-        than flat color, matching this page's own "arrival sequence carries
-        the brand identity" scope (see the gradient tokens' own comment).
-        Absolutely positioned + negative z-index so it paints above
-        .bg-hero's own background/radial glows but behind every real
-        (position: static) child — see globals.css's .bg-hero. Faded via
-        mask rather than a hard-edged cutoff.
+        Purely decorative: a macro photo of capsules (Hush Naidoo Jade
+        Photography, unsplash.com/photos/three-white-capsules-QTu7FStK4AE,
+        Unsplash License — free for commercial use), kept subtle and
+        low-opacity so it reads as atmosphere behind .bg-hero's own radial
+        glows rather than competing with foreground text contrast in either
+        theme. Absolutely positioned + negative z-index so it paints above
+        .bg-hero's own background but behind every real (position: static)
+        child — see globals.css's .bg-hero. Faded via mask rather than a
+        hard-edged cutoff. Plain CSS background-image (not next/image): this
+        is a decorative full-bleed layer, not content, and the project has
+        no existing next/image usage or remote-image config to extend.
       */}
-      <svg
+      <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] w-full opacity-80"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] w-full bg-cover bg-center opacity-[0.16] dark:opacity-[0.24]"
         style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1523299174285-a59d80640155?fm=jpg&q=65&w=2200&auto=format&fit=crop&ixlib=rb-4.1.0')",
           maskImage: "linear-gradient(to bottom, black, transparent)",
           WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
         }}
-      >
-        <defs>
-          <pattern id="hero-tick-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M16 12v8M12 16h8" stroke="var(--border-strong)" strokeWidth="1.25" strokeLinecap="round" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#hero-tick-grid)" />
-      </svg>
+      />
       <header className="sticky top-0 z-20 glass border-b border-border/60">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 py-4">
           <div className="flex items-center gap-2">

@@ -327,10 +327,11 @@ export function DispenseFlow({ id, backHref, backTarget }: DispenseFlowProps) {
                           ))}
                         </ul>
                         <div>
-                          <label className="mb-1.5 block text-sm font-medium text-secondary">
+                          <label htmlFor={`override-note-${c.line.id}`} className="mb-1.5 block text-sm font-medium text-secondary">
                             Override note <span className="text-blocked-fg">*</span>
                           </label>
                           <Textarea
+                            id={`override-note-${c.line.id}`}
                             value={c.ls.overrideNote}
                             onChange={(e) => setLine(c.line.id, { overrideNote: e.target.value })}
                             rows={3}
@@ -369,8 +370,8 @@ export function DispenseFlow({ id, backHref, backTarget }: DispenseFlowProps) {
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-secondary">Batch (FEFO)</label>
-                      <Select value={c.ls.batchId} onChange={(e) => setLine(c.line.id, { batchId: e.target.value })}>
+                      <label htmlFor={`batch-select-${c.line.id}`} className="mb-1.5 block text-sm font-medium text-secondary">Batch (FEFO)</label>
+                      <Select id={`batch-select-${c.line.id}`} value={c.ls.batchId} onChange={(e) => setLine(c.line.id, { batchId: e.target.value })}>
                         {c.dispensable
                           .slice()
                           .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))
@@ -386,8 +387,9 @@ export function DispenseFlow({ id, backHref, backTarget }: DispenseFlowProps) {
                       )}
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-secondary">Quantity to dispense</label>
+                      <label htmlFor={`quantity-${c.line.id}`} className="mb-1.5 block text-sm font-medium text-secondary">Quantity to dispense</label>
                       <Input
+                        id={`quantity-${c.line.id}`}
                         type="number"
                         min={1}
                         max={c.batch?.quantityRemaining ?? undefined}
@@ -403,10 +405,11 @@ export function DispenseFlow({ id, backHref, backTarget }: DispenseFlowProps) {
 
                 {!noStock && c.isPartial && (
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-secondary">
+                    <label htmlFor={`partial-reason-${c.line.id}`} className="mb-1.5 block text-sm font-medium text-secondary">
                       Partial dispense reason <span className="text-blocked-fg">*</span>
                     </label>
                     <Input
+                      id={`partial-reason-${c.line.id}`}
                       value={c.ls.partialReason}
                       onChange={(e) => setLine(c.line.id, { partialReason: e.target.value })}
                       placeholder="e.g. Only 10 units in stock; patient to collect balance."
