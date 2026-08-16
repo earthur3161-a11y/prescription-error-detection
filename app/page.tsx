@@ -102,7 +102,34 @@ export default function Home() {
   if (role && !subscriptionInactive) return null;
 
   return (
-    <div className="bg-hero min-h-screen">
+    <div className="bg-hero relative min-h-screen">
+      {/*
+        Purely decorative: a fine grid of tick marks, evoking a lab/dosage
+        measurement grid rather than a literal medicine icon — restrained
+        the same way the rest of this app's clinical-workspace surfaces are
+        (see the --brand token comment above), but here as texture rather
+        than flat color, matching this page's own "arrival sequence carries
+        the brand identity" scope (see the gradient tokens' own comment).
+        Absolutely positioned + negative z-index so it paints above
+        .bg-hero's own background/radial glows but behind every real
+        (position: static) child — see globals.css's .bg-hero. Faded via
+        mask rather than a hard-edged cutoff.
+      */}
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[44rem] w-full opacity-80"
+        style={{
+          maskImage: "linear-gradient(to bottom, black, transparent)",
+          WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
+        }}
+      >
+        <defs>
+          <pattern id="hero-tick-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M16 12v8M12 16h8" stroke="var(--border-strong)" strokeWidth="1.25" strokeLinecap="round" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hero-tick-grid)" />
+      </svg>
       <header className="sticky top-0 z-20 glass border-b border-border/60">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-5 py-4">
           <div className="flex items-center gap-2">
