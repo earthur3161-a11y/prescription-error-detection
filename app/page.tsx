@@ -20,6 +20,8 @@ import { VerdictMark } from "@/components/ui/VerdictMark";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE, ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
+import { useCheckQuota } from "@/lib/query/hooks/useCheckQuota";
+import { useLastCheckPhone } from "@/lib/utils/lastCheckPhone";
 
 const TRUST_ITEMS = [
   { icon: Clock, label: "Under a minute" },
@@ -82,6 +84,15 @@ export default function Home() {
     if (!hasHydrated || resolvingSubscription || subscriptionInactive) return;
     if (role) router.replace(ROLE_HOME_ROUTE[role]);
   }, [hasHydrated, role, resolvingSubscription, subscriptionInactive, router]);
+
+  // useLastCheckPhone is hydration-safe (returns null for the server/first-
+  // client render, same as every other visitor, then corrects itself) — the
+  // default "Start my free check" copy below is what both the server and
+  // the first client render always agree on; this can only ever change it
+  // after.
+  const lastPhone = useLastCheckPhone();
+  const quota = useCheckQuota(lastPhone);
+  const freeCheckExhausted = !!quota.data && quota.data.freeRemaining === 0 && quota.data.paidAvailable === 0;
 
   // Signed-in professionals with workspace access never see the public
   // landing page — it's not part of their workspace. Still resolving their
@@ -147,7 +158,7 @@ export default function Home() {
         <Link href="/check">
           <Button size="lg" className="mt-8 w-full">
             <Sparkles className="size-5" aria-hidden="true" />
-            Start my free check
+            {freeCheckExhausted ? "Start My Check" : "Start my free check"}
           </Button>
         </Link>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

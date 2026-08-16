@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { useToastStore } from "@/lib/store/toast-store";
 import { useSendOtp, useVerifyOtp } from "@/lib/query/hooks/usePhoneVerification";
 import { isValidGhPhone, toE164Gh } from "@/lib/utils/phone";
+import { rememberLastCheckPhone } from "@/lib/utils/lastCheckPhone";
 
 type SubStep = "phone" | "otp";
 
@@ -45,7 +46,10 @@ export function SignInStep({ onSignedIn }: SignInStepProps) {
     setSubStep("otp");
     sendOtp.mutate(phone, {
       onSuccess: (res) => {
-        if (res.alreadyVerified) onSignedIn(phone);
+        if (res.alreadyVerified) {
+          rememberLastCheckPhone(phone);
+          onSignedIn(phone);
+        }
       },
       onError: (err: Error) => showToast({ title: "Couldn't send code", description: err.message, variant: "error" }),
     });
@@ -58,6 +62,7 @@ export function SignInStep({ onSignedIn }: SignInStepProps) {
       {
         onSuccess: (res) => {
           if (res.verified) {
+            rememberLastCheckPhone(confirmedPhone);
             onSignedIn(confirmedPhone);
           } else {
             showToast({ title: "Incorrect code", description: "Check the code and try again.", variant: "error" });
