@@ -14,9 +14,9 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { StepBadge } from "@/components/ui/StepBadge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { VerdictMark } from "@/components/ui/VerdictMark";
+import { StepCarousel } from "@/components/marketing/StepCarousel";
 import { useAuth } from "@/lib/auth/useAuth";
 import { ROLE_HOME_ROUTE, ROLE_PRODUCT } from "@/lib/auth/roles";
 import { useSubscriptionStatus } from "@/lib/query/hooks/useSubscriptionStatus";
@@ -58,9 +58,12 @@ const OPERATING_STEPS = [
 // whole card is aria-hidden (VerdictMark's role="status"/aria-label is
 // written for a genuine result; an AT user must not hear this as one — the
 // headline right next to it already carries the page's real message).
-const EXAMPLE_CHECK: { name: string; verdict: "safe" | "caution" }[] = [
+// `reason` exists so the preview shows the system explaining a flag, not
+// just coloring a badge — matching what a real result actually looks like
+// (see FindingsPanel/VerdictCard's own flag text elsewhere in the app).
+const EXAMPLE_CHECK: { name: string; verdict: "safe" | "caution"; reason?: string }[] = [
   { name: "Paracetamol", verdict: "safe" },
-  { name: "Amoxicillin + Warfarin", verdict: "caution" },
+  { name: "Amoxicillin + Warfarin", verdict: "caution", reason: "Increased bleeding risk — confirm before combining" },
 ];
 
 export default function Home() {
@@ -156,22 +159,25 @@ export default function Home() {
       <main className="mx-auto max-w-xl px-5 pb-8 pt-10 text-center animate-fade-up sm:pt-16">
         <div
           aria-hidden="true"
-          className="mx-auto mb-6 w-full max-w-[15rem] rounded-2xl border border-border bg-surface/80 p-3.5 text-left shadow-lg backdrop-blur"
+          className="mx-auto mb-6 w-full max-w-[17.5rem] rounded-2xl border border-border bg-surface/80 p-3.5 text-left shadow-lg backdrop-blur"
         >
           <p className="mb-2 px-0.5 text-[10px] font-semibold uppercase tracking-wide text-subtle">
             Example check
           </p>
           <div className="space-y-1.5">
             {EXAMPLE_CHECK.map((line) => (
-              <div
-                key={line.name}
-                className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2"
-              >
-                <span className="truncate text-sm font-medium text-foreground">{line.name}</span>
-                <VerdictMark verdict={line.verdict} size="chip" />
+              <div key={line.name} className="rounded-xl bg-surface-2 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm font-medium text-foreground">{line.name}</span>
+                  <VerdictMark verdict={line.verdict} size="chip" />
+                </div>
+                {line.reason && <p className="mt-1 text-[11px] leading-snug text-caution-fg">{line.reason}</p>}
               </div>
             ))}
           </div>
+          <p className="mt-2.5 border-t border-border pt-2 text-center text-[10px] text-subtle">
+            Checked against Ghana EML &amp; FDA interaction data
+          </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/70 px-3 py-1 text-xs font-medium text-secondary backdrop-blur">
           <Sparkles className="size-3.5 text-brand" aria-hidden="true" />
@@ -214,26 +220,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="stagger mx-auto mt-10 max-w-md">
-            {OPERATING_STEPS.map(({ icon: Icon, title, description }, index) => (
-              <div key={title} className="relative flex gap-4 pb-8 last:pb-0">
-                {index < OPERATING_STEPS.length - 1 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-5 top-11 h-[calc(100%-1.75rem)] w-px bg-border"
-                  />
-                )}
-                <StepBadge step={index + 1} size="md" className="relative z-10 shrink-0" />
-                <div className="pt-1">
-                  <div className="flex items-center gap-2">
-                    <Icon className="size-4 text-brand" aria-hidden="true" />
-                    <p className="font-semibold text-foreground">{title}</p>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <StepCarousel steps={OPERATING_STEPS} label="How we operate — four steps" />
 
           <div className="mt-4 rounded-2xl border border-border bg-surface/60 p-5 text-center text-sm text-muted-foreground backdrop-blur-sm sm:p-6">
             Built on Ghana&rsquo;s Standard Treatment Guidelines &amp; Essential Medicines List
