@@ -121,11 +121,6 @@ async function initializePaystackTransaction(
         }
         break;
       }
-
-      return {
-        reference: chargeBody.data.reference,
-        authorizationUrl: chargeBody.data.authorization_url ?? "",
-      };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < MAX_RETRIES) {

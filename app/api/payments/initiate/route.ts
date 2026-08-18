@@ -66,7 +66,7 @@ async function initializeCheckPayment(
         console.log("[payments/initiate] Mobile Money charge initiated for reference:", chargeBody.data.reference);
         return {
           reference: chargeBody.data.reference,
-          authorizationUrl: "",
+          authorizationUrl: chargeBody.data.authorization_url ?? "",
         };
       }
 
@@ -108,11 +108,6 @@ async function initializeCheckPayment(
         }
         break;
       }
-
-      return {
-        reference: chargeBody.data.reference,
-        authorizationUrl: chargeBody.data.authorization_url ?? "",
-      };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < MAX_RETRIES) {
