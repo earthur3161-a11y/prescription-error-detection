@@ -26,18 +26,39 @@ const PERIOD_DAYS = 30;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
 
-async function callPaystackWithRetry(
+interface PaystackInitializeResponse {
+  status: boolean;
+  message: string;
+  data?: {
+    authorization_url: string;
+    access_code: string;
+    reference: string;
+  };
+}
+
+interface PaystackChargeResponse {
+  status?: boolean;
+  message?: string;
+  data?: {
+    reference?: string;
+    status?: string;
+    authorization_url?: string;
+  };
+}
+
+async function initializePaystackTransaction(
   secretKey: string,
   email: string,
   amount: number,
   phone: string,
   provider: string
-): Promise<{ reference: string; display_text: string } | null> {
+): Promise<{ reference: string; authorizationUrl: string } | null> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const paystackRes = await fetch("https://api.paystack.co/charge", {
+      // Try charge endpoint first for immediate Mobile Money prompt
+      const chargeRes = await fetch("https://api.paystack.co/charge", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${secretKey}`,
@@ -51,43 +72,59 @@ async function callPaystackWithRetry(
         }),
       });
 
-      const paystackBody = (await paystackRes.json()) as {
-        status?: boolean;
-        message?: string;
-        data?: { reference?: string; display_text?: string };
-      };
+      const chargeBody = (await chargeRes.json()) as PaystackChargeResponse;
 
-      if (!paystackRes.ok) {
-        lastError = new Error(
-          `Paystack HTTP ${paystackRes.status}: ${paystackBody.message ?? "Unknown error"}`
-        );
+      if (chargeRes.ok && chargeBody.status && chargeBody.data?.reference) {
+        // Charge endpoint worked - payment prompt is being sent to user's phone
+        console.log("[subscriptions/initiate] Mobile Money charge initiated for reference:", chargeBody.data.reference);
+        return {
+          reference: chargeBody.data.reference,
+          authorizationUrl: "",
+        };
+      }
+
+      // If charge endpoint fails, try initialize endpoint for authorization URL
+      if (!chargeRes.ok || !chargeBody.status) {
+        console.warn("[subscriptions/initiate] Charge endpoint failed, trying initialize:", chargeBody.message);
+
+        const initRes = await fetch("https://api.paystack.co/transaction/initialize", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${secretKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            amount,
+            currency: "GHS",
+            channels: ["mobile_money"],
+          }),
+        });
+
+        const initBody = (await initRes.json()) as PaystackInitializeResponse;
+
+        if (initRes.ok && initBody.status && initBody.data?.reference && initBody.data?.authorization_url) {
+          console.log(
+            "[subscriptions/initiate] Transaction initialized with authorization URL for reference:",
+            initBody.data.reference
+          );
+          return {
+            reference: initBody.data.reference,
+            authorizationUrl: initBody.data.authorization_url,
+          };
+        }
+
+        lastError = new Error(initBody.message ?? chargeBody.message ?? "Paystack payment initialization failed");
         if (attempt < MAX_RETRIES) {
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
           continue;
         }
         break;
       }
-
-      if (!paystackBody.status || !paystackBody.data?.reference) {
-        lastError = new Error(paystackBody.message ?? "Invalid Paystack response");
-        if (attempt < MAX_RETRIES) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-          continue;
-        }
-        break;
-      }
-
-      const displayText = paystackBody.data.display_text ?? "";
-      // Paystack returns the USSD code directly in display_text for Mobile Money charges.
-      // If it looks like a 6-digit code, guide the user to enter it via USSD.
-      const isUssdCode = /^\d{6}$/.test(displayText);
-      const userMessage = isUssdCode
-        ? `Enter code ${displayText} on your phone to complete the payment.`
-        : displayText || "Check your phone to approve the payment.";
 
       return {
-        reference: paystackBody.data.reference,
-        display_text: userMessage,
+        reference: chargeBody.data.reference,
+        authorizationUrl: chargeBody.data.authorization_url ?? "",
       };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
@@ -97,7 +134,7 @@ async function callPaystackWithRetry(
     }
   }
 
-  console.error("[subscriptions/initiate] Paystack charge failed after retries:", lastError);
+  console.error("[subscriptions/initiate] Paystack payment initialization failed after retries:", lastError);
   return null;
 }
 
@@ -205,7 +242,7 @@ export async function POST(request: Request) {
 
   const email = callerData.user.email ?? `${callerData.user.id}@subscriber.mediguard.app`;
 
-  const paystackResult = await callPaystackWithRetry(secretKey, email, amountPesewas, phone, provider);
+  const paystackResult = await initializePaystackTransaction(secretKey, email, amountPesewas, phone, provider);
 
   if (!paystackResult) {
     return Response.json(
@@ -231,6 +268,9 @@ export async function POST(request: Request) {
 
   return Response.json({
     reference: paystackResult.reference,
-    displayMessage: paystackResult.display_text,
+    authorizationUrl: paystackResult.authorizationUrl,
+    displayMessage: paystackResult.authorizationUrl
+      ? "Opening payment page..."
+      : "Payment prompt sent to your phone. Check your messages.",
   });
 }

@@ -11,12 +11,122 @@ const bodySchema = z.object({
   provider: z.enum(["mtn", "vod", "atl"]),
 });
 
+interface PaystackInitializeResponse {
+  status: boolean;
+  message: string;
+  data?: {
+    authorization_url: string;
+    access_code: string;
+    reference: string;
+  };
+}
+
+interface PaystackChargeResponse {
+  status?: boolean;
+  message?: string;
+  data?: {
+    reference?: string;
+    status?: string;
+    authorization_url?: string;
+  };
+}
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 500;
+
+async function initializeCheckPayment(
+  secretKey: string,
+  email: string,
+  amount: number,
+  phone: string,
+  provider: string
+): Promise<{ reference: string; authorizationUrl: string } | null> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      // Try charge endpoint first for immediate Mobile Money prompt
+      const chargeRes = await fetch("https://api.paystack.co/charge", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          amount,
+          currency: "GHS",
+          mobile_money: { phone, provider },
+        }),
+      });
+
+      const chargeBody = (await chargeRes.json()) as PaystackChargeResponse;
+
+      if (chargeRes.ok && chargeBody.status && chargeBody.data?.reference) {
+        console.log("[payments/initiate] Mobile Money charge initiated for reference:", chargeBody.data.reference);
+        return {
+          reference: chargeBody.data.reference,
+          authorizationUrl: "",
+        };
+      }
+
+      // If charge endpoint fails, try initialize endpoint
+      if (!chargeRes.ok || !chargeBody.status) {
+        console.warn("[payments/initiate] Charge endpoint failed, trying initialize:", chargeBody.message);
+
+        const initRes = await fetch("https://api.paystack.co/transaction/initialize", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${secretKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            amount,
+            currency: "GHS",
+            channels: ["mobile_money"],
+          }),
+        });
+
+        const initBody = (await initRes.json()) as PaystackInitializeResponse;
+
+        if (initRes.ok && initBody.status && initBody.data?.reference && initBody.data?.authorization_url) {
+          console.log(
+            "[payments/initiate] Transaction initialized with authorization URL for reference:",
+            initBody.data.reference
+          );
+          return {
+            reference: initBody.data.reference,
+            authorizationUrl: initBody.data.authorization_url,
+          };
+        }
+
+        lastError = new Error(initBody.message ?? chargeBody.message ?? "Payment initialization failed");
+        if (attempt < MAX_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+          continue;
+        }
+        break;
+      }
+
+      return {
+        reference: chargeBody.data.reference,
+        authorizationUrl: chargeBody.data.authorization_url ?? "",
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+
+  console.error("[payments/initiate] Payment initialization failed after retries:", lastError);
+  return null;
+}
+
 export async function POST(request: Request) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
-  // NEXT_PUBLIC_-prefixed even though this is read server-side here too —
-  // the price is displayed to the patient before they pay, so it needs to
-  // be readable client-side, and a single var avoids it drifting out of
-  // sync with a hypothetical server-only twin.
   const priceStr = process.env.NEXT_PUBLIC_CHECK_PRICE_PESEWAS;
   if (!secretKey || !priceStr) {
     console.error("[payments/initiate] Missing PAYSTACK_SECRET_KEY / NEXT_PUBLIC_CHECK_PRICE_PESEWAS.");
@@ -42,9 +152,7 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  // Normalized the same way the OTP routes do — must match the exact string
-  // self_check_accounts is keyed on for get_check_quota below to find the
-  // row, and Paystack's mobile_money charge needs E.164 to route correctly.
+
   const phone = toE164Gh(parsed.data.phone);
   const { provider } = parsed.data;
 
@@ -57,9 +165,7 @@ export async function POST(request: Request) {
   if (!quota?.phone_verified) {
     return Response.json({ error: "not_verified", message: "This phone number hasn't been verified yet." }, { status: 403 });
   }
-  // Protects against charging real money off a stale client screen — if the
-  // phone already has a free or already-paid-but-unconsumed credit, there's
-  // nothing to charge for.
+
   if (quota.free_remaining > 0 || quota.paid_available > 0) {
     return Response.json(
       { error: "payment_not_required", message: "This phone number already has a check available." },
@@ -67,36 +173,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Paystack's charge endpoint requires an email even for Mobile Money
-  // charges; we only collect a phone number for this flow, so synthesize a
-  // deterministic placeholder rather than asking the patient for one.
   const normalizedForEmail = phone.replace(/[^\d]/g, "");
   const syntheticEmail = `${normalizedForEmail}@checkout.mediguard.app`;
 
-  const paystackRes = await fetch("https://api.paystack.co/charge", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email: syntheticEmail,
-      amount: amountPesewas,
-      currency: "GHS",
-      mobile_money: { phone, provider },
-    }),
-  });
+  const paystackResult = await initializeCheckPayment(secretKey, syntheticEmail, amountPesewas, phone, provider);
 
-  const paystackBody = (await paystackRes.json()) as {
-    status?: boolean;
-    message?: string;
-    data?: { reference?: string; display_text?: string; status?: string };
-  };
-
-  if (!paystackRes.ok || !paystackBody.status || !paystackBody.data?.reference) {
-    console.error("[payments/initiate] Paystack charge failed:", paystackRes.status, paystackBody);
+  if (!paystackResult) {
     return Response.json(
-      { error: "charge_failed", message: paystackBody.message ?? "Couldn't start the payment. Try again." },
+      { error: "charge_failed", message: "Couldn't start the payment. Try again." },
       { status: 502 }
     );
   }
@@ -105,7 +189,7 @@ export async function POST(request: Request) {
     phone,
     amount_pesewas: amountPesewas,
     provider: "paystack",
-    provider_reference: paystackBody.data.reference,
+    provider_reference: paystackResult.reference,
     status: "pending",
   };
   const { error: insertError } = await supabaseService.from("check_payments").insert(insert);
@@ -114,16 +198,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "internal_error", message: "Couldn't start the payment. Try again." }, { status: 500 });
   }
 
-  const displayText = paystackBody.data.display_text ?? "";
-  // Paystack returns the USSD code directly in display_text for Mobile Money charges.
-  // If it looks like a 6-digit code, guide the user to enter it via USSD.
-  const isUssdCode = /^\d{6}$/.test(displayText);
-  const userMessage = isUssdCode
-    ? `Enter code ${displayText} on your phone to complete the payment.`
-    : displayText || "Check your phone to approve the payment.";
-
   return Response.json({
-    reference: paystackBody.data.reference,
-    displayMessage: userMessage,
+    reference: paystackResult.reference,
+    authorizationUrl: paystackResult.authorizationUrl,
+    displayMessage: paystackResult.authorizationUrl
+      ? "Opening payment page..."
+      : "Payment prompt sent to your phone. Check your messages.",
   });
 }

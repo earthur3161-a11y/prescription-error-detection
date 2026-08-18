@@ -32,7 +32,7 @@ export async function getMySubscriptionStatus(product: SubscriptionProduct): Pro
 export async function initiateSubscriptionPayment(params: {
   phone: string;
   provider: "mtn" | "vod" | "atl";
-}): Promise<{ reference: string; displayMessage: string }> {
+}): Promise<{ reference: string; displayMessage: string; authorizationUrl?: string }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("You need to be signed in to subscribe.");

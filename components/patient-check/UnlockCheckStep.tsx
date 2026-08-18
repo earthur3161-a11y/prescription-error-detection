@@ -95,6 +95,10 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
           setPaymentMessage(res.displayMessage);
           setSubStep("paying");
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
+          // If Paystack provides an authorization URL, redirect to it for payment
+          if (res.authorizationUrl) {
+            window.location.href = res.authorizationUrl;
+          }
         },
         onError: (err: Error) => showToast({ title: "Couldn't start payment", description: err.message, variant: "error" }),
         onSettled: () => {
