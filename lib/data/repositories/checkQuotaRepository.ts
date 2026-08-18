@@ -20,7 +20,7 @@ export async function getCheckQuota(phone: string): Promise<CheckQuota> {
 export async function initiatePayment(params: {
   phone: string;
   provider: "mtn" | "vod" | "atl";
-}): Promise<{ reference: string; displayMessage: string }> {
+}): Promise<{ reference: string; displayMessage: string; authorizationUrl?: string }> {
   const res = await fetch("/api/payments/initiate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
