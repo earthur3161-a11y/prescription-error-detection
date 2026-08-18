@@ -37,14 +37,36 @@ export async function initiateSubscriptionPayment(params: {
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("You need to be signed in to subscribe.");
 
-  const res = await fetch("/api/subscriptions/initiate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(params),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.message ?? "Couldn't start the payment.");
-  return body;
+  try {
+    const res = await fetch("/api/subscriptions/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(30000),
+    });
+    const body = await res.json();
+
+    if (!res.ok) {
+      const errorMessage = body.message ?? "Couldn't start the payment.";
+      const reference = body.reference;
+
+      if (res.status === 409) {
+        if (reference) {
+          throw new Error(`Payment already in progress. Reference: ${reference}`);
+        }
+        throw new Error(errorMessage);
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return body;
+  } catch (err) {
+    if (err instanceof TypeError && err.message.includes("abort")) {
+      throw new Error("Payment request timed out. Please check your connection and try again.");
+    }
+    throw err;
+  }
 }
 
 /**
@@ -68,14 +90,30 @@ export async function getSubscriptionPaymentStatus(
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("You need to be signed in to check payment status.");
 
-  const res = await fetch("/api/subscriptions/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify({ reference }),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.message ?? "Couldn't check payment status.");
-  return { status: body.status };
+  try {
+    const res = await fetch("/api/subscriptions/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ reference }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await res.json();
+
+    if (!res.ok) {
+      throw new Error(body.message ?? "Couldn't check payment status.");
+    }
+
+    if (!body.status || !["pending", "success", "failed"].includes(body.status)) {
+      throw new Error("Invalid payment status received from server.");
+    }
+
+    return { status: body.status };
+  } catch (err) {
+    if (err instanceof TypeError && err.message.includes("abort")) {
+      throw new Error("Payment status check timed out. Please try again.");
+    }
+    throw err;
+  }
 }
 
 /**

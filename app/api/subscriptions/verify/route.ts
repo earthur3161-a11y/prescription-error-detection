@@ -75,10 +75,36 @@ export async function POST(request: Request) {
     return Response.json({ status: paymentRow.status });
   }
 
-  const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-    headers: { Authorization: `Bearer ${secretKey}` },
-  });
-  const verifyBody = (await verifyRes.json()) as { data?: { status?: string } };
+  let verifyRes: Response;
+  let verifyBody: { data?: { status?: string }; message?: string } = {};
+
+  try {
+    verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    verifyBody = (await verifyRes.json()) as { data?: { status?: string }; message?: string };
+  } catch (err) {
+    console.error("[subscriptions/verify] Failed to verify with Paystack:", err);
+    // Timeout or network error — genuinely can't determine status, still pending
+    return Response.json({ status: "pending" });
+  }
+
+  if (!verifyRes.ok) {
+    console.error("[subscriptions/verify] Paystack verify returned HTTP", verifyRes.status, verifyBody);
+    // Transient error (5xx) or rate limit (429) — tell client to retry
+    if (verifyRes.status >= 500 || verifyRes.status === 429) {
+      return Response.json({ status: "pending" });
+    }
+    // Client error like 404 (reference doesn't exist) — treat as failed
+    if (verifyRes.status === 404) {
+      await resolveSubscriptionPayment(reference, false);
+      return Response.json({ status: "failed" });
+    }
+    // Other client error — still pending, retry later
+    return Response.json({ status: "pending" });
+  }
+
   const paystackStatus = verifyBody.data?.status;
 
   if (paystackStatus === "success") {
@@ -89,9 +115,5 @@ export async function POST(request: Request) {
     await resolveSubscriptionPayment(reference, false);
     return Response.json({ status: "failed" });
   }
-  // Genuinely still pending on Paystack's own side too (customer hasn't
-  // approved the Mobile Money prompt yet), or the verify call itself
-  // couldn't be completed — either way, still pending; the client keeps
-  // polling and will call this again in 3s.
   return Response.json({ status: "pending" });
 }

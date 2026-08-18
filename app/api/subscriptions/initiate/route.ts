@@ -23,6 +23,76 @@ const PRODUCT_PRICE_ENV: Record<"physician_portal" | "pharmacy_portal", string> 
 
 const PERIOD_DAYS = 30;
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 500;
+
+async function callPaystackWithRetry(
+  secretKey: string,
+  email: string,
+  amount: number,
+  phone: string,
+  provider: string
+): Promise<{ reference: string; display_text: string } | null> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const paystackRes = await fetch("https://api.paystack.co/charge", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          amount,
+          currency: "GHS",
+          mobile_money: { phone, provider },
+        }),
+      });
+
+      const paystackBody = (await paystackRes.json()) as {
+        status?: boolean;
+        message?: string;
+        data?: { reference?: string; display_text?: string };
+      };
+
+      if (!paystackRes.ok) {
+        lastError = new Error(
+          `Paystack HTTP ${paystackRes.status}: ${paystackBody.message ?? "Unknown error"}`
+        );
+        if (attempt < MAX_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+          continue;
+        }
+        break;
+      }
+
+      if (!paystackBody.status || !paystackBody.data?.reference) {
+        lastError = new Error(paystackBody.message ?? "Invalid Paystack response");
+        if (attempt < MAX_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+          continue;
+        }
+        break;
+      }
+
+      return {
+        reference: paystackBody.data.reference,
+        display_text: paystackBody.data.display_text ?? "Check your phone to approve the payment.",
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    }
+  }
+
+  console.error("[subscriptions/initiate] Paystack charge failed after retries:", lastError);
+  return null;
+}
+
 export async function POST(request: Request) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
@@ -68,15 +138,10 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  // Its sibling, payments/initiate, normalizes for the same reason: Paystack's
-  // mobile_money charge needs E.164 to route correctly. This route never did,
-  // sending whatever raw shape the client typed (e.g. "0244 123 456")
-  // straight through.
+
   const phone = toE164Gh(parsed.data.phone);
   const { provider } = parsed.data;
 
-  // Re-check current status server-side — never trust the client's cached
-  // subscription state before charging real money.
   const { data: existing } = await supabaseService
     .from("subscriptions")
     .select("status, period_end")
@@ -87,35 +152,56 @@ export async function POST(request: Request) {
     return Response.json({ error: "already_active", message: "Your subscription is already active." }, { status: 409 });
   }
 
-  // Paystack's charge endpoint requires an email even for Mobile Money
-  // charges — the account's own login email doubles for this (unlike the
-  // anonymous Patient Self-Check flow, an authenticated caller always has one).
+  const { data: pendingPayments } = await supabaseService
+    .from("subscription_payments")
+    .select("id, created_at")
+    .eq("owner_id", callerData.user.id)
+    .eq("product", product)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (pendingPayments && pendingPayments.length > 0) {
+    const oldestPending = pendingPayments[0];
+    const createdAt = new Date(oldestPending.created_at);
+    const ageMs = Date.now() - createdAt.getTime();
+    const fiveMinutesMs = 5 * 60 * 1000;
+
+    if (ageMs < fiveMinutesMs) {
+      const oldestReference = pendingPayments[0];
+      console.warn(
+        `[subscriptions/initiate] User ${callerData.user.id} attempted new payment while one is still pending`
+      );
+      const { data: oldPayment } = await supabaseService
+        .from("subscription_payments")
+        .select("provider_reference")
+        .eq("id", oldestReference.id)
+        .maybeSingle();
+
+      return Response.json(
+        {
+          error: "payment_in_progress",
+          message: "A payment is already in progress. Please wait a few moments and try again.",
+          reference: oldPayment?.provider_reference ?? undefined,
+        },
+        { status: 409 }
+      );
+    }
+
+    for (const payment of pendingPayments) {
+      await supabaseService
+        .from("subscription_payments")
+        .update({ status: "failed" })
+        .eq("id", payment.id);
+    }
+  }
+
   const email = callerData.user.email ?? `${callerData.user.id}@subscriber.mediguard.app`;
 
-  const paystackRes = await fetch("https://api.paystack.co/charge", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      amount: amountPesewas,
-      currency: "GHS",
-      mobile_money: { phone, provider },
-    }),
-  });
+  const paystackResult = await callPaystackWithRetry(secretKey, email, amountPesewas, phone, provider);
 
-  const paystackBody = (await paystackRes.json()) as {
-    status?: boolean;
-    message?: string;
-    data?: { reference?: string; display_text?: string };
-  };
-
-  if (!paystackRes.ok || !paystackBody.status || !paystackBody.data?.reference) {
-    console.error("[subscriptions/initiate] Paystack charge failed:", paystackRes.status, paystackBody);
+  if (!paystackResult) {
     return Response.json(
-      { error: "charge_failed", message: paystackBody.message ?? "Couldn't start the payment. Try again." },
+      { error: "charge_failed", message: "Couldn't start the payment. Please try again." },
       { status: 502 }
     );
   }
@@ -126,7 +212,7 @@ export async function POST(request: Request) {
     amount_pesewas: amountPesewas,
     period_days: PERIOD_DAYS,
     provider: "paystack",
-    provider_reference: paystackBody.data.reference,
+    provider_reference: paystackResult.reference,
     status: "pending",
   };
   const { error: insertError } = await supabaseService.from("subscription_payments").insert(insert);
@@ -136,7 +222,7 @@ export async function POST(request: Request) {
   }
 
   return Response.json({
-    reference: paystackBody.data.reference,
-    displayMessage: paystackBody.data.display_text ?? "Check your phone to approve the payment.",
+    reference: paystackResult.reference,
+    displayMessage: paystackResult.display_text,
   });
 }

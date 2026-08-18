@@ -111,4 +111,39 @@ describe("POST /api/subscriptions/verify", () => {
       expect.anything()
     );
   });
+
+  it("returns pending when Paystack returns a 5xx error (transient failure)", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    const res = await POST(req({ reference: "ref_1" }));
+    expect(await res.json()).toEqual({ status: "pending" });
+    expect(resolveSubscriptionPaymentMock).not.toHaveBeenCalled();
+  });
+
+  it("returns pending when Paystack returns a 429 rate limit error", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 429, json: async () => ({}) });
+    const res = await POST(req({ reference: "ref_1" }));
+    expect(await res.json()).toEqual({ status: "pending" });
+    expect(resolveSubscriptionPaymentMock).not.toHaveBeenCalled();
+  });
+
+  it("marks payment failed when Paystack returns 404 (reference not found)", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+    const res = await POST(req({ reference: "ref_1" }));
+    expect(resolveSubscriptionPaymentMock).toHaveBeenCalledWith("ref_1", false);
+    expect(await res.json()).toEqual({ status: "failed" });
+  });
+
+  it("returns pending when Paystack verify request times out", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("AbortError: The operation was aborted."));
+    const res = await POST(req({ reference: "ref_1" }));
+    expect(await res.json()).toEqual({ status: "pending" });
+    expect(resolveSubscriptionPaymentMock).not.toHaveBeenCalled();
+  });
+
+  it("returns pending when Paystack network request fails", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const res = await POST(req({ reference: "ref_1" }));
+    expect(await res.json()).toEqual({ status: "pending" });
+    expect(resolveSubscriptionPaymentMock).not.toHaveBeenCalled();
+  });
 });
