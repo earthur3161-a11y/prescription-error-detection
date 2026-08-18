@@ -62,6 +62,7 @@ export default function BillingPage() {
   const product = role ? ROLE_PRODUCT[role] : undefined;
 
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState<string>("");
   const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   // Synchronous re-entry guard for handlePay — iOS Safari has a documented
@@ -138,6 +139,7 @@ export default function BillingPage() {
       {
         onSuccess: (res) => {
           setPaymentReference(res.reference);
+          setPaymentMessage(res.displayMessage);
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },
         onError: (err: Error) => showToast({ title: "Couldn't start payment", description: err.message, variant: "error" }),
@@ -155,6 +157,7 @@ export default function BillingPage() {
   // one being reused or confused with a later attempt.
   function resetToForm() {
     setPaymentReference(null);
+    setPaymentMessage("");
   }
 
   const isActive = subscription.data?.isActive ?? false;
@@ -255,7 +258,10 @@ export default function BillingPage() {
           ) : isPaying ? (
             <div key="paying" className="animate-scale-in space-y-3 text-center">
               <Loader2 className="mx-auto size-8 animate-spin text-brand" aria-hidden="true" />
-              <p className="text-sm text-secondary">Approve the payment request on your phone to activate.</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">{paymentMessage || "Processing payment..."}</p>
+                {!paymentMessage && <p className="text-sm text-secondary">Check your phone.</p>}
+              </div>
               {paymentTimedOut && <p className="text-sm text-caution-fg">Didn&rsquo;t get the prompt?</p>}
               <Button variant="secondary" className="w-full" onClick={resetToForm}>
                 {paymentTimedOut ? "Try again" : "Cancel"}

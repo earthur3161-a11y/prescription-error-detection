@@ -77,9 +77,17 @@ async function callPaystackWithRetry(
         break;
       }
 
+      const displayText = paystackBody.data.display_text ?? "";
+      // Paystack returns the USSD code directly in display_text for Mobile Money charges.
+      // If it looks like a 6-digit code, guide the user to enter it via USSD.
+      const isUssdCode = /^\d{6}$/.test(displayText);
+      const userMessage = isUssdCode
+        ? `Enter code ${displayText} on your phone to complete the payment.`
+        : displayText || "Check your phone to approve the payment.";
+
       return {
         reference: paystackBody.data.reference,
-        display_text: paystackBody.data.display_text ?? "Check your phone to approve the payment.",
+        display_text: userMessage,
       };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));

@@ -49,6 +49,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   const [subStep, setSubStep] = useState<SubStep>("unlock");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState<string>("");
   // Synchronous re-entry guard for handlePay — see app/billing/page.tsx's
   // identical payingRef for why (iOS Safari's synthetic-click-plus-touchend
   // double-fire can outrace a React state-driven disabled attribute).
@@ -91,6 +92,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
       {
         onSuccess: (res) => {
           setPaymentReference(res.reference);
+          setPaymentMessage(res.displayMessage);
           setSubStep("paying");
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
         },
@@ -201,8 +203,10 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
     <div className="space-y-4 text-center">
       <Loader2 className="mx-auto size-8 animate-spin text-patient" aria-hidden="true" />
       <div>
-        <h2 className="text-lg font-semibold text-foreground">Check your phone</h2>
-        <p className="mt-1 text-sm text-secondary">Approve the payment request to see your result.</p>
+        <h2 className="text-lg font-semibold text-foreground">{paymentMessage || "Check your phone"}</h2>
+        {!paymentMessage && (
+          <p className="mt-1 text-sm text-secondary">Approve the payment request to see your result.</p>
+        )}
       </div>
       {paymentTimedOut && (
         <div className="space-y-2">

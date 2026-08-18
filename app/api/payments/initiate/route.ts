@@ -114,8 +114,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "internal_error", message: "Couldn't start the payment. Try again." }, { status: 500 });
   }
 
+  const displayText = paystackBody.data.display_text ?? "";
+  // Paystack returns the USSD code directly in display_text for Mobile Money charges.
+  // If it looks like a 6-digit code, guide the user to enter it via USSD.
+  const isUssdCode = /^\d{6}$/.test(displayText);
+  const userMessage = isUssdCode
+    ? `Enter code ${displayText} on your phone to complete the payment.`
+    : displayText || "Check your phone to approve the payment.";
+
   return Response.json({
     reference: paystackBody.data.reference,
-    displayMessage: paystackBody.data.display_text ?? "Check your phone to approve the payment.",
+    displayMessage: userMessage,
   });
 }
