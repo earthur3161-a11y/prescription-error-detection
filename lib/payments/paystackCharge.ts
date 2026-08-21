@@ -202,16 +202,6 @@ const REJECTED_MESSAGE = "That code wasn't accepted. Please try again.";
  * observe the result once Paystack processes it.
  */
 export async function submitPaystackOtp(secretKey: string, reference: string, otp: string): Promise<SubmitOtpResult> {
-  // TEMP-REPRO: bypasses the real Paystack call for a reserved zztest_
-  // reference so a throwaway account's OTP submission can be driven through
-  // exactly like a real successful one, to reproduce a live incident that
-  // needs the full client-side awaitingOtp true->false transition. No real
-  // Paystack reference is ever this shape. MUST be removed once diagnosed —
-  // never ship a test bypass in a payment-verification path.
-  if (reference.startsWith("zztest_")) {
-    return { ok: true, message: "TEST BYPASS — not a real Paystack call" };
-  }
-
   let res: Response;
   let body: PaystackSubmitOtpResponse;
   try {
