@@ -102,7 +102,15 @@ export default function BillingPage() {
   // not (the webhook never touches it on failure — 0006_subscriptions.sql),
   // so it alone can't tell "still pending" apart from "definitively failed."
   // This is what makes a declined/abandoned/reversed charge visible at all.
-  const paymentStatus = useSubscriptionPaymentStatus(paymentReference);
+  //
+  // Disabled while awaitingOtp — Paystack's own transaction can't have
+  // resolved yet (it's still waiting on the code relay), so polling
+  // /verify here served no purpose except racing ahead of the user: a real
+  // incident showed Paystack's /transaction/verify returning a status our
+  // code read as failed within seconds of the charge starting, which — since
+  // paymentFailed is checked before the OTP branch below — yanked the code
+  // entry box away before the customer had any chance to use it.
+  const paymentStatus = useSubscriptionPaymentStatus(awaitingOtp ? null : paymentReference);
   // A payment is "in flight" from the moment it's initiated until we know it
   // succeeded — derived every render, not tracked as its own state that has
   // to be manually reset back to false once activation is observed. Once

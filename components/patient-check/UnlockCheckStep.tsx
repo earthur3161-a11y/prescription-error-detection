@@ -66,7 +66,14 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   const quota = useCheckQuota(phone);
   const initiatePayment = useInitiatePayment();
   const submitOtp = useSubmitCheckOtp();
-  const paymentStatus = usePaymentStatus(subStep === "paying" ? paymentReference : null);
+  // Disabled while awaitingOtp — Paystack's own transaction can't have
+  // resolved yet (it's still waiting on the code relay), so polling
+  // /verify here served no purpose except racing ahead of the patient: a
+  // real incident showed Paystack's /transaction/verify returning a status
+  // read as failed within seconds of the charge starting, which — since
+  // the failed check runs before the OTP branch below — yanked the code
+  // entry box away before the patient had any chance to use it.
+  const paymentStatus = usePaymentStatus(subStep === "paying" && !awaitingOtp ? paymentReference : null);
   const paymentTimedOut = usePaymentTimeout(subStep === "paying" && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
   // Resumes tracking a payment this phone already started (this wizard's own

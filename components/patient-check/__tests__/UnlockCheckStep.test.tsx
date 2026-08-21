@@ -209,6 +209,30 @@ describe("UnlockCheckStep — OTP relay for Paystack's send_otp Mobile Money flo
     expect(screen.getByPlaceholderText(/enter code/i)).toBeInTheDocument();
   });
 
+  // Regression coverage: a real incident showed the OTP box disappearing
+  // within seconds — usePaymentStatus was polling /verify immediately once
+  // a reference existed, with no gate on awaitingOtp, and Paystack's
+  // /transaction/verify returned a status read as "failed" for a charge
+  // that was still legitimately waiting on the code relay. Since the
+  // failed check runs before the OTP branch, that yanked the code box away
+  // before the patient had any chance to use it. The hook must not even be
+  // queried with the real reference while awaitingOtp is true — simulated
+  // here by seeding a "failed" status for that reference and confirming
+  // it's never surfaced while the OTP box is up.
+  it("never shows Payment failed while awaitingOtp is true, even if the (unqueried) status would read failed", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    paymentStatusByReference.set("ref_otp", { status: "failed" });
+    initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
+      onSuccess({ reference: "ref_otp", displayMessage: "Enter the code sent to your phone.", awaitingOtp: true });
+    });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+    payNow();
+
+    expect(screen.getByPlaceholderText(/enter code/i)).toBeInTheDocument();
+    expect(screen.queryByText(/payment failed/i)).not.toBeInTheDocument();
+  });
+
   it("submits the entered code and falls through to the polling spinner on success", () => {
     quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
     initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
