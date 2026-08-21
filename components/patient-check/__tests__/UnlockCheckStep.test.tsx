@@ -144,6 +144,43 @@ describe("UnlockCheckStep — quota lookup failure doesn't strand the patient on
   });
 });
 
+// Regression coverage: this is the actual production incident — a live
+// self-check payment crashed with React error #185 (max update depth) on
+// every successful payment. Root cause: onUnlocked is a prop, and its real
+// owner (app/check/new/page.tsx) recreates that callback on every render,
+// including the very re-render calling it triggers (createCheck.isPending
+// flips the instant .mutate() runs, and that's also passed down as
+// `unlocking`). Without a guard, the effect below re-fires every time that
+// unstable reference changes, and since the success condition never stops
+// being true, it kept calling onUnlocked again — a tight, self-sustaining
+// loop. This must hold regardless of what the parent does, so the test
+// drives it by re-rendering with a brand-new callback each time, exactly
+// like the real unmemoized parent does.
+describe("UnlockCheckStep — onUnlocked fires exactly once per successful payment", () => {
+  it("never calls onUnlocked again after success, even if the parent passes a new callback reference on every re-render", async () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    pendingPaymentLookup = { isSuccess: true, data: { reference: "ref_success", awaitingOtp: false } };
+    paymentStatusByReference.set("ref_success", { status: "success" });
+
+    const onUnlocked1 = vi.fn();
+    const { rerender } = render(<UnlockCheckStep onUnlocked={onUnlocked1} unlocking={false} phone="0244123456" />);
+
+    await waitFor(() => expect(onUnlocked1).toHaveBeenCalledTimes(1));
+
+    // Simulate the parent re-rendering with a brand-new callback reference —
+    // exactly what the real, unmemoized handleUnlocked does on every render
+    // triggered by createCheck.isPending changing.
+    const onUnlocked2 = vi.fn();
+    rerender(<UnlockCheckStep onUnlocked={onUnlocked2} unlocking={true} phone="0244123456" />);
+    const onUnlocked3 = vi.fn();
+    rerender(<UnlockCheckStep onUnlocked={onUnlocked3} unlocking={false} phone="0244123456" />);
+
+    expect(onUnlocked1).toHaveBeenCalledTimes(1);
+    expect(onUnlocked2).not.toHaveBeenCalled();
+    expect(onUnlocked3).not.toHaveBeenCalled();
+  });
+});
+
 // Regression coverage: this component's own step/paymentReference state
 // doesn't survive a reload (the wizard resets to "signin" either way), so
 // without this, a patient who reloads mid-payment sees the payment form

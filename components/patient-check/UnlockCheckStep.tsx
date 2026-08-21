@@ -95,8 +95,19 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
     }
   }
 
+  // Regression coverage: onUnlocked is a prop, and its owner (app/check/new/
+  // page.tsx) recreates the callback on every render — including the
+  // re-render `onUnlocked` itself triggers by calling createCheck.mutate(),
+  // which flips createCheck.isPending (also passed down as `unlocking`).
+  // Without this guard, that unstable reference makes this effect re-fire
+  // on every one of those re-renders, and since the success condition below
+  // never stops being true, it kept calling onUnlocked (mutate()) again —
+  // each call triggering another re-render — a tight, self-sustaining loop
+  // that crashed with React error #185 on every real successful payment.
+  const hasUnlockedRef = useRef(false);
   useEffect(() => {
-    if (subStep === "paying" && paymentStatus.data?.status === "success") {
+    if (subStep === "paying" && paymentStatus.data?.status === "success" && !hasUnlockedRef.current) {
+      hasUnlockedRef.current = true;
       onUnlocked(phone);
     }
   }, [subStep, paymentStatus.data?.status, phone, onUnlocked]);
