@@ -288,7 +288,20 @@ export default function BillingPage() {
               <Notice tone="safe" icon={ShieldCheck}>
                 Active until {subscription.data?.periodEnd ? new Date(subscription.data.periodEnd).toLocaleDateString() : "—"}.
               </Notice>
-              <Button size="lg" className="w-full" onClick={() => router.push(ROLE_HOME_ROUTE[role])}>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={async () => {
+                  // Force a fresh read on the SAME query key SubscriptionGuard
+                  // reads on the destination page (["subscriptionStatus",
+                  // product], shared across the whole app's QueryClient)
+                  // before navigating — removes any window where the guard's
+                  // own mount could observe a stale/not-yet-active cached
+                  // value and bounce straight back here.
+                  await subscription.refetch();
+                  router.push(ROLE_HOME_ROUTE[role]);
+                }}
+              >
                 Continue to {PRODUCT_LABEL[product]}
               </Button>
             </div>

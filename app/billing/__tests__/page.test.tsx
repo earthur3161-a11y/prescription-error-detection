@@ -5,9 +5,11 @@ const showToastMock = vi.fn();
 const initiatePaymentMock = vi.fn();
 const submitOtpMock = vi.fn();
 
+const subscriptionRefetchMock = vi.fn().mockResolvedValue({});
 const subscriptionState = {
   isLoading: false,
   data: { isActive: false, periodEnd: null } as { isActive: boolean; periodEnd: string | null } | undefined,
+  refetch: subscriptionRefetchMock,
 };
 const paymentStatusByReference = new Map<string, { status: "pending" | "success" | "failed" }>();
 let paymentTimedOut = false;
@@ -17,8 +19,10 @@ let pendingPaymentLookup: { isSuccess: boolean; data: { reference: string; await
   data: null,
 };
 
+const routerPushMock = vi.fn();
+const routerReplaceMock = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useRouter: () => ({ replace: routerReplaceMock, push: routerPushMock }),
 }));
 
 vi.mock("@/lib/store/toast-store", () => ({
@@ -165,6 +169,33 @@ describe("BillingPage — payment state is derived, not manually reset", () => {
     render(<BillingPage />);
     expect(screen.getByText(/active until/i)).toBeInTheDocument();
     expect(showToastMock).not.toHaveBeenCalled();
+  });
+
+  // Regression coverage: SubscriptionGuard reads the exact same
+  // ["subscriptionStatus", product] query cache on the destination page.
+  // "Continue" used to navigate immediately on click, leaving a window
+  // where the guard's own mount could observe a stale cached value and
+  // bounce straight back to /billing. Forcing a refetch first (and
+  // awaiting it) before navigating closes that window.
+  it("refetches subscription status before navigating when Continue is clicked", async () => {
+    subscriptionState.data = { isActive: true, periodEnd: "2027-01-01T00:00:00Z" };
+    let resolveRefetch: (() => void) | undefined;
+    subscriptionRefetchMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRefetch = () => resolve({});
+        })
+    );
+
+    render(<BillingPage />);
+    fireEvent.click(screen.getByRole("button", { name: /continue to/i }));
+
+    expect(subscriptionRefetchMock).toHaveBeenCalledTimes(1);
+    // Must not navigate until the refetch actually resolves.
+    expect(routerPushMock).not.toHaveBeenCalled();
+
+    resolveRefetch?.();
+    await waitFor(() => expect(routerPushMock).toHaveBeenCalledWith("/dashboard"));
   });
 });
 
