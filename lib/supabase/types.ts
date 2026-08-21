@@ -206,6 +206,9 @@ export type CheckPaymentRow = {
   consumed: boolean;
   created_at: string;
   verified_at: string | null;
+  /** Paystack's "send_otp" charge state — see lib/payments/paystackCharge.ts. */
+  awaiting_otp: boolean;
+  otp_submit_attempts: number;
 };
 
 export type SubscriptionProduct = "physician_portal" | "pharmacy_portal";
@@ -236,6 +239,9 @@ export type SubscriptionPaymentRow = {
   status: SubscriptionPaymentStatus;
   created_at: string;
   verified_at: string | null;
+  /** Paystack's "send_otp" charge state — see lib/payments/paystackCharge.ts. */
+  awaiting_otp: boolean;
+  otp_submit_attempts: number;
 };
 
 export type InstitutionStatus = "active" | "suspended";
@@ -552,7 +558,7 @@ export type Database = {
       };
       find_pending_check_payment: {
         Args: { p_phone: string };
-        Returns: { provider_reference: string }[];
+        Returns: { provider_reference: string; awaiting_otp: boolean }[];
       };
       create_patient_feedback_report: {
         Args: { p_patient_check_id: string | null; p_message: string };

@@ -62,10 +62,37 @@ export async function POST(request: Request) {
     return Response.json({ status: paymentRow.status });
   }
 
-  const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-    headers: { Authorization: `Bearer ${secretKey}` },
-  });
-  const verifyBody = (await verifyRes.json()) as { data?: { status?: string } };
+  let verifyRes: Response;
+  let verifyBody: { data?: { status?: string }; message?: string; code?: string } = {};
+
+  try {
+    verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    verifyBody = (await verifyRes.json()) as { data?: { status?: string }; message?: string; code?: string };
+  } catch (err) {
+    console.error("[payments/verify] Failed to verify with Paystack:", err);
+    // Timeout or network error — genuinely can't determine status, still pending
+    return Response.json({ status: "pending" });
+  }
+
+  if (!verifyRes.ok) {
+    console.error("[payments/verify] Paystack verify returned HTTP", verifyRes.status, verifyBody);
+    // Transient error (5xx) or rate limit (429) — tell client to retry
+    if (verifyRes.status >= 500 || verifyRes.status === 429) {
+      return Response.json({ status: "pending" });
+    }
+    // Same "transaction_not_found" case as subscriptions/verify — Paystack
+    // returns HTTP 400 (not 404) for a reference it has no record of at all.
+    // Definitive, permanent failure.
+    if (verifyBody.code === "transaction_not_found") {
+      await resolveCheckPayment(reference, false);
+      return Response.json({ status: "failed" });
+    }
+    return Response.json({ status: "pending" });
+  }
+
   const paystackStatus = verifyBody.data?.status;
 
   if (paystackStatus === "success") {
@@ -73,6 +100,7 @@ export async function POST(request: Request) {
     return Response.json({ status: "success" });
   }
   if (paystackStatus === "failed" || paystackStatus === "abandoned" || paystackStatus === "reversed") {
+    console.warn(`[payments/verify] Marking ${reference} failed — Paystack reported:`, verifyBody.data);
     await resolveCheckPayment(reference, false);
     return Response.json({ status: "failed" });
   }

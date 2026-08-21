@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 import type { Database } from "@/lib/supabase/types";
 import { toE164Gh } from "@/lib/utils/phone";
+import { initiatePaystackMobileMoneyCharge } from "@/lib/payments/paystackCharge";
 
 type CheckPaymentInsert = Database["public"]["Tables"]["check_payments"]["Insert"];
 
@@ -10,115 +11,6 @@ const bodySchema = z.object({
   phone: z.string().min(6),
   provider: z.enum(["mtn", "vod", "atl"]),
 });
-
-interface PaystackInitializeResponse {
-  status: boolean;
-  message: string;
-  data?: {
-    authorization_url: string;
-    access_code: string;
-    reference: string;
-  };
-}
-
-interface PaystackChargeResponse {
-  status?: boolean;
-  message?: string;
-  data?: {
-    reference?: string;
-    status?: string;
-    authorization_url?: string;
-  };
-}
-
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 500;
-
-async function initializeCheckPayment(
-  secretKey: string,
-  email: string,
-  amount: number,
-  phone: string,
-  provider: string
-): Promise<{ reference: string; authorizationUrl: string } | null> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      // Try charge endpoint first for immediate Mobile Money prompt
-      const chargeRes = await fetch("https://api.paystack.co/charge", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          amount,
-          currency: "GHS",
-          mobile_money: { phone, provider },
-        }),
-      });
-
-      const chargeBody = (await chargeRes.json()) as PaystackChargeResponse;
-
-      if (chargeRes.ok && chargeBody.status && chargeBody.data?.reference) {
-        console.log("[payments/initiate] Mobile Money charge initiated for reference:", chargeBody.data.reference);
-        return {
-          reference: chargeBody.data.reference,
-          authorizationUrl: chargeBody.data.authorization_url ?? "",
-        };
-      }
-
-      // If charge endpoint fails, try initialize endpoint
-      if (!chargeRes.ok || !chargeBody.status) {
-        console.warn("[payments/initiate] Charge endpoint failed, trying initialize:", chargeBody.message);
-
-        const initRes = await fetch("https://api.paystack.co/transaction/initialize", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${secretKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            amount,
-            currency: "GHS",
-            channels: ["mobile_money"],
-          }),
-        });
-
-        const initBody = (await initRes.json()) as PaystackInitializeResponse;
-
-        if (initRes.ok && initBody.status && initBody.data?.reference && initBody.data?.authorization_url) {
-          console.log(
-            "[payments/initiate] Transaction initialized with authorization URL for reference:",
-            initBody.data.reference
-          );
-          return {
-            reference: initBody.data.reference,
-            authorizationUrl: initBody.data.authorization_url,
-          };
-        }
-
-        lastError = new Error(initBody.message ?? chargeBody.message ?? "Payment initialization failed");
-        if (attempt < MAX_RETRIES) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-          continue;
-        }
-        break;
-      }
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      if (attempt < MAX_RETRIES) {
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-      }
-    }
-  }
-
-  console.error("[payments/initiate] Payment initialization failed after retries:", lastError);
-  return null;
-}
 
 export async function POST(request: Request) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -171,7 +63,14 @@ export async function POST(request: Request) {
   const normalizedForEmail = phone.replace(/[^\d]/g, "");
   const syntheticEmail = `${normalizedForEmail}@checkout.mediguard.app`;
 
-  const paystackResult = await initializeCheckPayment(secretKey, syntheticEmail, amountPesewas, phone, provider);
+  const paystackResult = await initiatePaystackMobileMoneyCharge(
+    secretKey,
+    syntheticEmail,
+    amountPesewas,
+    phone,
+    provider,
+    "[payments/initiate]"
+  );
 
   if (!paystackResult) {
     return Response.json(
@@ -186,6 +85,7 @@ export async function POST(request: Request) {
     provider: "paystack",
     provider_reference: paystackResult.reference,
     status: "pending",
+    awaiting_otp: paystackResult.awaitingOtp,
   };
   const { error: insertError } = await supabaseService.from("check_payments").insert(insert);
   if (insertError) {
@@ -196,8 +96,7 @@ export async function POST(request: Request) {
   return Response.json({
     reference: paystackResult.reference,
     authorizationUrl: paystackResult.authorizationUrl,
-    displayMessage: paystackResult.authorizationUrl
-      ? "Opening payment page..."
-      : "Payment prompt sent to your phone. Check your messages.",
+    awaitingOtp: paystackResult.awaitingOtp,
+    displayMessage: paystackResult.displayMessage,
   });
 }

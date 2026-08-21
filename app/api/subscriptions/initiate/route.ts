@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseService } from "@/lib/supabase/serviceClient";
 import type { Database } from "@/lib/supabase/types";
 import { toE164Gh } from "@/lib/utils/phone";
+import { initiatePaystackMobileMoneyCharge } from "@/lib/payments/paystackCharge";
 
 type SubscriptionPaymentInsert = Database["public"]["Tables"]["subscription_payments"]["Insert"];
 
@@ -22,116 +23,6 @@ const PRODUCT_PRICE_ENV: Record<"physician_portal" | "pharmacy_portal", string> 
 };
 
 const PERIOD_DAYS = 30;
-
-const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 500;
-
-interface PaystackInitializeResponse {
-  status: boolean;
-  message: string;
-  data?: {
-    authorization_url: string;
-    access_code: string;
-    reference: string;
-  };
-}
-
-interface PaystackChargeResponse {
-  status?: boolean;
-  message?: string;
-  data?: {
-    reference?: string;
-    status?: string;
-    authorization_url?: string;
-  };
-}
-
-async function initializePaystackTransaction(
-  secretKey: string,
-  email: string,
-  amount: number,
-  phone: string,
-  provider: string
-): Promise<{ reference: string; authorizationUrl: string } | null> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      // Try charge endpoint first for immediate Mobile Money prompt
-      const chargeRes = await fetch("https://api.paystack.co/charge", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          amount,
-          currency: "GHS",
-          mobile_money: { phone, provider },
-        }),
-      });
-
-      const chargeBody = (await chargeRes.json()) as PaystackChargeResponse;
-
-      if (chargeRes.ok && chargeBody.status && chargeBody.data?.reference) {
-        // Charge endpoint worked - payment prompt is being sent to user's phone
-        console.log("[subscriptions/initiate] Mobile Money charge initiated for reference:", chargeBody.data.reference);
-        return {
-          reference: chargeBody.data.reference,
-          authorizationUrl: "",
-        };
-      }
-
-      // If charge endpoint fails, try initialize endpoint for authorization URL
-      if (!chargeRes.ok || !chargeBody.status) {
-        console.warn("[subscriptions/initiate] Charge endpoint failed, trying initialize:", chargeBody.message);
-
-        const initRes = await fetch("https://api.paystack.co/transaction/initialize", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${secretKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            amount,
-            currency: "GHS",
-            channels: ["mobile_money"],
-          }),
-        });
-
-        const initBody = (await initRes.json()) as PaystackInitializeResponse;
-
-        if (initRes.ok && initBody.status && initBody.data?.reference && initBody.data?.authorization_url) {
-          console.log(
-            "[subscriptions/initiate] Transaction initialized with authorization URL for reference:",
-            initBody.data.reference
-          );
-          return {
-            reference: initBody.data.reference,
-            authorizationUrl: initBody.data.authorization_url,
-          };
-        }
-
-        lastError = new Error(initBody.message ?? chargeBody.message ?? "Paystack payment initialization failed");
-        if (attempt < MAX_RETRIES) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-          continue;
-        }
-        break;
-      }
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      if (attempt < MAX_RETRIES) {
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (attempt + 1)));
-      }
-    }
-  }
-
-  console.error("[subscriptions/initiate] Paystack payment initialization failed after retries:", lastError);
-  return null;
-}
 
 export async function POST(request: Request) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -213,15 +104,16 @@ export async function POST(request: Request) {
       );
       const { data: oldPayment } = await supabaseService
         .from("subscription_payments")
-        .select("provider_reference")
+        .select("provider_reference, awaiting_otp")
         .eq("id", oldestReference.id)
         .maybeSingle();
 
       return Response.json(
         {
           error: "payment_in_progress",
-          message: "A payment is already in progress. Please wait a few moments and try again.",
+          message: "A payment is already in progress.",
           reference: oldPayment?.provider_reference ?? undefined,
+          awaitingOtp: oldPayment?.awaiting_otp ?? false,
         },
         { status: 409 }
       );
@@ -237,7 +129,14 @@ export async function POST(request: Request) {
 
   const email = callerData.user.email ?? `${callerData.user.id}@subscriber.mediguard.app`;
 
-  const paystackResult = await initializePaystackTransaction(secretKey, email, amountPesewas, phone, provider);
+  const paystackResult = await initiatePaystackMobileMoneyCharge(
+    secretKey,
+    email,
+    amountPesewas,
+    phone,
+    provider,
+    "[subscriptions/initiate]"
+  );
 
   if (!paystackResult) {
     return Response.json(
@@ -254,6 +153,7 @@ export async function POST(request: Request) {
     provider: "paystack",
     provider_reference: paystackResult.reference,
     status: "pending",
+    awaiting_otp: paystackResult.awaitingOtp,
   };
   const { error: insertError } = await supabaseService.from("subscription_payments").insert(insert);
   if (insertError) {
@@ -264,8 +164,7 @@ export async function POST(request: Request) {
   return Response.json({
     reference: paystackResult.reference,
     authorizationUrl: paystackResult.authorizationUrl,
-    displayMessage: paystackResult.authorizationUrl
-      ? "Opening payment page..."
-      : "Payment prompt sent to your phone. Check your messages.",
+    awaitingOtp: paystackResult.awaitingOtp,
+    displayMessage: paystackResult.displayMessage,
   });
 }

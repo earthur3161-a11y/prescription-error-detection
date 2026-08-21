@@ -6,6 +6,7 @@ import {
   getMySubscriptionStatus,
   getSubscriptionPaymentStatus,
   initiateSubscriptionPayment,
+  submitSubscriptionOtp,
 } from "../../data/repositories/subscriptionRepository";
 import type { SubscriptionProduct } from "../../supabase/types";
 
@@ -26,6 +27,10 @@ export function useSubscriptionStatus(product: SubscriptionProduct | null, polli
 
 export function useInitiateSubscriptionPayment() {
   return useMutation({ mutationFn: initiateSubscriptionPayment });
+}
+
+export function useSubmitSubscriptionOtp() {
+  return useMutation({ mutationFn: submitSubscriptionOtp });
 }
 
 /** Polls the payment's own status until it resolves, then stops — same shape/convention as useCheckQuota.ts's usePaymentStatus, over subscription_payments instead of check_payments. */

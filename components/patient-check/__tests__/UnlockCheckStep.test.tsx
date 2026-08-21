@@ -9,9 +9,11 @@ const quotaState = {
 };
 const paymentStatusByReference = new Map<string, { status: "pending" | "success" | "failed" }>();
 const initiatePaymentMock = vi.fn();
+const submitOtpMock = vi.fn();
+let submitOtpPending = false;
 // Defaults to "checked, nothing pending" — the common case for a fresh
 // payment attempt. Tests exercising the resume-after-reload path override this.
-let pendingPaymentLookup: { isSuccess: boolean; data: string | null | undefined } = {
+let pendingPaymentLookup: { isSuccess: boolean; data: { reference: string; awaitingOtp: boolean } | null | undefined } = {
   isSuccess: true,
   data: null,
 };
@@ -23,6 +25,7 @@ vi.mock("@/lib/store/toast-store", () => ({
 vi.mock("@/lib/query/hooks/useCheckQuota", () => ({
   useCheckQuota: () => quotaState,
   useInitiatePayment: () => ({ mutate: initiatePaymentMock, isPending: false }),
+  useSubmitCheckOtp: () => ({ mutate: submitOtpMock, isPending: submitOtpPending }),
   usePaymentStatus: (reference: string | null) => ({
     data: reference ? paymentStatusByReference.get(reference) : undefined,
   }),
@@ -37,6 +40,7 @@ afterEach(() => {
   paymentStatusByReference.clear();
   quotaState.data = undefined;
   quotaState.isError = false;
+  submitOtpPending = false;
   pendingPaymentLookup = { isSuccess: true, data: null };
 });
 
@@ -147,13 +151,28 @@ describe("UnlockCheckStep — quota lookup failure doesn't strand the patient on
 describe("UnlockCheckStep — resumes a payment already in flight from a previous page load", () => {
   it("jumps straight to the pending-payment screen when one is found for this phone", async () => {
     quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
-    pendingPaymentLookup = { isSuccess: true, data: "ref_resumed" };
+    pendingPaymentLookup = { isSuccess: true, data: { reference: "ref_resumed", awaitingOtp: false } };
     paymentStatusByReference.set("ref_resumed", { status: "pending" });
 
     render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
 
     await waitFor(() => expect(screen.getByText(/check your phone/i)).toBeInTheDocument());
     expect(initiatePaymentMock).not.toHaveBeenCalled();
+  });
+
+  // Regression coverage: the resume path used to only restore the
+  // reference, never awaitingOtp — a payment resumed from a reload while
+  // genuinely mid-OTP fell into the plain polling spinner with no way to
+  // enter the code the patient already received.
+  it("resumes straight into the OTP step when the pending payment was awaiting a code", async () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    pendingPaymentLookup = { isSuccess: true, data: { reference: "ref_otp_resumed", awaitingOtp: true } };
+    paymentStatusByReference.set("ref_otp_resumed", { status: "pending" });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+
+    await waitFor(() => expect(screen.getByPlaceholderText(/enter code/i)).toBeInTheDocument());
+    expect(screen.queryByText(/check your phone/i)).not.toBeInTheDocument();
   });
 
   it("shows the normal pay form when the lookup finds nothing pending", () => {
@@ -163,5 +182,116 @@ describe("UnlockCheckStep — resumes a payment already in flight from a previou
     render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
 
     expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument();
+  });
+});
+
+// Regression coverage for the missing OTP relay step: Paystack's Mobile
+// Money "send_otp" flow (lib/payments/paystackCharge.ts) doesn't complete
+// until the code the patient received is submitted back via
+// useSubmitCheckOtp. Before this, initiate's awaitingOtp flag was never
+// read at all, so the patient had no way to enter that code.
+describe("UnlockCheckStep — OTP relay for Paystack's send_otp Mobile Money flow", () => {
+  function payNow() {
+    fireEvent.click(screen.getByRole("button", { name: /pay ghs/i }));
+  }
+
+  it("shows an OTP input instead of the spinner when initiate reports awaitingOtp", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
+      paymentStatusByReference.set("ref_otp", { status: "pending" });
+      onSuccess({ reference: "ref_otp", displayMessage: "Enter the code sent to your phone.", awaitingOtp: true });
+    });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+    payNow();
+
+    expect(screen.getByText(/enter the code sent to your phone/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/enter code/i)).toBeInTheDocument();
+  });
+
+  it("submits the entered code and falls through to the polling spinner on success", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
+      paymentStatusByReference.set("ref_otp", { status: "pending" });
+      onSuccess({ reference: "ref_otp", displayMessage: "Enter the code sent to your phone.", awaitingOtp: true });
+    });
+    submitOtpMock.mockImplementation((_params, { onSuccess }) => {
+      onSuccess({ ok: true, message: "Code accepted." });
+    });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+    payNow();
+    fireEvent.change(screen.getByPlaceholderText(/enter code/i), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit code/i }));
+
+    expect(submitOtpMock).toHaveBeenCalledWith(
+      { reference: "ref_otp", otp: "123456" },
+      expect.anything()
+    );
+    expect(screen.queryByPlaceholderText(/enter code/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/check your phone/i)).toBeInTheDocument();
+  });
+
+  it("shows the error message and keeps the OTP form open when the code is rejected", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
+      paymentStatusByReference.set("ref_otp", { status: "pending" });
+      onSuccess({ reference: "ref_otp", displayMessage: "Enter the code sent to your phone.", awaitingOtp: true });
+    });
+    submitOtpMock.mockImplementation((_params, { onSuccess }) => {
+      onSuccess({ ok: false, message: "That code wasn't accepted. Please try again." });
+    });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+    payNow();
+    fireEvent.change(screen.getByPlaceholderText(/enter code/i), { target: { value: "000000" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit code/i }));
+
+    expect(screen.getByText(/that code wasn.t accepted/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/enter code/i)).toBeInTheDocument();
+  });
+
+  // Regression coverage: unlike the sibling billing/page.test.tsx, this
+  // file never actually clicked the Cancel button next to Submit code — the
+  // only escape hatch from a stuck/wrong-code entry in the patient-facing
+  // flow was completely unverified.
+  it("Cancel from the OTP step returns to the plain pay form", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
+      paymentStatusByReference.set("ref_otp", { status: "pending" });
+      onSuccess({ reference: "ref_otp", displayMessage: "Enter the code sent to your phone.", awaitingOtp: true });
+    });
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+    payNow();
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.getByRole("button", { name: /pay ghs/i })).toBeInTheDocument();
+  });
+
+  // Regression coverage: useSubmitCheckOtp was mocked as a hardcoded
+  // { isPending: false } literal everywhere else in this file, so no test
+  // could ever exercise the Submit code button's disabled/spinner state —
+  // a regression dropping `submitOtp.isPending ||` from the disabled
+  // condition would still pass every test. submitOtpPending is mutable
+  // specifically so this test can flip it.
+  it("disables Submit code and shows a spinner while the OTP submission is in flight", () => {
+    quotaState.data = { freeRemaining: 0, paidAvailable: 0, phoneVerified: true };
+    initiatePaymentMock.mockImplementation((_params, { onSuccess }) => {
+      paymentStatusByReference.set("ref_otp", { status: "pending" });
+      onSuccess({ reference: "ref_otp", displayMessage: "Enter the code sent to your phone.", awaitingOtp: true });
+    });
+    submitOtpPending = true;
+
+    render(<UnlockCheckStep onUnlocked={vi.fn()} unlocking={false} phone="0244123456" />);
+    payNow();
+    fireEvent.change(screen.getByPlaceholderText(/enter code/i), { target: { value: "123456" } });
+
+    // Can't query by name "Submit code" here — the pending state swaps that
+    // text for a spinner icon, which is the whole thing being verified.
+    // Identify it by being the disabled button (Cancel never disables).
+    const submitButton = screen.getAllByRole("button").find((b) => b.hasAttribute("disabled"));
+    expect(submitButton).toBeDisabled();
+    expect(submitButton?.querySelector("svg")).toBeInTheDocument();
   });
 });

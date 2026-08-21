@@ -126,11 +126,23 @@ describe("POST /api/subscriptions/verify", () => {
     expect(resolveSubscriptionPaymentMock).not.toHaveBeenCalled();
   });
 
-  it("marks payment failed when Paystack returns 404 (reference not found)", async () => {
-    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+  // Paystack returns HTTP 400 (not 404) with code "transaction_not_found" for
+  // a reference it has no record of at all — this is the definitive,
+  // permanent-failure case.
+  it("marks payment failed when Paystack reports transaction_not_found", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({ code: "transaction_not_found" }) });
     const res = await POST(req({ reference: "ref_1" }));
     expect(resolveSubscriptionPaymentMock).toHaveBeenCalledWith("ref_1", false);
     expect(await res.json()).toEqual({ status: "failed" });
+  });
+
+  // Any other 4xx without that specific code is treated as transient —
+  // still pending, retry later — not a permanent failure.
+  it("returns pending for a 404 that isn't Paystack's transaction_not_found code", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({}) });
+    const res = await POST(req({ reference: "ref_1" }));
+    expect(resolveSubscriptionPaymentMock).not.toHaveBeenCalled();
+    expect(await res.json()).toEqual({ status: "pending" });
   });
 
   it("returns pending when Paystack verify request times out", async () => {

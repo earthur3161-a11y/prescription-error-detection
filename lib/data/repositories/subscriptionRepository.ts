@@ -32,7 +32,7 @@ export async function getMySubscriptionStatus(product: SubscriptionProduct): Pro
 export async function initiateSubscriptionPayment(params: {
   phone: string;
   provider: "mtn" | "vod" | "atl";
-}): Promise<{ reference: string; displayMessage: string; authorizationUrl?: string }> {
+}): Promise<{ reference: string; displayMessage: string; authorizationUrl?: string; awaitingOtp?: boolean }> {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("You need to be signed in to subscribe.");
@@ -47,17 +47,21 @@ export async function initiateSubscriptionPayment(params: {
     const body = await res.json();
 
     if (!res.ok) {
-      const errorMessage = body.message ?? "Couldn't start the payment.";
-      const reference = body.reference;
-
-      if (res.status === 409) {
-        if (reference) {
-          throw new Error(`Payment already in progress. Reference: ${reference}`);
-        }
-        throw new Error(errorMessage);
+      // A 409 with a reference means the caller already has a live payment
+      // in flight (the 5-minute idempotency guard in the route) — that's
+      // not really a failure to report, it's the exact same payment this
+      // call would otherwise have just resumed. Returning it through the
+      // normal success shape lets the caller (handlePay's onSuccess) pick
+      // back up on that live charge/OTP screen instead of dead-ending on a
+      // toast the user has no way to act on.
+      if (res.status === 409 && body.reference) {
+        return {
+          reference: body.reference,
+          awaitingOtp: !!body.awaitingOtp,
+          displayMessage: body.message ?? "A payment is already in progress.",
+        };
       }
-
-      throw new Error(errorMessage);
+      throw new Error(body.message ?? "Couldn't start the payment.");
     }
 
     return body;
@@ -117,6 +121,36 @@ export async function getSubscriptionPaymentStatus(
 }
 
 /**
+ * Relays the OTP the customer received (Paystack's "send_otp" Mobile Money
+ * flow — see lib/payments/paystackCharge.ts) back to Paystack via
+ * /api/subscriptions/submit-otp. Doesn't resolve the payment itself; the
+ * existing getSubscriptionPaymentStatus poll picks up the outcome once
+ * Paystack processes it.
+ */
+export async function submitSubscriptionOtp(params: { reference: string; otp: string }): Promise<{ ok: boolean; message: string }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("You need to be signed in to submit this code.");
+
+  try {
+    const res = await fetch("/api/subscriptions/submit-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.message ?? "Couldn't submit the code.");
+    return body;
+  } catch (err) {
+    if (err instanceof TypeError && err.message.includes("abort")) {
+      throw new Error("Submitting the code timed out. Please try again.");
+    }
+    throw err;
+  }
+}
+
+/**
  * Finds a still-pending payment for this product that the caller already
  * started, if any — lets billing/page.tsx resume polling/self-healing after
  * a refresh or a fresh sign-in, instead of only ever tracking the reference
@@ -126,15 +160,18 @@ export async function getSubscriptionPaymentStatus(
  * above — this one only ever reads the caller's own rows, nothing to
  * reconcile with Paystack.
  */
-export async function findPendingSubscriptionPayment(product: SubscriptionProduct): Promise<string | null> {
+export async function findPendingSubscriptionPayment(
+  product: SubscriptionProduct
+): Promise<{ reference: string; awaitingOtp: boolean } | null> {
   const { data, error } = await supabase
     .from("subscription_payments")
-    .select("provider_reference")
+    .select("provider_reference, awaiting_otp")
     .eq("product", product)
     .eq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return data?.provider_reference ?? null;
+  if (!data) return null;
+  return { reference: data.provider_reference, awaitingOtp: data.awaiting_otp };
 }

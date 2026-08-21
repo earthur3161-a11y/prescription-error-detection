@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
 import { Select } from "@/components/ui/Select";
 import { useToastStore } from "@/lib/store/toast-store";
@@ -11,6 +12,7 @@ import {
   useFindPendingCheckPayment,
   useInitiatePayment,
   usePaymentStatus,
+  useSubmitCheckOtp,
 } from "@/lib/query/hooks/useCheckQuota";
 import { usePaymentTimeout } from "@/lib/hooks/usePaymentTimeout";
 
@@ -50,6 +52,12 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [paymentMessage, setPaymentMessage] = useState<string>("");
+  // Set from initiate's awaitingOtp — Paystack's "send_otp" Mobile Money
+  // flow (see lib/payments/paystackCharge.ts): the charge won't complete
+  // until the code the patient received is relayed back via submitOtp.
+  const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
   // Synchronous re-entry guard for handlePay — see app/billing/page.tsx's
   // identical payingRef for why (iOS Safari's synthetic-click-plus-touchend
   // double-fire can outrace a React state-driven disabled attribute).
@@ -57,6 +65,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
 
   const quota = useCheckQuota(phone);
   const initiatePayment = useInitiatePayment();
+  const submitOtp = useSubmitCheckOtp();
   const paymentStatus = usePaymentStatus(subStep === "paying" ? paymentReference : null);
   const paymentTimedOut = usePaymentTimeout(subStep === "paying" && paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
@@ -73,7 +82,8 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
   if (!checkedForPendingPayment && pendingPayment.isSuccess && paymentReference === null) {
     setCheckedForPendingPayment(true);
     if (pendingPayment.data) {
-      setPaymentReference(pendingPayment.data);
+      setPaymentReference(pendingPayment.data.reference);
+      setAwaitingOtp(pendingPayment.data.awaitingOtp);
       setSubStep("paying");
     }
   }
@@ -93,6 +103,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
         onSuccess: (res) => {
           setPaymentReference(res.reference);
           setPaymentMessage(res.displayMessage);
+          setAwaitingOtp(!!res.awaitingOtp);
           setSubStep("paying");
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
           // If Paystack provides an authorization URL, redirect to it for payment
@@ -106,6 +117,37 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
         },
       }
     );
+  }
+
+  function handleSubmitOtp() {
+    if (!paymentReference || !otp.trim()) return;
+    setOtpError("");
+    submitOtp.mutate(
+      { reference: paymentReference, otp: otp.trim() },
+      {
+        onSuccess: (res) => {
+          if (res.ok) {
+            setAwaitingOtp(false);
+            setOtp("");
+            // Otherwise the stale "Enter the code..." prompt would stay on
+            // screen through the polling state that follows.
+            setPaymentMessage("");
+          } else {
+            setOtpError(res.message);
+          }
+        },
+        onError: (err: Error) => setOtpError(err.message),
+      }
+    );
+  }
+
+  // Shared by "Try again" after a detected failure/timeout — abandon this
+  // attempt and return to the pay form, clearing OTP state along with it.
+  function resetToPayForm() {
+    setSubStep("unlock");
+    setAwaitingOtp(false);
+    setOtp("");
+    setOtpError("");
   }
 
   // Checked before the loading guard below: quota.isFetching stays false and
@@ -196,8 +238,33 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
             The payment wasn&rsquo;t approved. Nothing was charged — you can try again.
           </p>
         </div>
-        <Button variant="secondary" className="w-full" onClick={() => setSubStep("unlock")}>
+        <Button variant="secondary" className="w-full" onClick={resetToPayForm}>
           Try again
+        </Button>
+      </div>
+    );
+  }
+
+  if (awaitingOtp) {
+    return (
+      <div className="space-y-4 text-center">
+        <h2 className="text-lg font-semibold text-foreground">{paymentMessage}</h2>
+        <Input
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          aria-label="Payment confirmation code"
+          placeholder="Enter code"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+          autoFocus
+        />
+        {otpError && <p className="text-sm text-caution-fg">{otpError}</p>}
+        <Button size="lg" className="w-full" onClick={handleSubmitOtp} disabled={submitOtp.isPending || !otp.trim()}>
+          {submitOtp.isPending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : "Submit code"}
+        </Button>
+        <Button variant="secondary" className="w-full" onClick={resetToPayForm}>
+          Cancel
         </Button>
       </div>
     );
@@ -215,7 +282,7 @@ export function UnlockCheckStep({ onUnlocked, unlocking, phone }: UnlockCheckSte
       {paymentTimedOut && (
         <div className="space-y-2">
           <p className="text-sm text-caution-fg">Didn&rsquo;t get the prompt?</p>
-          <Button variant="secondary" className="w-full" onClick={() => setSubStep("unlock")}>
+          <Button variant="secondary" className="w-full" onClick={resetToPayForm}>
             Try again
           </Button>
         </div>

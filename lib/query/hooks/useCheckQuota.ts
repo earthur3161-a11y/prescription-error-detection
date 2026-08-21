@@ -6,6 +6,7 @@ import {
   getCheckQuota,
   getPaymentStatus,
   initiatePayment,
+  submitCheckOtp,
 } from "../../data/repositories/checkQuotaRepository";
 
 export function useCheckQuota(phone: string | null) {
@@ -19,6 +20,12 @@ export function useCheckQuota(phone: string | null) {
 export function useInitiatePayment() {
   return useMutation({
     mutationFn: initiatePayment,
+  });
+}
+
+export function useSubmitCheckOtp() {
+  return useMutation({
+    mutationFn: submitCheckOtp,
   });
 }
 

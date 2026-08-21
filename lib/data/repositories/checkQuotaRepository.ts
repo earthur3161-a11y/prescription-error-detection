@@ -20,7 +20,7 @@ export async function getCheckQuota(phone: string): Promise<CheckQuota> {
 export async function initiatePayment(params: {
   phone: string;
   provider: "mtn" | "vod" | "atl";
-}): Promise<{ reference: string; displayMessage: string; authorizationUrl?: string }> {
+}): Promise<{ reference: string; displayMessage: string; authorizationUrl?: string; awaitingOtp?: boolean }> {
   const res = await fetch("/api/payments/initiate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,6 +28,24 @@ export async function initiatePayment(params: {
   });
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? "Couldn't start the payment.");
+  return body;
+}
+
+/**
+ * Relays the OTP the customer received (Paystack's "send_otp" Mobile Money
+ * flow — see lib/payments/paystackCharge.ts) back to Paystack via
+ * /api/payments/submit-otp. Doesn't resolve the payment itself; the
+ * existing getPaymentStatus poll picks up the outcome once Paystack
+ * processes it.
+ */
+export async function submitCheckOtp(params: { reference: string; otp: string }): Promise<{ ok: boolean; message: string }> {
+  const res = await fetch("/api/payments/submit-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message ?? "Couldn't submit the code.");
   return body;
 }
 
@@ -61,8 +79,10 @@ export async function getPaymentStatus(reference: string): Promise<{ status: "pe
  * already uses (the phone number itself, OTP-verified earlier in the flow,
  * is the credential).
  */
-export async function findPendingCheckPayment(phone: string): Promise<string | null> {
+export async function findPendingCheckPayment(phone: string): Promise<{ reference: string; awaitingOtp: boolean } | null> {
   const { data, error } = await supabase.rpc("find_pending_check_payment", { p_phone: phone });
   if (error) throw error;
-  return data?.[0]?.provider_reference ?? null;
+  const row = data?.[0];
+  if (!row) return null;
+  return { reference: row.provider_reference, awaitingOtp: row.awaiting_otp };
 }

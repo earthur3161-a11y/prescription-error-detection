@@ -76,14 +76,14 @@ export async function POST(request: Request) {
   }
 
   let verifyRes: Response;
-  let verifyBody: { data?: { status?: string }; message?: string } = {};
+  let verifyBody: { data?: { status?: string }; message?: string; code?: string } = {};
 
   try {
     verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
       signal: AbortSignal.timeout(10000),
     });
-    verifyBody = (await verifyRes.json()) as { data?: { status?: string }; message?: string };
+    verifyBody = (await verifyRes.json()) as { data?: { status?: string }; message?: string; code?: string };
   } catch (err) {
     console.error("[subscriptions/verify] Failed to verify with Paystack:", err);
     // Timeout or network error — genuinely can't determine status, still pending
@@ -96,8 +96,12 @@ export async function POST(request: Request) {
     if (verifyRes.status >= 500 || verifyRes.status === 429) {
       return Response.json({ status: "pending" });
     }
-    // Client error like 404 (reference doesn't exist) — treat as failed
-    if (verifyRes.status === 404) {
+    // Paystack returns HTTP 400 (not 404) with code "transaction_not_found"
+    // for a reference it has no record of at all — e.g. the charge call that
+    // created this row never actually reached Paystack, or was made against a
+    // different key/mode. That's a definitive, permanent failure, not a
+    // transient one — never was, never will be a real pending charge.
+    if (verifyBody.code === "transaction_not_found") {
       await resolveSubscriptionPayment(reference, false);
       return Response.json({ status: "failed" });
     }
@@ -112,6 +116,11 @@ export async function POST(request: Request) {
     return Response.json({ status: "success" });
   }
   if (paystackStatus === "failed" || paystackStatus === "abandoned" || paystackStatus === "reversed") {
+    // Logged in full (not just the status string) because this is the only
+    // place a real Mobile Money decline surfaces — the "Payment failed" the
+    // customer sees comes straight from this branch, and gateway_response/
+    // message are usually the only clue why Paystack/the telco declined it.
+    console.warn(`[subscriptions/verify] Marking ${reference} failed — Paystack reported:`, verifyBody.data);
     await resolveSubscriptionPayment(reference, false);
     return Response.json({ status: "failed" });
   }

@@ -15,6 +15,7 @@ import { useToastStore } from "@/lib/store/toast-store";
 import {
   useFindPendingSubscriptionPayment,
   useInitiateSubscriptionPayment,
+  useSubmitSubscriptionOtp,
   useSubscriptionPaymentStatus,
   useSubscriptionStatus,
 } from "@/lib/query/hooks/useSubscriptionStatus";
@@ -63,6 +64,12 @@ export default function BillingPage() {
 
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [paymentMessage, setPaymentMessage] = useState<string>("");
+  // Set from initiate's awaitingOtp — Paystack's "send_otp" Mobile Money
+  // flow (see lib/payments/paystackCharge.ts): the charge won't complete
+  // until the code the customer received is relayed back via submitOtp.
+  const [awaitingOtp, setAwaitingOtp] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
   const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<MobileMoneyProvider>("mtn");
   // Synchronous re-entry guard for handlePay — iOS Safari has a documented
@@ -85,7 +92,10 @@ export default function BillingPage() {
   const [checkedForPendingPayment, setCheckedForPendingPayment] = useState(false);
   if (!checkedForPendingPayment && pendingPayment.isSuccess && paymentReference === null) {
     setCheckedForPendingPayment(true);
-    if (pendingPayment.data) setPaymentReference(pendingPayment.data);
+    if (pendingPayment.data) {
+      setPaymentReference(pendingPayment.data.reference);
+      setAwaitingOtp(pendingPayment.data.awaitingOtp);
+    }
   }
 
   // Distinct from `subscription` below: that only ever tells us "active" or
@@ -102,6 +112,7 @@ export default function BillingPage() {
   const isPaying = paymentReference !== null && paymentStatus.data?.status !== "success";
   const subscription = useSubscriptionStatus(product ?? null, isPaying);
   const initiatePayment = useInitiateSubscriptionPayment();
+  const submitOtp = useSubmitSubscriptionOtp();
   const paymentTimedOut = usePaymentTimeout(paymentStatus.data?.status === "pending", PAYMENT_TIMEOUT_MS);
 
   useEffect(() => {
@@ -140,6 +151,7 @@ export default function BillingPage() {
         onSuccess: (res) => {
           setPaymentReference(res.reference);
           setPaymentMessage(res.displayMessage);
+          setAwaitingOtp(!!res.awaitingOtp);
           showToast({ title: "Payment requested", description: res.displayMessage, variant: "default" });
           // If Paystack provides an authorization URL, redirect to it for payment
           if (res.authorizationUrl) {
@@ -154,6 +166,28 @@ export default function BillingPage() {
     );
   }
 
+  function handleSubmitOtp() {
+    if (!paymentReference || !otp.trim()) return;
+    setOtpError("");
+    submitOtp.mutate(
+      { reference: paymentReference, otp: otp.trim() },
+      {
+        onSuccess: (res) => {
+          if (res.ok) {
+            setAwaitingOtp(false);
+            setOtp("");
+            // Otherwise the stale "Enter the code..." prompt would stay on
+            // screen through the polling state that follows.
+            setPaymentMessage("");
+          } else {
+            setOtpError(res.message);
+          }
+        },
+        onError: (err: Error) => setOtpError(err.message),
+      }
+    );
+  }
+
   // Shared by "Cancel" (immediate, user-initiated) and "Try again" (after a
   // detected failure or timeout) — both mean the same thing: abandon this
   // attempt and return to the form. A fresh handlePay() call always gets a
@@ -162,6 +196,9 @@ export default function BillingPage() {
   function resetToForm() {
     setPaymentReference(null);
     setPaymentMessage("");
+    setAwaitingOtp(false);
+    setOtp("");
+    setOtpError("");
   }
 
   const isActive = subscription.data?.isActive ?? false;
@@ -257,6 +294,27 @@ export default function BillingPage() {
               </div>
               <Button variant="secondary" className="w-full" onClick={resetToForm}>
                 Try again
+              </Button>
+            </div>
+          ) : isPaying && awaitingOtp ? (
+            <div key="otp" className="animate-scale-in space-y-3 text-center">
+              <p className="text-sm font-medium text-foreground">{paymentMessage}</p>
+              <Input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-label="Payment confirmation code"
+                placeholder="Enter code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                autoFocus
+              />
+              {otpError && <p className="text-sm text-caution-fg">{otpError}</p>}
+              <Button size="lg" className="w-full" onClick={handleSubmitOtp} disabled={submitOtp.isPending || !otp.trim()}>
+                {submitOtp.isPending ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : "Submit code"}
+              </Button>
+              <Button variant="secondary" className="w-full" onClick={resetToForm}>
+                Cancel
               </Button>
             </div>
           ) : isPaying ? (
